@@ -17,6 +17,11 @@
 namespace wwjson
 {
 
+// Forward declarations
+struct RawJsonBuilder;
+struct RawJsonObject;
+struct RawJsonArray;
+
 /// Builder json string directlly without DOM by any lib.
 struct RawJsonBuilder
 {
@@ -340,29 +345,43 @@ struct RawJsonBuilder
             self.append(that.c_str() + 1, that.size() - 1);
         }
     }
+
+    /// Create a scoped RawJsonArray that auto-closes when destroyed
+    RawJsonArray ScopeArray(bool hasNext = false);
+    
+    /// Create a scoped RawJsonArray with key that auto-closes when destroyed
+    RawJsonArray ScopeArray(const char* pszKey, bool hasNext = false);
+    
+    /// Create a scoped RawJsonObject that auto-closes when destroyed
+    RawJsonObject ScopeObject(bool hasNext = false);
+    
+    /// Create a scoped RawJsonObject with key that auto-closes when destroyed
+    RawJsonObject ScopeObject(const char* pszKey, bool hasNext = false);
 };
 
 /// Auto open and close object {}
 struct RawJsonObject
 {
-    RawJsonBuilder& m_build;
-    bool m_next = false;
+private:
+    RawJsonBuilder& m_builder;
+    bool m_next;
 
-    RawJsonObject(RawJsonBuilder& build, bool hasNext = false) : m_build(build), m_next(hasNext)
+public:
+    RawJsonObject(RawJsonBuilder& build, bool hasNext = false) : m_builder(build), m_next(hasNext)
     {
-        m_build.BeginObject();
+        m_builder.BeginObject();
     }
-    RawJsonObject(RawJsonBuilder& build, const char* pszKey, bool hasNext = false) : m_build(build), m_next(hasNext)
+    RawJsonObject(RawJsonBuilder& build, const char* pszKey, bool hasNext = false) : m_builder(build), m_next(hasNext)
     {
-        m_build.PutKey(pszKey);
-        m_build.BeginObject();
+        m_builder.PutKey(pszKey);
+        m_builder.BeginObject();
     }
     ~RawJsonObject()
     {
-        m_build.EndObject();
+        m_builder.EndObject();
         if (m_next)
         {
-            m_build.SepItem();
+            m_builder.SepItem();
         }
     }
 
@@ -370,31 +389,33 @@ struct RawJsonObject
     template <typename... Args>
     void AddMember(Args&&... args)
     {
-        m_build.AddMember(std::forward<Args>(args)...);
+        m_builder.AddMember(std::forward<Args>(args)...);
     }
 };
 
 /// Auto open and close array[]
 struct RawJsonArray
 {
-    RawJsonBuilder& m_build;
-    bool m_next = false;
+private:
+    RawJsonBuilder& m_builder;
+    bool m_next;
 
-    RawJsonArray(RawJsonBuilder& build, bool hasNext = false) : m_build(build), m_next(hasNext)
+public:
+    RawJsonArray(RawJsonBuilder& build, bool hasNext = false) : m_builder(build), m_next(hasNext)
     {
-        m_build.BeginArray();
+        m_builder.BeginArray();
     }
-    RawJsonArray(RawJsonBuilder& build, const char* pszKey, bool hasNext = false) : m_build(build), m_next(hasNext)
+    RawJsonArray(RawJsonBuilder& build, const char* pszKey, bool hasNext = false) : m_builder(build), m_next(hasNext)
     {
-        m_build.PutKey(pszKey);
-        m_build.BeginArray();
+        m_builder.PutKey(pszKey);
+        m_builder.BeginArray();
     }
     ~RawJsonArray()
     {
-        m_build.EndArray();
+        m_builder.EndArray();
         if (m_next)
         {
-            m_build.SepItem();
+            m_builder.SepItem();
         }
     }
 
@@ -402,9 +423,30 @@ struct RawJsonArray
     template <typename... Args>
     void AddItem(Args&&... args)
     {
-        m_build.AddItem(std::forward<Args>(args)...);
+        m_builder.AddItem(std::forward<Args>(args)...);
     }
 };
+
+/// Add scope methods to RawJsonBuilder
+inline RawJsonArray RawJsonBuilder::ScopeArray(bool hasNext)
+{
+    return RawJsonArray(*this, hasNext);
+}
+
+inline RawJsonArray RawJsonBuilder::ScopeArray(const char* pszKey, bool hasNext)
+{
+    return RawJsonArray(*this, pszKey, hasNext);
+}
+
+inline RawJsonObject RawJsonBuilder::ScopeObject(bool hasNext)
+{
+    return RawJsonObject(*this, hasNext);
+}
+
+inline RawJsonObject RawJsonBuilder::ScopeObject(const char* pszKey, bool hasNext)
+{
+    return RawJsonObject(*this, pszKey, hasNext);
+}
 
 } /* end of wwjson:: */ 
 

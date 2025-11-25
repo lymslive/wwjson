@@ -21,7 +21,7 @@ cmake 系统规范，也该提供安装功能，方便其他项目使用 cmake �
 
 ### DONE: 20251125-112235
 
-## TODO:2025-11-25/2 调整单元测试及命令
+## TODO:2025-11-25/2 调整单元测试及命令配置
 
 - 将测试 `std::to_chars` 的用例移到 `t_experiment.cpp` 新文件
 - 迁移 xyjson 项目根目录的 makefile 配置开发命令，调整文件名路径
@@ -33,4 +33,64 @@ cmake 系统规范，也该提供安装功能，方便其他项目使用 cmake �
 
 ### DONE: 20251125~145323
 
+## TODO:2025-11-25/3 增加 scope 方法创建能自动关闭的数组或对象
 
+RawJsonBuilder 增加两个方法：
+- ScopeArray 创建 RawJsonArray，允许参数类似 BeginArray
+- ScopeObject 创建 RawJsonObject，允许参数类似 BeginObject
+
+这样，用户只需要记一个类名 RawJsonBuilder ，另两个衍生类可以用方法创建而用
+auto 接收。
+
+衍生类 RawJsonArray/RawJsonObject 其他优化：
+- 分析成员 `m_build` 的类型用指针还是引用更好？
+- `m_build` 与 `m_next` 改为 private 权限
+- `m_build` 改成 `m_builder`
+
+再优化相关单元测试：
+- 增加 `t_scope.cpp` 文件，将原来的 `basic_builder_nest` 移到这个新文件并改名
+  `scope_builder_nest`
+- 再增加一个测试用例，改用 auto 与 Scope 方法创建衍生类而不是构造函数
+
+### DONE: 20251125-162627
+
+## TODO: 模板化重构
+
+当前 json 序列化目标类型是 `std::string`，希望泛型化也支持其他库的自定义字符串
+类型，只要与 `std::string` 具有相同接口。
+
+- RawJsonBuilder 改名 GenericBuilder<stringT>
+- 增加别名 typedef GenericBuilder<std::string> RawBuilder
+- 单元测试的 RawJsonBuilder 改为 RawBuilder ，应该保持功能不变
+
+事实上我们只用到 `std::string` 的部分接口，定义一个 `struct StringConcept` ，
+列出 GenericBuilder 需要用到的接口。虽然 C++17 还不支持 concept 限定，但定义一
+个 struct 作为文档说明也有意义。
+
+## TODO: 配置化重构
+
+## TODO: 重载 [] 索引操作符
+
+json["key"] = value; 添加对象字段
+json[-1] = value; 添加数组元素，支持任意整数
+
+## TODO: 重载 << 输入操作符
+
+添加数组元素：json << v1 << v2
+添加对象字段：json << k1 << v1 << k2 << v2
+
+可能需要加一个栈，保存当前（尾部）操作的是数组还是对象。
+
+## TODO: 支持 EndAll 方法
+
+深层嵌套 json 末尾，可能是连续多个 `]` 或 `}` ，手动逐个调用 `EndArray` 与
+`EndObject` 有点麻烦，提供 `EndAll` 方法一次性封端。
+
+## TODO: 增加编译宏控制是否要额外维护栈
+
+影响 << 重载与 EndAll 方法。
+
+## TODO: 优化 std::to_string 性能
+
+对标 `std::to_chars` 的性能。
+有些 gcc 版本支持 C++17 但支持 `std::to_chars` 不完整。

@@ -42,6 +42,7 @@ endif()
 # Create test executable
 add_executable(utwwjson
     t_basic.cpp
+    t_scope.cpp
     t_experiment.cpp
 )
 

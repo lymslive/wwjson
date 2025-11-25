@@ -45,3 +45,37 @@
 ### 结果
 完全满足需求 2025-11-25/1，构建系统符合 CMake 标准规范，其他项目可通过 find_package(wwjson) 集成使用。
 
+## TASK:20251125-162627
+-----------------------
+
+### 任务概述
+为 RawJsonBuilder 增加 scope 方法创建能自动关闭的数组或对象，优化衍生类结构并完善单元测试。
+
+### 实现内容
+
+**新增 Scope 方法**
+- `ScopeArray(bool hasNext = false)`: 创建自动关闭的 RawJsonArray
+- `ScopeArray(const char* pszKey, bool hasNext = false)`: 创建带键名的自动关闭 RawJsonArray
+- `ScopeObject(bool hasNext = false)`: 创建自动关闭的 RawJsonObject  
+- `ScopeObject(const char* pszKey, bool hasNext = false)`: 创建带键名的自动关闭 RawJsonObject
+
+**衍生类优化**
+- 将 `m_build` 重命名为 `m_builder` 提高命名一致性
+- 将成员变量 `m_builder` 和 `m_next` 改为 private 权限
+- 保留 reference 类型实现，经分析比指针更合适（避免空指针检查，性能更优）
+
+**单元测试扩展**
+- 创建 `t_scope.cpp` 新测试文件
+- 将原 `basic_builder_nest` 移至新文件并改名为 `scope_builder_nest`  
+- 新增 `scope_vs_constructor` 测试用例，验证 scope 方法与构造函数方法产生相同结果
+- 所有测试通过：6个测试用例全部 PASS，耗时约 119 微秒
+
+### 技术细节
+- 使用前向声明解决类间依赖关系
+- Scope 方法返回值类型确保 RAII 自动资源管理
+- 支持 auto 关键字简化用户代码：`auto obj = builder.ScopeObject();`
+- 保持向后兼容：原有构造函数方式仍可正常使用
+
+### 结果
+完全满足需求 2025-11-25/3，用户现在只需记住 RawJsonBuilder 一个类名，通过 Scope 方法创建衍生类并用 auto 接收，简化了 API 使用。
+
