@@ -40,7 +40,10 @@ if(NOT couttast_FOUND)
 endif()
 
 # Create test executable
-add_executable(utwwjson t_basic.cpp)
+add_executable(utwwjson
+    t_basic.cpp
+    t_experiment.cpp
+)
 
 # Link with wwjson library
 target_link_libraries(utwwjson PRIVATE wwjson)

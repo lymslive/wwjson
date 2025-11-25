@@ -5,3 +5,6 @@ build-*/
 *.bak
 backup-*
 *.log
+
+compile_commands.json
+utwwjson

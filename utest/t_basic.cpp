@@ -1,7 +1,6 @@
 #include "couttast/tinytast.hpp"
 #include "wwjson.hpp"
 #include <string>
-// #include <charconv>
 
 DEF_TAST(basic_builder, "test json builder with raw string")
 {
@@ -24,7 +23,7 @@ DEF_TAST(basic_builder, "test json builder with raw string")
     double third = 1.0/3.0;
     builder.AddMember("double", third);
 
-    // 数字当作字符串类型添加，额外参数区分重载，不管 true/false
+    // add number as string with extra argument, no matter true/false
     builder.AddMember("ints", 124, true);
     builder.AddMember("intf", 125, false);
 
@@ -113,38 +112,11 @@ DEF_TAST(basic_builder_nest, "test build nest json with auto close")
                 body.AddMember("double", third);
             }
         }
-    } // root 析构添加右大括号
+    } // auto add right brace when destruct root beyond scope
 
     std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.500000,"double":0.333333}]})";
     COUT(builder.json, expect);
 }
-
-#if 0
-DEF_TOOL(to_chars, "test std::to_chars")
-{
-    std::string json;
-    std::array<char, 32> buffer;
-    auto [ptr, ec] = std::to_chars(buffer.data(), buffer.data() + buffer.size(), 100);
-    json.append(buffer.data(), ptr);
-    COUT(json);
-
-    // 传参 double 编不过
-    {
-        std::string json;
-        std::array<char, 32> buffer;
-        auto [ptr, ec] = std::to_chars(buffer.data(), buffer.data() + buffer.size(),500);
-        json.append(buffer.data(), ptr);
-        COUT(json);
-    }
-
-    {
-        uint64_t maxInt = -1;
-        std::string strMaxInt = std::to_string(maxInt);
-        COUT(strMaxInt);
-        COUT(strMaxInt.size());
-    }
-}
-#endif
 
 DEF_TAST(basic_escape, "test add string with escape")
 {

@@ -20,3 +20,17 @@ cmake 系统规范，也该提供安装功能，方便其他项目使用 cmake �
 测试，默认是。
 
 ### DONE: 20251125-112235
+
+## TODO:2025-11-25/2 调整单元测试及命令
+
+- 将测试 `std::to_chars` 的用例移到 `t_experiment.cpp` 新文件
+- 迁移 xyjson 项目根目录的 makefile 配置开发命令，调整文件名路径
+- 根目录创建几个符号链接
+  + ln -s build/compile_commands.json 
+  + ln -s build/utest/utwwjson 
+
+`std::to_chars` 在当前 GCC 9.4.0 只支持整数，不支持浮点数。
+
+### DONE: 20251125~145323
+
+
