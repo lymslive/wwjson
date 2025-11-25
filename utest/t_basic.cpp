@@ -4,7 +4,7 @@
 
 DEF_TAST(basic_builder, "test json builder with raw string")
 {
-    wwjson::RawJsonBuilder builder;
+    wwjson::RawBuilder builder;
     builder.BeginObject();
 
     builder.AddMember("int", 123);
@@ -35,7 +35,7 @@ DEF_TAST(basic_builder, "test json builder with raw string")
 
 DEF_TAST(basic_builder_array, "test build json with array of object")
 {
-    wwjson::RawJsonBuilder builder;
+    wwjson::RawBuilder builder;
     builder.BeginObject();
 
     std::string title = "Title";
@@ -79,31 +79,31 @@ DEF_TAST(basic_builder_array, "test build json with array of object")
 
 DEF_TAST(basic_builder_nest, "test build nest json with auto close")
 {
-    wwjson::RawJsonBuilder builder;
+    wwjson::RawBuilder builder;
     {
-        wwjson::RawJsonObject root(builder);
+        wwjson::RawObject root(builder);
 
         std::string title = "Title";
         root.AddMember("title", title);
 
         // need scope for head, to auto close {}
         {
-            wwjson::RawJsonObject head(builder, "head", true);
+            wwjson::RawObject head(builder, "head", true);
             head.AddMember("int", 123);
             head.AddMember("string", "123");
         }
 
         {
-            wwjson::RawJsonArray bodys(builder, "bodys");
+            wwjson::RawArray bodys(builder, "bodys");
             {
-                wwjson::RawJsonObject body(builder, true);
+                wwjson::RawObject body(builder, true);
                 body.AddMember("char", '1');
                 unsigned char c = '2';
                 body.AddMember("uchar", c);
             }
             bodys.AddItem("simple");
             {
-                wwjson::RawJsonObject body(builder, true);
+                wwjson::RawObject body(builder, true);
                 short sh = 280;
                 body.AddMember("short", sh);
                 double half = 0.5;
@@ -120,7 +120,7 @@ DEF_TAST(basic_builder_nest, "test build nest json with auto close")
 
 DEF_TAST(basic_escape, "test add string with escape")
 {
-    wwjson::RawJsonBuilder child;
+    wwjson::RawBuilder child;
     child.BeginObject();
     child.AddMember("int", 123);
     child.AddMember("string", "123");
@@ -130,7 +130,7 @@ DEF_TAST(basic_escape, "test add string with escape")
     std::string childExpect = R"({"int":123,"string":"123","char":49})";
     COUT(child.json, childExpect);
 
-    wwjson::RawJsonBuilder root;
+    wwjson::RawBuilder root;
     root.BeginObject();
     root.AddMember("version", 1);
     root.AddMemberEscape("child", child.json);
@@ -140,7 +140,7 @@ DEF_TAST(basic_escape, "test add string with escape")
     COUT(root.json, rootExpect);
 
     {
-        wwjson::RawJsonBuilder child;
+        wwjson::RawBuilder child;
         child.BeginObject();
         child.AddMember("int", 123);
         child.AddMember("string", "\\1\t2\t3\\");
@@ -150,7 +150,7 @@ DEF_TAST(basic_escape, "test add string with escape")
         std::string childExpect = R"({"int":123,"string":"\1	2	3\","char":49})";
         COUT(child.json, childExpect);
 
-        wwjson::RawJsonBuilder root;
+        wwjson::RawBuilder root;
         root.BeginObject();
         root.AddMember("version", 1);
         root.AddMemberEscape("child", child.json, "\"\\\t");
@@ -163,7 +163,7 @@ DEF_TAST(basic_escape, "test add string with escape")
     {
         std::string src = "\\1\t2\t3\\";
         std::string dst;
-        wwjson::RawJsonBuilder::EscapeString(src, dst, "\"\\\t");
+        wwjson::RawBuilder::EscapeString(src, dst, "\"\\\t");
         COUT(src);
         COUT(dst);
     }

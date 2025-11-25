@@ -54,18 +54,23 @@ auto 接收。
 
 ### DONE: 20251125-162627
 
-## TODO: 模板化重构
+## TODO:2025-11-25/4 模板化重构
 
 当前 json 序列化目标类型是 `std::string`，希望泛型化也支持其他库的自定义字符串
 类型，只要与 `std::string` 具有相同接口。
 
 - RawJsonBuilder 改名 GenericBuilder<stringT>
 - 增加别名 typedef GenericBuilder<std::string> RawBuilder
-- 单元测试的 RawJsonBuilder 改为 RawBuilder ，应该保持功能不变
+- RawJsonArray/RawJsonObject 也要相应改名 GenericArray/GenericObject，
+  并简化别名 RawArray/RawObject
+- 也需要处理模板类的前向声名
+- 单元测试的使用的类名同步修改为 typedef 后的简化别名 ，应该保持功能不变
 
 事实上我们只用到 `std::string` 的部分接口，定义一个 `struct StringConcept` ，
 列出 GenericBuilder 需要用到的接口。虽然 C++17 还不支持 concept 限定，但定义一
 个 struct 作为文档说明也有意义。
+
+### DONE: 20251125-172718
 
 ## TODO: 配置化重构
 

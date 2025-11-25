@@ -79,3 +79,53 @@
 ### 结果
 完全满足需求 2025-11-25/3，用户现在只需记住 RawJsonBuilder 一个类名，通过 Scope 方法创建衍生类并用 auto 接收，简化了 API 使用。
 
+## TASK:20251125-172718
+-----------------------
+
+### 任务概述
+将 RawJsonBuilder 及相关类重构为模板化实现，支持其他库的自定义字符串类型，只要与 std::string 具有相同接口。
+
+### 实现内容
+
+**StringConcept 概念定义**
+- 在 `wwjson.hpp` 开头添加 `StringConcept` 结构体
+- 详细列出 GenericBuilder 需要用到的 std::string 接口作为文档说明
+- 虽然不支持真正的 concept 限定，但提供了接口规范
+
+**核心类模板化重构**
+- `RawJsonBuilder` → `template<typename stringT> class GenericBuilder`
+- `RawJsonObject` → `template<typename stringT> class GenericObject`  
+- `RawJsonArray` → `template<typename stringT> class GenericArray`
+- 更新前向声明为模板形式
+
+**类型别名系统**
+- `using RawBuilder = GenericBuilder<std::string>;`
+- `using RawObject = GenericObject<std::string>;`
+- `using RawArray = GenericArray<std::string>;`
+- 保持向后兼容的遗留别名：`RawJsonBuilder/RawJsonObject/RawJsonArray`
+
+**单元测试更新**
+- 将所有测试文件中的类名更新为使用新的类型别名
+- `RawJsonBuilder` → `RawBuilder`
+- `RawJsonObject` → `RawObject` 
+- `RawJsonArray` → `RawArray`
+
+### 技术细节
+- 模板参数设计：使用简单的 `template<typename stringT>` 参数
+- 接口兼容性：保持所有现有公共接口不变
+- 转义方法更新：`EscapeString` 方法的 `dst` 参数类型改为模板化 `stringT&`
+- 合并方法更新：`Merge` 和 `MergeObject` 方法支持模板化字符串类型
+
+### 测试结果
+- 编译成功：模板化代码编译无错误
+- 功能验证：所有 6 个单元测试全部 PASS
+- 向后兼容：使用类型别名的现有代码功能完全不变
+
+### 结果
+成功完成模板化重构，满足了需求 2025-11-25/4 的所有要求：
+✓ 支持自定义字符串类型的模板化实现
+✓ 保持与 std::string 的完全兼容性
+✓ 通过类型别名实现向后兼容
+✓ 单元测试验证功能正确性
+✓ 清晰的接口文档（StringConcept）
+

@@ -4,7 +4,7 @@
 
 DEF_TAST(scope_builder_nest, "test build nest json with auto close using scope methods")
 {
-    wwjson::RawJsonBuilder builder;
+    wwjson::RawBuilder builder;
     {
         auto root = builder.ScopeObject();
 
@@ -46,7 +46,7 @@ DEF_TAST(scope_builder_nest, "test build nest json with auto close using scope m
 DEF_TAST(scope_vs_constructor, "test scope methods vs constructor approach")
 {
     // Test using scope methods (new approach)
-    wwjson::RawJsonBuilder scopeBuilder;
+    wwjson::RawBuilder scopeBuilder;
     {
         auto root = scopeBuilder.ScopeObject();
         root.AddMember("name", "test");
@@ -62,16 +62,16 @@ DEF_TAST(scope_vs_constructor, "test scope methods vs constructor approach")
     }
     
     // Test using constructors (old approach)
-    wwjson::RawJsonBuilder ctorBuilder;
+    wwjson::RawBuilder ctorBuilder;
     {
-        wwjson::RawJsonObject root(ctorBuilder);
+        wwjson::RawObject root(ctorBuilder);
         root.AddMember("name", "test");
         {
-            wwjson::RawJsonArray items(ctorBuilder, "items");
+            wwjson::RawArray items(ctorBuilder, "items");
             items.AddItem(1);
             items.AddItem(2);
             {
-                wwjson::RawJsonObject nested(ctorBuilder, true);
+                wwjson::RawObject nested(ctorBuilder, true);
                 nested.AddMember("key", "value");
             }
         }

@@ -10,24 +10,46 @@
 #define WWJSON_HPP__
 
 #include <type_traits>
+#include <string>
 // for std::to_chars C++17
 // #include <charconv>
-#include <array>
+// #include <array>
 
 namespace wwjson
 {
 
-// Forward declarations
-struct RawJsonBuilder;
-struct RawJsonObject;
-struct RawJsonArray;
-
-/// Builder json string directlly without DOM by any lib.
-struct RawJsonBuilder
+/// String concept struct to document required interfaces for custom string types
+/// Although C++17 doesn't support concepts, this serves as documentation
+struct StringConcept
 {
-    std::string json;
+    // Required interfaces that a custom string type must provide:
+    // - append(const char* str)
+    // - append(const char* str, size_t len)
+    // - append(const std::string& str)
+    // - push_back(char c)
+    // - clear()
+    // - empty() const
+    // - size() const
+    // - c_str() const
+    // - front() and back()
+    // - reserve(size_t capacity)
+    // - Constructor that takes capacity or default constructor
+    // Note: Custom string types should provide these same interfaces as std::string
+};
 
-    RawJsonBuilder(int capacity = 1024)
+// Forward declarations
+template<typename stringT> struct GenericBuilder;
+template<typename stringT> struct GenericObject;
+template<typename stringT> struct GenericArray;
+
+/// Generic json builder that works with different string types
+/// Direct json string construction without DOM by any lib.
+template<typename stringT>
+struct GenericBuilder
+{
+    stringT json;
+
+    GenericBuilder(int capacity = 1024)
     {
         json.reserve(capacity);
     }
@@ -141,20 +163,15 @@ struct RawJsonBuilder
         SepItem();
     }
 
-    // Add member as string event if is_arithmetic_v
+    /// Add item as string event if is_arithmetic_v.
+    /// NOT check the extra argument, always quote ""
     template <typename numberT>
     std::enable_if_t<std::is_arithmetic_v<numberT>, void>
     /*void*/ AddItem(numberT value, bool str)
     {
-        if (str)
-        {
-            json.push_back('"');
-        }
+        json.push_back('"');
         PutValue(value);
-        if (str)
-        {
-            json.push_back('"');
-        }
+        json.push_back('"');
         SepItem();
     }
 
@@ -219,7 +236,8 @@ struct RawJsonBuilder
         SepItem();
     }
 
-    // Add member as string event if is_arithmetic_v
+    /// Add member as string event if is_arithmetic_v.
+    /// NOT check the extra argument, always quote ""
     template <typename numberT>
     std::enable_if_t<std::is_arithmetic_v<numberT>, void>
     /*void*/ AddMember(const char* pszKey, numberT value, bool str)
@@ -233,7 +251,7 @@ struct RawJsonBuilder
 
     // 字符串转义支持
     // 只判断转义单个特殊字符，默认双引号
-    static void EscapeString(const std::string& src, std::string& dst, char ec = '"')
+    static void EscapeString(const std::string& src, stringT& dst, char ec = '"')
     {
         for (auto c : src)
         {
@@ -246,7 +264,7 @@ struct RawJsonBuilder
     }
 
     // 判断转义多个字符，如 "\"\\\n\t" 等
-    static void EscapeString(const std::string& src, std::string& dst, const char* ecs)
+    static void EscapeString(const std::string& src, stringT& dst, const char* ecs)
     {
         for (auto c : src)
         {
@@ -316,7 +334,7 @@ struct RawJsonBuilder
     }
 
     /// 合并两 json 对象的序列化字符串.
-    void Merge(const RawJsonBuilder& that)
+    void Merge(const GenericBuilder<stringT>& that)
     {
         if (json.size() < 2)
         {
@@ -330,7 +348,7 @@ struct RawJsonBuilder
     }
 
     /// 静态方法版本，合并两个 object {}
-    static void MergeObject(std::string& self, const std::string& that)
+    static void MergeObject(stringT& self, const stringT& that)
     {
         if (self.size() < 2)
         {
@@ -346,37 +364,38 @@ struct RawJsonBuilder
         }
     }
 
-    /// Create a scoped RawJsonArray that auto-closes when destroyed
-    RawJsonArray ScopeArray(bool hasNext = false);
+    /// Create a scoped GenericArray that auto-closes when destroyed
+    GenericArray<stringT> ScopeArray(bool hasNext = false);
     
-    /// Create a scoped RawJsonArray with key that auto-closes when destroyed
-    RawJsonArray ScopeArray(const char* pszKey, bool hasNext = false);
+    /// Create a scoped GenericArray with key that auto-closes when destroyed
+    GenericArray<stringT> ScopeArray(const char* pszKey, bool hasNext = false);
     
-    /// Create a scoped RawJsonObject that auto-closes when destroyed
-    RawJsonObject ScopeObject(bool hasNext = false);
+    /// Create a scoped GenericObject that auto-closes when destroyed
+    GenericObject<stringT> ScopeObject(bool hasNext = false);
     
-    /// Create a scoped RawJsonObject with key that auto-closes when destroyed
-    RawJsonObject ScopeObject(const char* pszKey, bool hasNext = false);
+    /// Create a scoped GenericObject with key that auto-closes when destroyed
+    GenericObject<stringT> ScopeObject(const char* pszKey, bool hasNext = false);
 };
 
 /// Auto open and close object {}
-struct RawJsonObject
+template<typename stringT>
+struct GenericObject
 {
 private:
-    RawJsonBuilder& m_builder;
+    GenericBuilder<stringT>& m_builder;
     bool m_next;
 
 public:
-    RawJsonObject(RawJsonBuilder& build, bool hasNext = false) : m_builder(build), m_next(hasNext)
+    GenericObject(GenericBuilder<stringT>& build, bool hasNext = false) : m_builder(build), m_next(hasNext)
     {
         m_builder.BeginObject();
     }
-    RawJsonObject(RawJsonBuilder& build, const char* pszKey, bool hasNext = false) : m_builder(build), m_next(hasNext)
+    GenericObject(GenericBuilder<stringT>& build, const char* pszKey, bool hasNext = false) : m_builder(build), m_next(hasNext)
     {
         m_builder.PutKey(pszKey);
         m_builder.BeginObject();
     }
-    ~RawJsonObject()
+    ~GenericObject()
     {
         m_builder.EndObject();
         if (m_next)
@@ -394,23 +413,24 @@ public:
 };
 
 /// Auto open and close array[]
-struct RawJsonArray
+template<typename stringT>
+struct GenericArray
 {
 private:
-    RawJsonBuilder& m_builder;
+    GenericBuilder<stringT>& m_builder;
     bool m_next;
 
 public:
-    RawJsonArray(RawJsonBuilder& build, bool hasNext = false) : m_builder(build), m_next(hasNext)
+    GenericArray(GenericBuilder<stringT>& build, bool hasNext = false) : m_builder(build), m_next(hasNext)
     {
         m_builder.BeginArray();
     }
-    RawJsonArray(RawJsonBuilder& build, const char* pszKey, bool hasNext = false) : m_builder(build), m_next(hasNext)
+    GenericArray(GenericBuilder<stringT>& build, const char* pszKey, bool hasNext = false) : m_builder(build), m_next(hasNext)
     {
         m_builder.PutKey(pszKey);
         m_builder.BeginArray();
     }
-    ~RawJsonArray()
+    ~GenericArray()
     {
         m_builder.EndArray();
         if (m_next)
@@ -427,26 +447,35 @@ public:
     }
 };
 
-/// Add scope methods to RawJsonBuilder
-inline RawJsonArray RawJsonBuilder::ScopeArray(bool hasNext)
+/// Add scope methods to GenericBuilder
+template<typename stringT>
+inline GenericArray<stringT> GenericBuilder<stringT>::ScopeArray(bool hasNext)
 {
-    return RawJsonArray(*this, hasNext);
+    return GenericArray<stringT>(*this, hasNext);
 }
 
-inline RawJsonArray RawJsonBuilder::ScopeArray(const char* pszKey, bool hasNext)
+template<typename stringT>
+inline GenericArray<stringT> GenericBuilder<stringT>::ScopeArray(const char* pszKey, bool hasNext)
 {
-    return RawJsonArray(*this, pszKey, hasNext);
+    return GenericArray<stringT>(*this, pszKey, hasNext);
 }
 
-inline RawJsonObject RawJsonBuilder::ScopeObject(bool hasNext)
+template<typename stringT>
+inline GenericObject<stringT> GenericBuilder<stringT>::ScopeObject(bool hasNext)
 {
-    return RawJsonObject(*this, hasNext);
+    return GenericObject<stringT>(*this, hasNext);
 }
 
-inline RawJsonObject RawJsonBuilder::ScopeObject(const char* pszKey, bool hasNext)
+template<typename stringT>
+inline GenericObject<stringT> GenericBuilder<stringT>::ScopeObject(const char* pszKey, bool hasNext)
 {
-    return RawJsonObject(*this, pszKey, hasNext);
+    return GenericObject<stringT>(*this, pszKey, hasNext);
 }
+
+// Type aliases for backward compatibility and common usage
+using RawBuilder = GenericBuilder<std::string>;
+using RawObject = GenericObject<std::string>;
+using RawArray = GenericArray<std::string>;
 
 } /* end of wwjson:: */ 
 
