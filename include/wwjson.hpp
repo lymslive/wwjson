@@ -249,8 +249,8 @@ struct GenericBuilder
         SepItem();
     }
 
-    // 字符串转义支持
-    // 只判断转义单个特殊字符，默认双引号
+    // String escaping support
+    // Escape single special character, default double quote
     static void EscapeString(const std::string& src, stringT& dst, char ec = '"')
     {
         for (auto c : src)
@@ -263,7 +263,7 @@ struct GenericBuilder
         }
     }
 
-    // 判断转义多个字符，如 "\"\\\n\t" 等
+    // Escape multiple characters, such as "\"\\\n\t" etc.
     static void EscapeString(const std::string& src, stringT& dst, const char* ecs)
     {
         for (auto c : src)
@@ -324,7 +324,7 @@ struct GenericBuilder
         json.push_back('\n');
     }
 
-    /// 重新打开对象 {}，为后续再增加字段.
+    /// Reopen object {} to add more fields.
     void ReopenObject()
     {
         if (!json.empty() && json.back() == '}')
@@ -333,7 +333,7 @@ struct GenericBuilder
         }
     }
 
-    /// 合并两 json 对象的序列化字符串.
+    /// Merge two JSON object serialized strings.
     void Merge(const GenericBuilder<stringT>& that)
     {
         if (json.size() < 2)
@@ -347,7 +347,7 @@ struct GenericBuilder
         }
     }
 
-    /// 静态方法版本，合并两个 object {}
+    /// Static method version, merge two object {}
     static void MergeObject(stringT& self, const stringT& that)
     {
         if (self.size() < 2)

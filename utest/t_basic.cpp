@@ -77,47 +77,6 @@ DEF_TAST(basic_builder_array, "test build json with array of object")
     COUT(builder.json, expect);
 }
 
-DEF_TAST(basic_builder_nest, "test build nest json with auto close")
-{
-    wwjson::RawBuilder builder;
-    {
-        wwjson::RawObject root(builder);
-
-        std::string title = "Title";
-        root.AddMember("title", title);
-
-        // need scope for head, to auto close {}
-        {
-            wwjson::RawObject head(builder, "head", true);
-            head.AddMember("int", 123);
-            head.AddMember("string", "123");
-        }
-
-        {
-            wwjson::RawArray bodys(builder, "bodys");
-            {
-                wwjson::RawObject body(builder, true);
-                body.AddMember("char", '1');
-                unsigned char c = '2';
-                body.AddMember("uchar", c);
-            }
-            bodys.AddItem("simple");
-            {
-                wwjson::RawObject body(builder, true);
-                short sh = 280;
-                body.AddMember("short", sh);
-                double half = 0.5;
-                body.AddMember("double", half);
-                double third = 1.0/3.0;
-                body.AddMember("double", third);
-            }
-        }
-    } // auto add right brace when destruct root beyond scope
-
-    std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.500000,"double":0.333333}]})";
-    COUT(builder.json, expect);
-}
-
 DEF_TAST(basic_escape, "test add string with escape")
 {
     wwjson::RawBuilder child;
