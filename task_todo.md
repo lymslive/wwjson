@@ -82,7 +82,41 @@ auto 接收。
 
 ### DONE: 20251126-114254
 
-## TODO: 配置化重构
+## TODO:2025-11-26/2 配置化重构
+
+GenericBuilder 再增加一个模板类型参数 `configT<stringT>`，用于定义序列化选项：
+- 对象键与字符串类型的值，要不要以及如何转义
+- 数字类型的值要不要加引号统一转为字符串
+- 对象与数组是否允许尾逗号（允许尾逗号时实现更简单）
+
+暂不打算支持格式化美化缩进的方式输出，因为库的设计目的是高性能构建 json 串，不
+输出额外没必要的信息。
+
+定义一个 BasicConfig 类，只有静态方法与编译期常量，允许用户继承或参考它重写自
+定义的配置选项。
+
+BasicConfig 大约有以下成员：
+- EscapeKey(stringT& dst, ...) 方法，实际不必转义，直接拷贝；
+- EscapeValue(stringT& dst, ...) 方法，只做基本转义，转调 EscapeString；
+- EscapeString(stringT& dst, ...) 方法，将现有的 GenericBuilder::EscacpeString
+  逻辑移至 BasicConfig 类，删去 GenericBuilder 的原方法；
+- bool kAlwaysEscape = false; 只有显式调用 AddMemberEscape 变体方法才需要转义
+  ，为 true 时，AddMember 方法也默认需要转义；
+- bool kQuoteNumber = false; 默认不将数字转为字符串，但 AddItem/AddObject 仍可
+  通过可选参数显式要求转字符串；
+- bool kTailComma = false; 现有逻辑不允许尾逗号，在 EndArray/EndObject 中需要
+  额外判断 back() 字符是否逗号，为 true 时可避免这个判断。
+
+补充一致性逻辑：
+- 增加 AddItemEscape 变化方法，类似 AddMemberEsacpe 显式转义字符串值
+
+由于各个 Escape 方法要直接原位写字符串，BasicConfig 本身也该是模板类。
+GenericBuilder 的第二参数可以有默认值 `BasicConfig<stringT>` 。
+
+其他考虑：我觉得 config 的命名可能不是很准确，如果你有更合适的命名提议，可改名
+。
+
+### DONE: 20251126-161114
 
 ## TODO: 重载 [] 索引操作符
 

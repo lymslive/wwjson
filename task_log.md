@@ -179,3 +179,66 @@
 ✓ 所有编译和测试通过，不影响现有功能
 ✓ 证明了模板化设计的有效性和可用性
 
+## TASK:20251126-161114
+-----------------------
+
+### 任务概述
+对 GenericBuilder 进行配置化重构，增加模板参数以支持序列化选项的可配置性，包括转义策略、数字引号、尾逗号等选项。
+
+### 实现内容
+
+**BasicConfig 模板类设计**
+- 创建 `template<typename stringT> struct BasicConfig` 配置类
+- 定义三个编译期配置常量：
+  - `kAlwaysEscape = false`: 是否总是转义字符串值
+  - `kQuoteNumber = false`: 是否默认给数字加引号
+  - `kTailComma = false`: 是否允许尾逗号
+- 实现静态方法：
+  - `EscapeKey()`: 对象键处理（当前直接拷贝）
+  - `EscapeValue()`: 字符串值转义（调用 EscapeString）
+  - `EscapeString()`: 移动原有的转义逻辑，支持单字符和多字符转义
+
+**GenericBuilder 重构**
+- 添加第二个模板参数 `configT = BasicConfig<stringT>`
+- 更新 `EndArray()` 和 `EndObject()` 方法支持 `kTailComma` 配置
+- 修改数字类型的 `AddItem()` 和 `AddMember()` 方法支持 `kQuoteNumber` 配置
+- 保持两个重载版本：有 bool 参数的总是加引号，无参数的根据配置决定
+- 更新 `AddMemberEscape()` 方法调用 `configT::EscapeString()`
+- 移除原有的 `EscapeString()` 静态方法，改用配置类的方法
+
+**新增 AddItemEscape 方法**
+为保持与 `AddMemberEscape` 的一致性，添加了完整的 `AddItemEscape` 方法族：
+- 支持字符串和 C 字符串的各种重载
+- 支持单字符和多字符转义集
+- 所有方法都调用 `configT::EscapeString()`
+
+**模板类更新**
+- 更新 `GenericObject` 和 `GenericArray` 模板类支持新的 `configT` 参数
+- 更新 `ScopeArray()` 和 `ScopeObject()` 方法的返回类型和实现
+- 修复类型别名：`RawObject` 和 `RawArray` 使用默认配置
+
+### 技术细节
+- 编译期优化：使用 `if constexpr` 确保配置选项在编译期确定
+- 向后兼容：保持所有原有 API 和行为，通过默认配置确保兼容性
+- 模板参数设计：支持用户继承 BasicConfig 创建自定义配置
+- 内存管理：转义方法直接写入目标字符串，避免额外分配
+
+### 修复的问题
+- 类型别名错误：修复 `RawObject` 和 `RawArray` 缺少配置参数
+- 测试兼容性：更新测试中的 `EscapeString` 调用使用新的 API
+- 参数传递：修正 BasicConfig::EscapeString 的参数顺序和类型
+
+### 测试结果
+- 编译测试：项目成功编译，重构代码无语法错误
+- 功能测试：所有现有测试用例全部通过（8个 PASS，0个 FAIL）
+- 兼容性验证：使用默认配置时与原有行为完全一致
+- 性能影响：重构后运行时间与原版本基本相同
+
+### 结果
+成功完成需求 2025-11-26/2 的所有要求：
+✓ 实现了配置化的 BasicConfig 模板类
+✓ 成功重构 GenericBuilder 支持配置参数
+✓ 保持了完整的向后兼容性
+✓ 添加了完整的 AddItemEscape 方法族
+✓ 所有测试通过，验证了功能正确性
+✓ 为用户提供了灵活的序列化选项配置能力

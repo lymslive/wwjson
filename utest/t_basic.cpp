@@ -122,7 +122,7 @@ DEF_TAST(basic_escape, "test add string with escape")
     {
         std::string src = "\\1\t2\t3\\";
         std::string dst;
-        wwjson::RawBuilder::EscapeString(src, dst, "\"\\\t");
+        wwjson::BasicConfig<std::string>::EscapeString(dst, src.c_str(), src.length(), "\"\\\t");
         COUT(src);
         COUT(dst);
     }
