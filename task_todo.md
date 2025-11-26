@@ -72,6 +72,16 @@ auto 接收。
 
 ### DONE: 20251125-172718
 
+## TODO:2025-11-26/1 测试使用自定义字符串类型构建 json
+
+- 增加 utest/custom_string.cpp(.h) 实现一个简单的自定义字符串类 test::string，
+  满足 wwjson::StringConcept 说明的那个接口。
+- 增加 utest/t_custom.cpp 测试文件，写几个测试用例，以 test::string 代替 std::string
+  构造 json 串。
+- 同步修改 utest/CMakeLists.txt 通过编译测试
+
+### DONE: 20251126-114254
+
 ## TODO: 配置化重构
 
 ## TODO: 重载 [] 索引操作符

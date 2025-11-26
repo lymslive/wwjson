@@ -44,6 +44,8 @@ add_executable(utwwjson
     t_basic.cpp
     t_scope.cpp
     t_experiment.cpp
+    t_custom.cpp
+    custom_string.cpp
 )
 
 # Link with wwjson library
