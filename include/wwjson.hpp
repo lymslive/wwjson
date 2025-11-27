@@ -1,8 +1,13 @@
 /**
- * @file wwjson.hpp 
+ * @file wwjson.hpp
  * @author lymslive
  * @date 2025-11-21
- * @brief Deal with json in raw string simply and quickly in limited case.
+ * @brief Construrct json in raw string simply and quickly.
+ *
+ * @details WWJSON is a header-only C++ library for fast JSON string building without DOM tree construction.
+ * It provides a simple, lightweight way to construct JSON strings directly through a builder pattern.
+ * The library focuses on JSON serialization (building), not parsing, with high performance through direct string manipulation.
+ * Supports nested objects and arrays with RAII-based scope management and is compatible with custom string types.
  * */
 
 #pragma once
@@ -18,14 +23,13 @@
 namespace wwjson
 {
 
-/// String concept struct to document required interfaces for custom string types
-/// Although C++17 doesn't support concepts, this serves as documentation
+/// String concept struct to document required interfaces for custom string types.
+/// Although C++17 doesn't support concepts, this serves as documentation.
 struct StringConcept
 {
     // Required interfaces that a custom string type must provide:
     // - append(const char* str)
     // - append(const char* str, size_t len)
-    // - append(const std::string& str)
     // - push_back(char c)
     // - clear()
     // - empty() const
@@ -37,39 +41,39 @@ struct StringConcept
     // Note: Custom string types should provide these same interfaces as std::string
 };
 
-// Forward declarations
+/// Forward declarations for template classes.
 template<typename stringT> struct BasicConfig;
 template<typename stringT, typename configT> struct GenericBuilder;
 template<typename stringT, typename configT> struct GenericObject;
 template<typename stringT, typename configT> struct GenericArray;
 
-/// Basic configuration for JSON serialization
-/// Provides static methods and compile-time constants for customization
+/// Basic configuration for JSON serialization.
+/// Provides static methods and compile-time constants for customization.
 template<typename stringT>
 struct BasicConfig
 {
-    /// Whether to always escape string values in AddMember methods
+    /// Whether to always escape string values in AddMember methods.
     static constexpr bool kAlwaysEscape = false;
     
-    /// Whether to quote numeric values by default
+    /// Whether to quote numeric values by default.
     static constexpr bool kQuoteNumber = false;
     
-    /// Whether to allow trailing commas in arrays and objects
+    /// Whether to allow trailing commas in arrays and objects.
     static constexpr bool kTailComma = false;
     
-    /// Escape object key (currently just copy without escaping)
+    /// Escape object key(default just copy without escaping).
     static void EscapeKey(stringT& dst, const char* key, size_t len)
     {
         dst.append(key, len);
     }
     
-    /// Escape string value (calls EscapeString)
+    /// Escape string value (calls EscapeString).
     static void EscapeValue(stringT& dst, const char* value, size_t len)
     {
         EscapeString(dst, value, len);
     }
     
-    /// Escape string with single character
+    /// Escape a specific single character `ec` in string `src`, write to `dst`.
     static void EscapeString(stringT& dst, const char* src, size_t len, char ec = '"')
     {
         for (size_t i = 0; i < len; ++i)
@@ -83,7 +87,7 @@ struct BasicConfig
         }
     }
     
-    /// Escape string with multiple characters
+    /// Escape each character of `ecs` in string `src`, write to `dst`.
     static void EscapeString(stringT& dst, const char* src, size_t len, const char* ecs)
     {
         for (size_t i = 0; i < len; ++i)
@@ -123,23 +127,27 @@ struct BasicConfig
     }
 };
 
-/// Generic json builder that works with different string types and configurations
-/// Direct json string construction without DOM by any lib.
+/// Generic json builder that works with different string types and configurations.
+/// Direct json string construction without DOM tree as other libs.
 template<typename stringT, typename configT = BasicConfig<stringT>>
 struct GenericBuilder
 {
+    /// The JSON string being built.
     stringT json;
 
+    /// Constructor with optional initial capacity.
     GenericBuilder(int capacity = 1024)
     {
         json.reserve(capacity);
     }
 
+    /// Append null value to JSON.
     void PutNull()
     {
         json.append("null");
     }
 
+    /// Append boolean value to JSON.
     void PutValue(bool tf)
     {
         if (tf)
@@ -152,22 +160,23 @@ struct GenericBuilder
         }
     }
 
+    /// Append C-string value to JSON with quotes.
     void PutValue(const char* pszVal)
     {
-        // json.append("\"");
         json.push_back('"');
         json.append(pszVal);
         json.push_back('"');
-        // json.append("\"");
     }
 
-    void PutValue(const char* pszVal,size_t len)
+    /// Append C-string value with length to JSON with quotes.
+    void PutValue(const char* pszVal, size_t len)
     {
         json.append("\"");
         json.append(pszVal,len);
         json.append("\"");
     }
 
+    /// Append std::string value to JSON with quotes.
     void PutValue(const std::string& strValue)
     {
         json.push_back('"');
@@ -175,7 +184,7 @@ struct GenericBuilder
         json.push_back('"');
     }
 
-    // is_arithmetic_v
+    /// Append integral number value to JSON.
     template <typename numberT>
     std::enable_if_t<std::is_integral_v<numberT>, void>
     /*void*/ PutValue(numberT nValue)
@@ -186,6 +195,7 @@ struct GenericBuilder
         json.append(std::to_string(nValue));
     }
 
+    /// Append floating-point number value to JSON.
     template <typename numberT>
     std::enable_if_t<std::is_floating_point_v<numberT>, void>
     /*void*/ PutValue(numberT nValue)
@@ -193,22 +203,29 @@ struct GenericBuilder
         json.append(std::to_string(nValue));
     }
 
+    /// Append comma separator.
     void PutComma()
     {
         json.push_back(',');
     }
 
+    /// Alias for PutComma().
     void SepItem() { PutComma(); }
 
+    /// Begin array with key.
     void BeginArray(const char* pszKey)
     {
         PutKey(pszKey);
         BeginArray();
     }
+
+    /// Begin array without key.
     void BeginArray()
     {
         json.push_back('[');
     }
+
+    /// End array, handling trailing comma based on config.
     void EndArray()
     {
         if constexpr (configT::kTailComma)
@@ -227,17 +244,21 @@ struct GenericBuilder
             }
         }
     }
-    void EndArray(bool hasNext)
+
+    /// End array with additional separator. Suggest pass `true` but not used.
+    void EndArray(bool /*hasNext*/)
     {
         EndArray();
         SepItem();
     }
+
+    /// Append empty array.
     void EmptyArray()
     {
         json.append("[]");
     }
 
-    /// Add item to array.
+    /// Add numeric item to array.
     template <typename numberT>
     std::enable_if_t<std::is_arithmetic_v<numberT>, void>
     /*void*/ AddItem(numberT value)
@@ -255,34 +276,39 @@ struct GenericBuilder
         SepItem();
     }
 
+    /// Add string item to array.
     void AddItem(const std::string& value)
     {
         PutValue(value);
         SepItem();
     }
 
-    /// Add item as string even if is_arithmetic_v.
-    /// The bool parameter is only for overload resolution, always quotes the value.
+    /// Add numeric item as quoted string to array.
+    /// Suggest pass `true` as last argument but not used.
     template <typename numberT>
     std::enable_if_t<std::is_arithmetic_v<numberT>, void>
-    /*void*/ AddItem(numberT value, bool)
+    /*void*/ AddItem(numberT value, bool /*asString*/)
     {
-        (void)value; // Avoid unused parameter warning when optimized
         json.push_back('"');
         PutValue(value);
         json.push_back('"');
         SepItem();
     }
 
+    /// Begin object with key.
     void BeginObject(const char* pszKey)
     {
         PutKey(pszKey);
         BeginObject();
     }
+
+    /// Begin object without key.
     void BeginObject()
     {
         json.push_back('{');
     }
+
+    /// End object, handling trailing comma based on config.
     void EndObject()
     {
         if constexpr (configT::kTailComma)
@@ -301,25 +327,29 @@ struct GenericBuilder
             }
         }
     }
-    void EndObject(bool hasNext)
+
+    /// End object with additional separator. Suggest pass `true` but not used.
+    void EndObject(bool /*hasNext*/)
     {
         EndObject();
         SepItem();
     }
+
+    /// Append empty object.
     void EmptyObject()
     {
         json.append("{}");
     }
 
+    /// Append object key with quotes and colon.
     void PutKey(const char* pszKey)
     {
-        // json.append("\"");
         json.push_back('"');
         json.append(pszKey);
         json.append("\":");
     }
 
-    /// Add member to object.
+    /// Add numeric member to object.
     template <typename numberT>
     std::enable_if_t<std::is_arithmetic_v<numberT>, void>
     /*void*/ AddMember(const char* pszKey, numberT value)
@@ -338,6 +368,7 @@ struct GenericBuilder
         SepItem();
     }
 
+    /// Add string member to object.
     void AddMember(const char* pszKey, const std::string& value)
     {
         PutKey(pszKey);
@@ -345,20 +376,20 @@ struct GenericBuilder
         SepItem();
     }
 
-    void AddMember(const char* pszKey, const char* value,size_t len)
+    /// Add C-string member with length to object.
+    void AddMember(const char* pszKey, const char* value, size_t len)
     {
         PutKey(pszKey);
         PutValue(value,len);
         SepItem();
     }
 
-    /// Add member as string even if is_arithmetic_v.
-    /// The bool parameter is only for overload resolution, always quotes the value.
+    /// Add numeric member as quoted string to object.
+    /// Suggest pass `true` as last argument but not used.
     template <typename numberT>
     std::enable_if_t<std::is_arithmetic_v<numberT>, void>
-    /*void*/ AddMember(const char* pszKey, numberT value, bool)
+    /*void*/ AddMember(const char* pszKey, numberT value, bool /*asString*/)
     {
-        (void)value; // Avoid unused parameter warning when optimized
         PutKey(pszKey);
         json.push_back('"');
         PutValue(value);
@@ -366,8 +397,7 @@ struct GenericBuilder
         SepItem();
     }
 
-    // String escaping support is now provided by configT::EscapeString
-
+    /// Add member with single character escaping.
     void AddMemberEscape(const char* pszKey, const std::string& value, char ec = '"')
     {
         PutKey(pszKey);
@@ -377,6 +407,7 @@ struct GenericBuilder
         SepItem();
     }
 
+    /// Add member with multiple character escaping.
     void AddMemberEscape(const char* pszKey, const std::string& value, const char* ecs)
     {
         PutKey(pszKey);
@@ -386,7 +417,7 @@ struct GenericBuilder
         SepItem();
     }
 
-    // Add item escape methods for consistency
+    /// Add item with single character escaping.
     void AddItemEscape(const std::string& value, char ec = '"')
     {
         json.push_back('"');
@@ -395,6 +426,7 @@ struct GenericBuilder
         SepItem();
     }
 
+    /// Add item with multiple character escaping.
     void AddItemEscape(const std::string& value, const char* ecs)
     {
         json.push_back('"');
@@ -403,6 +435,7 @@ struct GenericBuilder
         SepItem();
     }
 
+    /// Add C-string item with length and single character escaping.
     void AddItemEscape(const char* value, size_t len, char ec = '"')
     {
         json.push_back('"');
@@ -411,6 +444,7 @@ struct GenericBuilder
         SepItem();
     }
 
+    /// Add C-string item with length and multiple character escaping.
     void AddItemEscape(const char* value, size_t len, const char* ecs)
     {
         json.push_back('"');
@@ -419,16 +453,19 @@ struct GenericBuilder
         SepItem();
     }
 
+    /// Add C-string item with single character escaping.
     void AddItemEscape(const char* value, char ec = '"')
     {
         AddItemEscape(value, strlen(value), ec);
     }
 
+    /// Add C-string item with multiple character escaping.
     void AddItemEscape(const char* value, const char* ecs)
     {
         AddItemEscape(value, strlen(value), ecs);
     }
 
+    /// Append newline character.
     void EndLine()
     {
         json.push_back('\n');
@@ -457,7 +494,7 @@ struct GenericBuilder
         }
     }
 
-    /// Static method version, merge two object {}
+    /// Static method version, merge two object {}.
     static void MergeObject(stringT& self, const stringT& that)
     {
         if (self.size() < 2)
@@ -474,37 +511,44 @@ struct GenericBuilder
         }
     }
 
-    /// Create a scoped GenericArray that auto-closes when destroyed
+    /// Create a scoped GenericArray that auto-closes when destroyed.
     GenericArray<stringT, configT> ScopeArray(bool hasNext = false);
     
-    /// Create a scoped GenericArray with key that auto-closes when destroyed
+    /// Create a scoped GenericArray with key that auto-closes when destroyed.
     GenericArray<stringT, configT> ScopeArray(const char* pszKey, bool hasNext = false);
     
-    /// Create a scoped GenericObject that auto-closes when destroyed
+    /// Create a scoped GenericObject that auto-closes when destroyed.
     GenericObject<stringT, configT> ScopeObject(bool hasNext = false);
     
-    /// Create a scoped GenericObject with key that auto-closes when destroyed
+    /// Create a scoped GenericObject with key that auto-closes when destroyed.
     GenericObject<stringT, configT> ScopeObject(const char* pszKey, bool hasNext = false);
 };
 
-/// Auto open and close object {}
+/// Auto open and close object {}.
 template<typename stringT, typename configT>
 struct GenericObject
 {
 private:
+    /// Reference to the builder.
     GenericBuilder<stringT, configT>& m_builder;
+    /// Whether to add separator after closing.
     bool m_next;
 
 public:
+    /// Constructor without key.
     GenericObject(GenericBuilder<stringT, configT>& build, bool hasNext = false) : m_builder(build), m_next(hasNext)
     {
         m_builder.BeginObject();
     }
+
+    /// Constructor with key.
     GenericObject(GenericBuilder<stringT, configT>& build, const char* pszKey, bool hasNext = false) : m_builder(build), m_next(hasNext)
     {
         m_builder.PutKey(pszKey);
         m_builder.BeginObject();
     }
+
+    /// Destructor auto-closes object.
     ~GenericObject()
     {
         m_builder.EndObject();
@@ -514,7 +558,7 @@ public:
         }
     }
 
-    // Forward to builder method
+    /// Forward to builder method.
     template <typename... Args>
     void AddMember(Args&&... args)
     {
@@ -522,24 +566,31 @@ public:
     }
 };
 
-/// Auto open and close array[]
+/// Auto open and close array[].
 template<typename stringT, typename configT>
 struct GenericArray
 {
 private:
+    /// Reference to the builder.
     GenericBuilder<stringT, configT>& m_builder;
+    /// Whether to add separator after closing.
     bool m_next;
 
 public:
+    /// Constructor without key.
     GenericArray(GenericBuilder<stringT, configT>& build, bool hasNext = false) : m_builder(build), m_next(hasNext)
     {
         m_builder.BeginArray();
     }
+
+    /// Constructor with key.
     GenericArray(GenericBuilder<stringT, configT>& build, const char* pszKey, bool hasNext = false) : m_builder(build), m_next(hasNext)
     {
         m_builder.PutKey(pszKey);
         m_builder.BeginArray();
     }
+
+    /// Destructor auto-closes array.
     ~GenericArray()
     {
         m_builder.EndArray();
@@ -549,7 +600,7 @@ public:
         }
     }
 
-    // Forward to builder method
+    /// Forward to builder method.
     template <typename... Args>
     void AddItem(Args&&... args)
     {
@@ -557,7 +608,7 @@ public:
     }
 };
 
-/// Add scope methods to GenericBuilder
+/// Add scope methods to GenericBuilder.
 template<typename stringT, typename configT>
 inline GenericArray<stringT, configT> GenericBuilder<stringT, configT>::ScopeArray(bool hasNext)
 {
@@ -582,7 +633,7 @@ inline GenericObject<stringT, configT> GenericBuilder<stringT, configT>::ScopeOb
     return GenericObject<stringT, configT>(*this, pszKey, hasNext);
 }
 
-// Type aliases for backward compatibility and common usage
+/// Type aliases for backward compatibility and common usage.
 using RawBuilder = GenericBuilder<std::string>;
 using RawObject = GenericObject<std::string, BasicConfig<std::string>>;
 using RawArray = GenericArray<std::string, BasicConfig<std::string>>;

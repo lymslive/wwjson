@@ -118,6 +118,44 @@ GenericBuilder 的第二参数可以有默认值 `BasicConfig<stringT>` 。
 
 ### DONE: 20251126-161114
 
+## TODO:2025-11-27/1 完善头文件注释文档
+
+完善 wwjson.hpp 的注释文档。简洁风格，每个元素的注释以 /// 开始，第一句要用
+`.` 结束。每个方法原则上只有一行一句，复杂的允许有多句。
+
+仅文件头的注释风格可保持，需补充 detail.
+
+### DONE:20251127~094126
+
+by vscode plugin.
+不尽如人意。还有手工校对。
+
+## TODO: 字符串与转义功能优化
+
+- 删去 BasicConfig::EscapeValue ，就让 Builder 直接使用 EscapeString
+- BasicConfig::EscapeString 最后一个参数是 char 的版本不提供默认值，
+  const char* 版本提供默认值 "\\\n\t\r\"\0"
+- EscapeKey 也参考 EscapeString 写两个重载版本
+- GenericBuilder::PutKey 方法要判断 configT::kAlwaysEscape
+- GenericBuilder::PutValue 的字符串重载也要判断 configT::kAlwaysEscape
+- AddMemberEscape/AddItemEscape 的重载参数 char 与 const char* 的默认值规则调
+  换，要与 BasiceConfig::EscapeString 一致。
+- GenericArray 增加 AddItemEscape 转发
+- GenericObject 增加 AddMemberEscape 转发
+- 检查所有添加字符串值的方法，包括 AddItem/AddMember 及其 Escape 变体，字符串
+  参数应该支持如下四种重载：
+  + const char*
+  + const char, size_t
+  + std::string&
+  + stringT& （目前 AddItemEscape 只缺这个，最丰富）
+- 新增 utest/t_escape.cpp 测试文件，补充更全面的字符串与转义测试用例
+
+## TODO: 增加 GenericBuilder::PutChar 方法
+
+- 在 PutComma() 定义位置之前再增加一个 PutChar 方法
+- 后面的 PutComma/beginArray/beginObject 等方法，凡是调用 push_back 方法的都统
+  一改为调用 PutChar 方法，使得只有一个方法依赖模板参数的 push_back 方法。
+
 ## TODO: 重载 [] 索引操作符
 
 json["key"] = value; 添加对象字段
