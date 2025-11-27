@@ -374,8 +374,6 @@
 ✓ 保持了完整的功能兼容性
 ✓ 提升了代码的可维护性和扩展性
 
-EOF;
-
 ## TASK:20251127-171004
 -----------------------
 
@@ -439,4 +437,62 @@ EOF;
 ✓ 保持了 wwjson 快速拼接的设计理念
 ✓ 所有现有测试继续通过，确保向后兼容
 
-EOF;
+## TASK:20251127-180345
+-----------------------
+
+### 任务概述
+优化 GenericBuilder 方法间调用，简化代码复用，消除重复逻辑。
+
+### 优化内容
+
+**PutValue 方法优化**
+- 让 `PutValue(const char*)` 调用 `PutValue(const char*, size_t)` 核心版本  
+- 让 `PutValue(const std::string&)` 调用 `PutValue(const char*, size_t)` 核心版本
+- 统一字符串转义逻辑到 `PutValue(const char*, size_t)` 方法
+- 优化引号处理：使用 `PutChar('"')` 代替 `Append("\"")` 提升性能
+
+**AddItem/AddMember 方法模板化**
+- 使用 `template<typename... Args>` 参数包统一处理所有字符串类型
+- 将原来3个字符串重载合并为1个通用模板方法
+- 保持数字类型的SFINAE特化，确保 `kQuoteNumber` 配置正常工作
+- 向后兼容，API接口保持不变
+
+**Escape 方法简化**  
+- 以 `(const char*, size_t)` 版本作为主方法实现
+- 其他重载版本调用主方法，减少代码重复
+- 使用 `::strlen` 全局命名空间确保函数调用正确
+
+### 技术细节
+
+**模板参数包的应用**
+- AddItem: `template<typename... Args> AddItem(Args&&... args)`
+- AddMember: `template<typename... Args> AddMember(const char* pszKey, Args&&... args)`
+- 完美转发参数到 `PutValue` 方法
+
+**SFINAE 兼容性**
+- 数字类型重载的 `std::enable_if_t<std::is_arithmetic_v<numberT>>` 仍然有效
+- 模板特化优先级确保数字处理逻辑正确
+
+**性能优化**
+- 减少函数调用链长度
+- 消除重复的转义和引号处理逻辑
+- 使用 `PutChar` 代替字符串拼接提升效率
+
+### 代码统计
+- **减少重复代码**: 约35行
+- **逻辑集中**: 字符串处理统一到核心方法
+- **维护性提升**: 修改逻辑只需调整核心方法
+
+### 测试结果
+- 编译测试：成功编译，无错误
+- 功能验证：所有现有测试继续通过
+- 向后兼容：API接口保持不变
+
+### 结果
+成功完成需求 2025-11-27/5 的所有要求：
+✓ PutValue方法间调用优化，消除重复逻辑
+✓ AddItem/AddMember方法模板化，减少代码重复
+✓ Escape方法简化，使用主版本调用模式
+✓ 所有优化保持向后兼容和功能正确性
+✓ 编译和测试验证通过
+

@@ -216,11 +216,19 @@ string(buffer) 类定义，输入字符串先只支持标准类。
 。
 
 我初步发现的一些问题与修改建议：
-- PutValue std::string 参数版简化调用 (const char*, size_t) 版
+- PutValue 三种字符串重载版简化以 (const char*, size_t) 为主
 - AddItem/AddMember 三种字符串版本重载可合并为模板方法
+- *Escape 方法也以 `(const char*, size_t)` 参数为主版本
 
 请再深度分析有没其他可优化点。
 
+### DONE: 20251127-180345
+
+补充需求：
+提取 PutNubmer 方法统一判断是否自动加引号，AddItem/AddMember 添加数字类型改调
+PutNumber ，手动加引号的版本不改。
+
+`t_basic.cpp` 补充用例测试添加 null bool 空数组、空对象。
 
 ## TODO: 重载 [] 索引操作符
 

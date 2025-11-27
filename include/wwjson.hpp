@@ -306,22 +306,13 @@ struct GenericBuilder
     /// Append C-string value to JSON with quotes.
     void PutValue(const char* pszVal)
     {
-        PutChar('"');
-        if constexpr (configT::kAlwaysEscape)
-        {
-            configT::EscapeString(json, pszVal, strlen(pszVal), DEFAULT_ESCAPE_CHARS);
-        }
-        else
-        {
-            Append(pszVal);
-        }
-        PutChar('"');
+        PutValue(pszVal, ::strlen(pszVal));
     }
 
     /// Append C-string value with length to JSON with quotes.
     void PutValue(const char* pszVal, size_t len)
     {
-        Append("\"");
+        PutChar('"');
         if constexpr (configT::kAlwaysEscape)
         {
             configT::EscapeString(json, pszVal, len, DEFAULT_ESCAPE_CHARS);
@@ -330,22 +321,13 @@ struct GenericBuilder
         {
             Append(pszVal, len);
         }
-        Append("\"");
+        PutChar('"');
     }
 
     /// Append std::string value to JSON with quotes.
     void PutValue(const std::string& strValue)
     {
-        PutChar('"');
-        if constexpr (configT::kAlwaysEscape)
-        {
-            configT::EscapeString(json, strValue.c_str(), strValue.length(), DEFAULT_ESCAPE_CHARS);
-        }
-        else
-        {
-            Append(strValue);
-        }
-        PutChar('"');
+        PutValue(strValue.c_str(), strValue.length());
     }
 
     /// Append integral number value to JSON.
@@ -373,7 +355,7 @@ struct GenericBuilder
         PutChar('"');
         if constexpr (configT::kAlwaysEscape)
         {
-            configT::EscapeKey(json, pszKey, strlen(pszKey), DEFAULT_ESCAPE_CHARS);
+            configT::EscapeKey(json, pszKey, ::strlen(pszKey), DEFAULT_ESCAPE_CHARS);
         }
         else
         {
@@ -403,27 +385,6 @@ struct GenericBuilder
         SepItem();
     }
 
-    /// Add string item to array.
-    void AddItem(const std::string& value)
-    {
-        PutValue(value);
-        SepItem();
-    }
-
-    /// Add C-string item to array.
-    void AddItem(const char* value)
-    {
-        PutValue(value);
-        SepItem();
-    }
-
-    /// Add C-string item with length to array.
-    void AddItem(const char* value, size_t len)
-    {
-        PutValue(value, len);
-        SepItem();
-    }
-
     /// Add numeric item as quoted string to array.
     /// Suggest pass `true` as last argument but not used.
     template <typename numberT>
@@ -433,6 +394,14 @@ struct GenericBuilder
         PutChar('"');
         PutValue(value);
         PutChar('"');
+        SepItem();
+    }
+
+    /// Add string(and bool) item to array.
+    template<typename... Args>
+    void AddItem(Args&&... args)
+    {
+        PutValue(std::forward<Args>(args)...);
         SepItem();
     }
 
@@ -458,30 +427,6 @@ struct GenericBuilder
         SepItem();
     }
 
-    /// Add string member to object.
-    void AddMember(const char* pszKey, const std::string& value)
-    {
-        PutKey(pszKey);
-        PutValue(value);
-        SepItem();
-    }
-
-    /// Add C-string member to object.
-    void AddMember(const char* pszKey, const char* value)
-    {
-        PutKey(pszKey);
-        PutValue(value);
-        SepItem();
-    }
-
-    /// Add C-string member with length to object.
-    void AddMember(const char* pszKey, const char* value, size_t len)
-    {
-        PutKey(pszKey);
-        PutValue(value,len);
-        SepItem();
-    }
-
     /// Add numeric member as quoted string to object.
     /// Suggest pass `true` as last argument but not used.
     template <typename numberT>
@@ -495,86 +440,17 @@ struct GenericBuilder
         SepItem();
     }
 
+    /// Add string(and bool) member to object.
+    template<typename... Args>
+    void AddMember(const char* pszKey, Args&&... args)
+    {
+        PutKey(pszKey);
+        PutValue(std::forward<Args>(args)...);
+        SepItem();
+    }
+
     /// M6: String Escaping Methods
     /* ---------------------------------------------------------------------- */
-    
-    /// Add member with single character escaping.
-    void AddMemberEscape(const char* pszKey, const std::string& value, char ec)
-    {
-        PutKey(pszKey);
-        PutChar('"');
-        configT::EscapeString(json, value.c_str(), value.length(), ec);
-        PutChar('"');
-        SepItem();
-    }
-
-    /// Add C-string member with single character escaping.
-    void AddMemberEscape(const char* pszKey, const char* value, char ec)
-    {
-        PutKey(pszKey);
-        PutChar('"');
-        configT::EscapeString(json, value, strlen(value), ec);
-        PutChar('"');
-        SepItem();
-    }
-
-    /// Add C-string member with length and single character escaping.
-    void AddMemberEscape(const char* pszKey, const char* value, size_t len, char ec)
-    {
-        PutKey(pszKey);
-        PutChar('"');
-        configT::EscapeString(json, value, len, ec);
-        PutChar('"');
-        SepItem();
-    }
-
-    /// Add member with multiple character escaping.
-    void AddMemberEscape(const char* pszKey, const std::string& value, const char* ecs = DEFAULT_ESCAPE_CHARS)
-    {
-        PutKey(pszKey);
-        PutChar('"');
-        configT::EscapeString(json, value.c_str(), value.length(), ecs);
-        PutChar('"');
-        SepItem();
-    }
-
-    /// Add C-string member with multiple character escaping.
-    void AddMemberEscape(const char* pszKey, const char* value, const char* ecs = DEFAULT_ESCAPE_CHARS)
-    {
-        PutKey(pszKey);
-        PutChar('"');
-        configT::EscapeString(json, value, strlen(value), ecs);
-        PutChar('"');
-        SepItem();
-    }
-
-    /// Add C-string member with length and multiple character escaping.
-    void AddMemberEscape(const char* pszKey, const char* value, size_t len, const char* ecs = DEFAULT_ESCAPE_CHARS)
-    {
-        PutKey(pszKey);
-        PutChar('"');
-        configT::EscapeString(json, value, len, ecs);
-        PutChar('"');
-        SepItem();
-    }
-
-    /// Add item with single character escaping.
-    void AddItemEscape(const std::string& value, char ec)
-    {
-        PutChar('"');
-        configT::EscapeString(json, value.c_str(), value.length(), ec);
-        PutChar('"');
-        SepItem();
-    }
-
-    /// Add item with multiple character escaping.
-    void AddItemEscape(const std::string& value, const char* ecs = DEFAULT_ESCAPE_CHARS)
-    {
-        PutChar('"');
-        configT::EscapeString(json, value.c_str(), value.length(), ecs);
-        PutChar('"');
-        SepItem();
-    }
 
     /// Add C-string item with length and single character escaping.
     void AddItemEscape(const char* value, size_t len, char ec)
@@ -597,13 +473,69 @@ struct GenericBuilder
     /// Add C-string item with single character escaping.
     void AddItemEscape(const char* value, char ec)
     {
-        AddItemEscape(value, strlen(value), ec);
+        AddItemEscape(value, ::strlen(value), ec);
     }
 
     /// Add C-string item with multiple character escaping.
     void AddItemEscape(const char* value, const char* ecs = DEFAULT_ESCAPE_CHARS)
     {
-        AddItemEscape(value, strlen(value), ecs);
+        AddItemEscape(value, ::strlen(value), ecs);
+    }
+
+    /// Add item with single character escaping.
+    void AddItemEscape(const std::string& value, char ec)
+    {
+        AddItemEscape(value.c_str(), value.length(), ec);
+    }
+
+    /// Add item with multiple character escaping.
+    void AddItemEscape(const std::string& value, const char* ecs = DEFAULT_ESCAPE_CHARS)
+    {
+        AddItemEscape(value.c_str(), value.length(), ecs);
+    }
+    
+    /// Add C-string member with length and single character escaping.
+    void AddMemberEscape(const char* pszKey, const char* value, size_t len, char ec)
+    {
+        PutKey(pszKey);
+        PutChar('"');
+        configT::EscapeString(json, value, len, ec);
+        PutChar('"');
+        SepItem();
+    }
+
+    /// Add C-string member with length and multiple character escaping.
+    void AddMemberEscape(const char* pszKey, const char* value, size_t len, const char* ecs = DEFAULT_ESCAPE_CHARS)
+    {
+        PutKey(pszKey);
+        PutChar('"');
+        configT::EscapeString(json, value, len, ecs);
+        PutChar('"');
+        SepItem();
+    }
+
+    /// Add C-string member with single character escaping.
+    void AddMemberEscape(const char* pszKey, const char* value, char ec)
+    {
+        AddMemberEscape(pszKey, value, ::strlen(value), ec);
+    }
+
+    /// Add C-string member with multiple character escaping.
+    void AddMemberEscape(const char* pszKey, const char* value, const char* ecs = DEFAULT_ESCAPE_CHARS)
+    {
+        AddMemberEscape(pszKey, value, ::strlen(value), ecs);
+    }
+
+    /// Add member with single character escaping.
+    void AddMemberEscape(const char* pszKey, const std::string& value, char ec)
+    {
+        AddMemberEscape(pszKey, value.c_str(), value.length(), ec);
+    }
+
+    /// Add member with multiple character escaping.
+    void AddMemberEscape(const char* pszKey, const std::string& value, const char* ecs = DEFAULT_ESCAPE_CHARS)
+    {
+        AddMemberEscape(pszKey, value.c_str(), value.length(), ecs);
     }
 
     /// M7: Scope Creation Methods
