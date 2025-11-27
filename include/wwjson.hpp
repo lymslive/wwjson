@@ -142,103 +142,72 @@ struct GenericBuilder
     /// The JSON string being built.
     stringT json;
 
+    /// M0: Basic Methods
+    /* ---------------------------------------------------------------------- */
+    
     /// Constructor with optional initial capacity.
     GenericBuilder(int capacity = 1024)
     {
         json.reserve(capacity);
     }
 
-    /// Append null value to JSON.
-    void PutNull()
+    /// M1: String Interface Wrapper Methods
+    /* ---------------------------------------------------------------------- */
+    
+    /// Append a single character to JSON string.
+    void PutChar(char c) { json.push_back(c); }
+    
+    /// Fix trailing character if it matches expected, replace with replacement.
+    void FixTail(char expected, char replacement)
     {
-        json.append("null");
-    }
-
-    /// Append boolean value to JSON.
-    void PutValue(bool tf)
-    {
-        if (tf)
+        if (!json.empty() && json.back() == expected)
         {
-            json.append("true");
+            json.back() = replacement;
         }
         else
         {
-            json.append("false");
+            json.push_back(replacement);
         }
     }
+    
+    /// Append C-string to JSON string.
+    void Append(const char* str) { json.append(str); }
+    
+    /// Append C-string with length to JSON string.
+    void Append(const char* str, size_t len) { json.append(str, len); }
+    
+    /// Append std::string to JSON string.
+    void Append(const std::string& str) { json.append(str); }
+    
+    /// Get JSON string size.
+    size_t Size() const { return json.size(); }
+    
+    /// Get reference to last character.
+    char& Back() { return json.back(); }
+    
+    /// Get const reference to last character.
+    const char& Back() const { return json.back(); }
+    
+    /// Get reference to first character.
+    char& Front() { return json.front(); }
+    
+    /// Get const reference to first character.
+    const char& Front() const { return json.front(); }
+    
+    /// Push back character (alias for PutChar).
+    void PushBack(char c) { PutChar(c); }
+    
+    /// Clear JSON string.
+    void Clear() { json.clear(); }
 
-    /// Append C-string value to JSON with quotes.
-    void PutValue(const char* pszVal)
-    {
-        json.push_back('"');
-        if constexpr (configT::kAlwaysEscape)
-        {
-            configT::EscapeString(json, pszVal, strlen(pszVal), DEFAULT_ESCAPE_CHARS);
-        }
-        else
-        {
-            json.append(pszVal);
-        }
-        json.push_back('"');
-    }
-
-    /// Append C-string value with length to JSON with quotes.
-    void PutValue(const char* pszVal, size_t len)
-    {
-        json.append("\"");
-        if constexpr (configT::kAlwaysEscape)
-        {
-            configT::EscapeString(json, pszVal, len, DEFAULT_ESCAPE_CHARS);
-        }
-        else
-        {
-            json.append(pszVal, len);
-        }
-        json.append("\"");
-    }
-
-    /// Append std::string value to JSON with quotes.
-    void PutValue(const std::string& strValue)
-    {
-        json.push_back('"');
-        if constexpr (configT::kAlwaysEscape)
-        {
-            configT::EscapeString(json, strValue.c_str(), strValue.length(), DEFAULT_ESCAPE_CHARS);
-        }
-        else
-        {
-            json.append(strValue);
-        }
-        json.push_back('"');
-    }
-
-    /// Append integral number value to JSON.
-    template <typename numberT>
-    std::enable_if_t<std::is_integral_v<numberT>, void>
-    /*void*/ PutValue(numberT nValue)
-    {
-        // std::array<char, 32> buffer;
-        // auto [ptr, ec] = std::to_chars(buffer.data(), buffer.data() + buffer.size(), nValue);
-        // json.append(buffer.data(), ptr);
-        json.append(std::to_string(nValue));
-    }
-
-    /// Append floating-point number value to JSON.
-    template <typename numberT>
-    std::enable_if_t<std::is_floating_point_v<numberT>, void>
-    /*void*/ PutValue(numberT nValue)
-    {
-        json.append(std::to_string(nValue));
-    }
-
+    /// M2: JSON Character-level Methods
+    /* ---------------------------------------------------------------------- */
+    
     /// Append comma separator.
-    void PutComma()
-    {
-        json.push_back(',');
-    }
+    void PutNext() { PutChar(','); }
 
-    /// Alias for PutComma().
-    void SepItem() { PutComma(); }
+    /// Alias for PutNext().
+    void SepItem() { PutNext(); }
 
     /// Begin array with key.
     void BeginArray(const char* pszKey)
@@ -248,28 +217,18 @@ struct GenericBuilder
     }
 
     /// Begin array without key.
-    void BeginArray()
-    {
-        json.push_back('[');
-    }
+    void BeginArray() { PutChar('['); }
 
     /// End array, handling trailing comma based on config.
     void EndArray()
     {
         if constexpr (configT::kTailComma)
         {
-            json.push_back(']');
+            PutChar(']');
         }
         else
         {
-            if (json.back() == ',')
-            {
-                json.back() = ']';
-            }
-            else
-            {
-                json.push_back(']');
-            }
+            FixTail(',', ']');
         }
     }
 
@@ -281,11 +240,148 @@ struct GenericBuilder
     }
 
     /// Append empty array.
-    void EmptyArray()
+    void EmptyArray() { Append("[]"); }
+
+    /// Begin object with key.
+    void BeginObject(const char* pszKey)
     {
-        json.append("[]");
+        PutKey(pszKey);
+        BeginObject();
     }
 
+    /// Begin object without key.
+    void BeginObject() { PutChar('{'); }
+
+    /// End object, handling trailing comma based on config.
+    void EndObject()
+    {
+        if constexpr (configT::kTailComma)
+        {
+            PutChar('}');
+        }
+        else
+        {
+            FixTail(',', '}');
+        }
+    }
+
+    /// End object with additional separator. Suggest pass `true` but not used.
+    void EndObject(bool /*hasNext*/)
+    {
+        EndObject();
+        SepItem();
+    }
+
+    /// Append empty object.
+    void EmptyObject() { Append("{}"); }
+
+    /// Append newline character.
+    void EndLine() { PutChar('\n'); }
+
+    /// M3: JSON Scalar Value Methods
+    /* ---------------------------------------------------------------------- */
+    
+    /// Append null value to JSON.
+    void PutNull()
+    {
+        Append("null");
+    }
+
+    /// Append boolean value to JSON.
+    void PutValue(bool tf)
+    {
+        if (tf)
+        {
+            Append("true");
+        }
+        else
+        {
+            Append("false");
+        }
+    }
+
+    /// Append C-string value to JSON with quotes.
+    void PutValue(const char* pszVal)
+    {
+        PutChar('"');
+        if constexpr (configT::kAlwaysEscape)
+        {
+            configT::EscapeString(json, pszVal, strlen(pszVal), DEFAULT_ESCAPE_CHARS);
+        }
+        else
+        {
+            Append(pszVal);
+        }
+        PutChar('"');
+    }
+
+    /// Append C-string value with length to JSON with quotes.
+    void PutValue(const char* pszVal, size_t len)
+    {
+        Append("\"");
+        if constexpr (configT::kAlwaysEscape)
+        {
+            configT::EscapeString(json, pszVal, len, DEFAULT_ESCAPE_CHARS);
+        }
+        else
+        {
+            Append(pszVal, len);
+        }
+        Append("\"");
+    }
+
+    /// Append std::string value to JSON with quotes.
+    void PutValue(const std::string& strValue)
+    {
+        PutChar('"');
+        if constexpr (configT::kAlwaysEscape)
+        {
+            configT::EscapeString(json, strValue.c_str(), strValue.length(), DEFAULT_ESCAPE_CHARS);
+        }
+        else
+        {
+            Append(strValue);
+        }
+        PutChar('"');
+    }
+
+    /// Append integral number value to JSON.
+    template <typename numberT>
+    std::enable_if_t<std::is_integral_v<numberT>, void>
+    /*void*/ PutValue(numberT nValue)
+    {
+        // std::array<char, 32> buffer;
+        // auto [ptr, ec] = std::to_chars(buffer.data(), buffer.data() + buffer.size(), nValue);
+        // Append(buffer.data(), ptr - buffer.data());
+        Append(std::to_string(nValue));
+    }
+
+    /// Append floating-point number value to JSON.
+    template <typename numberT>
+    std::enable_if_t<std::is_floating_point_v<numberT>, void>
+    /*void*/ PutValue(numberT nValue)
+    {
+        Append(std::to_string(nValue));
+    }
+    
+    /// Append object key with quotes and colon.
+    void PutKey(const char* pszKey)
+    {
+        PutChar('"');
+        if constexpr (configT::kAlwaysEscape)
+        {
+            configT::EscapeKey(json, pszKey, strlen(pszKey), DEFAULT_ESCAPE_CHARS);
+        }
+        else
+        {
+            Append(pszKey);
+        }
+        Append("\":");
+    }
+
+    /// M4: JSON Array Element Methods
+    /* ---------------------------------------------------------------------- */
+    
     /// Add numeric item to array.
     template <typename numberT>
     std::enable_if_t<std::is_arithmetic_v<numberT>, void>
@@ -293,9 +389,9 @@ struct GenericBuilder
     {
         if constexpr (configT::kQuoteNumber)
         {
-            json.push_back('"');
+            PutChar('"');
             PutValue(value);
-            json.push_back('"');
+            PutChar('"');
         }
         else
         {
@@ -331,73 +427,15 @@ struct GenericBuilder
     std::enable_if_t<std::is_arithmetic_v<numberT>, void>
     /*void*/ AddItem(numberT value, bool /*asString*/)
     {
-        json.push_back('"');
+        PutChar('"');
         PutValue(value);
-        json.push_back('"');
+        PutChar('"');
         SepItem();
     }
 
-    /// Begin object with key.
-    void BeginObject(const char* pszKey)
-    {
-        PutKey(pszKey);
-        BeginObject();
-    }
-
-    /// Begin object without key.
-    void BeginObject()
-    {
-        json.push_back('{');
-    }
-
-    /// End object, handling trailing comma based on config.
-    void EndObject()
-    {
-        if constexpr (configT::kTailComma)
-        {
-            json.push_back('}');
-        }
-        else
-        {
-            if (json.back() == ',')
-            {
-                json.back() = '}';
-            }
-            else
-            {
-                json.push_back('}');
-            }
-        }
-    }
-
-    /// End object with additional separator. Suggest pass `true` but not used.
-    void EndObject(bool /*hasNext*/)
-    {
-        EndObject();
-        SepItem();
-    }
-
-    /// Append empty object.
-    void EmptyObject()
-    {
-        json.append("{}");
-    }
-
-    /// Append object key with quotes and colon.
-    void PutKey(const char* pszKey)
-    {
-        json.push_back('"');
-        if constexpr (configT::kAlwaysEscape)
-        {
-            configT::EscapeKey(json, pszKey, strlen(pszKey), DEFAULT_ESCAPE_CHARS);
-        }
-        else
-        {
-            json.append(pszKey);
-        }
-        json.append("\":");
-    }
-
+    /// M5: JSON Object Element Methods
+    /* ---------------------------------------------------------------------- */
+    
     /// Add numeric member to object.
     template <typename numberT>
     std::enable_if_t<std::is_arithmetic_v<numberT>, void>
@@ -406,9 +444,9 @@ struct GenericBuilder
         PutKey(pszKey);
         if constexpr (configT::kQuoteNumber)
         {
-            json.push_back('"');
+            PutChar('"');
             PutValue(value);
-            json.push_back('"');
+            PutChar('"');
         }
         else
         {
@@ -448,19 +486,22 @@ struct GenericBuilder
     /*void*/ AddMember(const char* pszKey, numberT value, bool /*asString*/)
     {
         PutKey(pszKey);
-        json.push_back('"');
+        PutChar('"');
         PutValue(value);
-        json.push_back('"');
+        PutChar('"');
         SepItem();
     }
 
+    /// M6: String Escaping Methods
+    /* ---------------------------------------------------------------------- */
+    
     /// Add member with single character escaping.
     void AddMemberEscape(const char* pszKey, const std::string& value, char ec)
     {
         PutKey(pszKey);
-        json.push_back('"');
+        PutChar('"');
         configT::EscapeString(json, value.c_str(), value.length(), ec);
-        json.push_back('"');
+        PutChar('"');
         SepItem();
     }
 
@@ -468,9 +509,9 @@ struct GenericBuilder
     void AddMemberEscape(const char* pszKey, const char* value, char ec)
     {
         PutKey(pszKey);
-        json.push_back('"');
+        PutChar('"');
         configT::EscapeString(json, value, strlen(value), ec);
-        json.push_back('"');
+        PutChar('"');
         SepItem();
     }
 
@@ -478,9 +519,9 @@ struct GenericBuilder
     void AddMemberEscape(const char* pszKey, const char* value, size_t len, char ec)
     {
         PutKey(pszKey);
-        json.push_back('"');
+        PutChar('"');
         configT::EscapeString(json, value, len, ec);
-        json.push_back('"');
+        PutChar('"');
         SepItem();
     }
 
@@ -488,9 +529,9 @@ struct GenericBuilder
     void AddMemberEscape(const char* pszKey, const std::string& value, const char* ecs = DEFAULT_ESCAPE_CHARS)
     {
         PutKey(pszKey);
-        json.push_back('"');
+        PutChar('"');
         configT::EscapeString(json, value.c_str(), value.length(), ecs);
-        json.push_back('"');
+        PutChar('"');
         SepItem();
     }
 
@@ -498,9 +539,9 @@ struct GenericBuilder
     void AddMemberEscape(const char* pszKey, const char* value, const char* ecs = DEFAULT_ESCAPE_CHARS)
     {
         PutKey(pszKey);
-        json.push_back('"');
+        PutChar('"');
         configT::EscapeString(json, value, strlen(value), ecs);
-        json.push_back('"');
+        PutChar('"');
         SepItem();
     }
 
@@ -508,45 +549,45 @@ struct GenericBuilder
     void AddMemberEscape(const char* pszKey, const char* value, size_t len, const char* ecs = DEFAULT_ESCAPE_CHARS)
     {
         PutKey(pszKey);
-        json.push_back('"');
+        PutChar('"');
         configT::EscapeString(json, value, len, ecs);
-        json.push_back('"');
+        PutChar('"');
         SepItem();
     }
 
     /// Add item with single character escaping.
     void AddItemEscape(const std::string& value, char ec)
     {
-        json.push_back('"');
+        PutChar('"');
         configT::EscapeString(json, value.c_str(), value.length(), ec);
-        json.push_back('"');
+        PutChar('"');
         SepItem();
     }
 
     /// Add item with multiple character escaping.
     void AddItemEscape(const std::string& value, const char* ecs = DEFAULT_ESCAPE_CHARS)
     {
-        json.push_back('"');
+        PutChar('"');
         configT::EscapeString(json, value.c_str(), value.length(), ecs);
-        json.push_back('"');
+        PutChar('"');
         SepItem();
     }
 
     /// Add C-string item with length and single character escaping.
     void AddItemEscape(const char* value, size_t len, char ec)
     {
-        json.push_back('"');
+        PutChar('"');
         configT::EscapeString(json, value, len, ec);
-        json.push_back('"');
+        PutChar('"');
         SepItem();
     }
 
     /// Add C-string item with length and multiple character escaping.
     void AddItemEscape(const char* value, size_t len, const char* ecs = DEFAULT_ESCAPE_CHARS)
     {
-        json.push_back('"');
+        PutChar('"');
         configT::EscapeString(json, value, len, ecs);
-        json.push_back('"');
+        PutChar('"');
         SepItem();
     }
 
@@ -562,32 +603,44 @@ struct GenericBuilder
         AddItemEscape(value, strlen(value), ecs);
     }
 
-    /// Append newline character.
-    void EndLine()
-    {
-        json.push_back('\n');
-    }
+    /// M7: Scope Creation Methods
+    /* ---------------------------------------------------------------------- */
+    
+    /// Create a scoped GenericArray that auto-closes when destroyed.
+    GenericArray<stringT, configT> ScopeArray(bool hasNext = false);
+    
+    /// Create a scoped GenericArray with key that auto-closes when destroyed.
+    GenericArray<stringT, configT> ScopeArray(const char* pszKey, bool hasNext = false);
+    
+    /// Create a scoped GenericObject that auto-closes when destroyed.
+    GenericObject<stringT, configT> ScopeObject(bool hasNext = false);
+    
+    /// Create a scoped GenericObject with key that auto-closes when destroyed.
+    GenericObject<stringT, configT> ScopeObject(const char* pszKey, bool hasNext = false);
 
+    /// M8: Advanced Methods
+    /* ---------------------------------------------------------------------- */
+    
     /// Reopen object {} to add more fields.
     void ReopenObject()
     {
-        if (!json.empty() && json.back() == '}')
+        if (!json.empty() && Back() == '}')
         {
-            json.back() = ',';
+            Back() = ',';
         }
     }
 
     /// Merge two JSON object serialized strings.
     void Merge(const GenericBuilder<stringT, configT>& that)
     {
-        if (json.size() < 2)
+        if (Size() < 2)
         {
             json = that.json;
         }
-        else if (that.json.size() > 2 && that.json.front() == '{')
+        else if (that.Size() > 2 && that.Front() == '{')
         {
             ReopenObject();
-            json.append(that.json.c_str() + 1, that.json.size() - 1);
+            Append(that.json.c_str() + 1, that.Size() - 1);
         }
     }
 
@@ -606,67 +659,6 @@ struct GenericBuilder
             }
             self.append(that.c_str() + 1, that.size() - 1);
         }
-    }
-
-    /// Create a scoped GenericArray that auto-closes when destroyed.
-    GenericArray<stringT, configT> ScopeArray(bool hasNext = false);
-    
-    /// Create a scoped GenericArray with key that auto-closes when destroyed.
-    GenericArray<stringT, configT> ScopeArray(const char* pszKey, bool hasNext = false);
-    
-    /// Create a scoped GenericObject that auto-closes when destroyed.
-    GenericObject<stringT, configT> ScopeObject(bool hasNext = false);
-    
-    /// Create a scoped GenericObject with key that auto-closes when destroyed.
-    GenericObject<stringT, configT> ScopeObject(const char* pszKey, bool hasNext = false);
-};
-
-/// Auto open and close object {}.
-template<typename stringT, typename configT>
-struct GenericObject
-{
-private:
-    /// Reference to the builder.
-    GenericBuilder<stringT, configT>& m_builder;
-    /// Whether to add separator after closing.
-    bool m_next;
-
-public:
-    /// Constructor without key.
-    GenericObject(GenericBuilder<stringT, configT>& build, bool hasNext = false) : m_builder(build), m_next(hasNext)
-    {
-        m_builder.BeginObject();
-    }
-
-    /// Constructor with key.
-    GenericObject(GenericBuilder<stringT, configT>& build, const char* pszKey, bool hasNext = false) : m_builder(build), m_next(hasNext)
-    {
-        m_builder.PutKey(pszKey);
-        m_builder.BeginObject();
-    }
-
-    /// Destructor auto-closes object.
-    ~GenericObject()
-    {
-        m_builder.EndObject();
-        if (m_next)
-        {
-            m_builder.SepItem();
-        }
-    }
-
-    /// Forward to builder method.
-    template <typename... Args>
-    void AddMember(Args&&... args)
-    {
-        m_builder.AddMember(std::forward<Args>(args)...);
-    }
-
-    /// Forward to builder AddMemberEscape method.
-    template <typename... Args>
-    void AddMemberEscape(Args&&... args)
-    {
-        m_builder.AddMemberEscape(std::forward<Args>(args)...);
     }
 };
 
@@ -716,6 +708,55 @@ public:
     void AddItemEscape(Args&&... args)
     {
         m_builder.AddItemEscape(std::forward<Args>(args)...);
+    }
+};
+
+/// Auto open and close object {}.
+template<typename stringT, typename configT>
+struct GenericObject
+{
+private:
+    /// Reference to the builder.
+    GenericBuilder<stringT, configT>& m_builder;
+    /// Whether to add separator after closing.
+    bool m_next;
+
+public:
+    /// Constructor without key.
+    GenericObject(GenericBuilder<stringT, configT>& build, bool hasNext = false) : m_builder(build), m_next(hasNext)
+    {
+        m_builder.BeginObject();
+    }
+
+    /// Constructor with key.
+    GenericObject(GenericBuilder<stringT, configT>& build, const char* pszKey, bool hasNext = false) : m_builder(build), m_next(hasNext)
+    {
+        m_builder.PutKey(pszKey);
+        m_builder.BeginObject();
+    }
+
+    /// Destructor auto-closes object.
+    ~GenericObject()
+    {
+        m_builder.EndObject();
+        if (m_next)
+        {
+            m_builder.SepItem();
+        }
+    }
+
+    /// Forward to builder method.
+    template <typename... Args>
+    void AddMember(Args&&... args)
+    {
+        m_builder.AddMember(std::forward<Args>(args)...);
+    }
+
+    /// Forward to builder AddMemberEscape method.
+    template <typename... Args>
+    void AddMemberEscape(Args&&... args)
+    {
+        m_builder.AddMemberEscape(std::forward<Args>(args)...);
     }
 };
 

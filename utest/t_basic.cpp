@@ -33,6 +33,50 @@ DEF_TAST(basic_builder, "test json builder with raw string")
     COUT(builder.json, expect);
 }
 
+DEF_TAST(basic_wrapper, "test M1 string interface wrapper methods")
+{
+    wwjson::RawBuilder builder(64);
+    
+    // Test PutChar
+    builder.PutChar('{');
+    builder.PutChar('}');
+    std::string expect1 = "{}";
+    COUT(builder.json, expect1);
+    
+    // Test FixTail - replace trailing '}' with ','
+    builder.FixTail('}', ',');
+    std::string expect2 = "{,";
+    COUT(builder.json, expect2);
+    
+    // Test FixTail - add ']' when tail doesn't match
+    builder.FixTail('{', ']');
+    std::string expect3 = "{,]";
+    COUT(builder.json, expect3);
+    
+    // Test Append methods
+    builder.Clear();
+    builder.Append("test");
+    builder.Append(" string", 7);
+    std::string expect4 = "test string";
+    COUT(builder.json, expect4);
+    
+    // Test Size
+    size_t size = builder.Size();
+    size_t expectSize = 11;
+    COUT(size, expectSize);
+    
+    // Test Back and Front
+    char front = builder.Front();
+    char back = builder.Back();
+    COUT(front, 't');
+    COUT(back, 'g');
+    
+    // Test PushBack
+    builder.PushBack('!');
+    std::string expect5 = "test string!";
+    COUT(builder.json, expect5);
+}
+
 DEF_TAST(basic_builder_array, "test build json with array of object")
 {
     wwjson::RawBuilder builder;

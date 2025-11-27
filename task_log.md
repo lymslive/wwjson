@@ -267,7 +267,7 @@
 **方法增强**
 - 为 GenericArray 增加了 AddItemEscape 转发方法
 - 为 GenericObject 增加了 AddMemberEscape 转发方法
-- 确保所有字符串方法支持四种重载：const char*、const char,size_t、std::string&
+- 确保所有字符串方法支持三种重载：const char*、const char,size_t、std::string&
 
 **测试完善**
 - 新增 utest/t_escape.cpp 测试文件，包含 5 个测试用例
@@ -304,3 +304,74 @@
 ✓ 提供了全面的单元测试覆盖
 ✓ 保持了完整的向后兼容性
 ✓ 提升了代码的可维护性和易用性
+
+## TASK:20251127-141621
+-----------------------
+
+### 任务概述
+重构 GenericBuilder 方法封装及顺序调整，增加接口抽象层并按功能分组重新组织代码结构。
+
+### 实现内容
+
+**M1 接口封装方法**
+- 增加 PutChar 方法统一调用 stringT::push_back 
+- 增加 FixTail 方法处理尾字符替换逻辑，简化 EndArray/EndObject
+- 增加 Append 方法重载，统一调用 stringT::append
+- 增加 Size/Back/Front/PushBack 方法，提供大写命名的 stringT 接口封装
+- 增加 Clear 方法用于清空 JSON 字符串
+
+**方法调用重构**
+- 删除 PutComma 方法，替换为 PutNext 方法调用 PutChar(',')
+- EndArray 默认分支调用 FixTail(',', ']')
+- EndObject 默认分支调用 FixTail(',', '}')
+- 所有直接调用 stringT::push_back/append 的地方改为调用 PutChar/Append
+- Merge 方法改用 Size/Back/Front 等封装方法
+
+**M0-M8 分组重组**
+- M0: 基本方法（构造函数）
+- M1: String 接口封装/桥接方法（PutChar/FixTail/Append/Size/Back/Front/PushBack）
+- M2: JSON 字符级拼接方法（PutNext/Begin-End Array/Object/EmptyArray/EmptyObject/EndLine）
+- M3: JSON 标量值方法（PutNull/PutValue/PutKey）
+- M4: JSON 数组元素方法（AddItem）
+- M5: JSON 对象元素方法（AddMember）
+- M6: 字符串转义方法（*Escape）
+- M7: 作用域创建方法（ScopeArray/ScopeObject）
+- M8: 高级方法（ReopenObject/Merge）
+
+**分隔符格式化**
+- 每个分组添加显著注释和 78 字符分隔线：/* ---------------------------------------------------------------------- */
+
+**单元测试补充**
+- t_basic.cpp 中增加 basic_wrapper 测试用例，验证 M1 各方法功能
+- t_custom.cpp 中增加 custom_wrapper 测试用例，验证 M1 接口方法可定制
+
+### 技术细节
+
+**依赖隔离**
+- M2 组以后的方法不再直接调用 stringT 的方法，全部通过 M1 封装方法
+- 确保 M0-M1 组中的方法调用了 stringT 的完整接口，与 StringConcept 一致
+- 取消注释，写出完整的方法签名声明
+
+**接口一致性**
+- PutNext 替代 PutComma，保持相同的分隔符功能
+- FixTail 统一处理 EndArray/EndObject 的尾字符逻辑
+- Append 提供三个重载：const char*、const char*+size_t、const std::string&
+
+**向后兼容**
+- 保持所有现有公共方法的签名和行为不变
+- 确保测试用例全部通过，验证功能不变更
+
+### 测试结果
+- 编译测试：修复重复定义错误，成功编译
+- 功能测试：所有 15 个测试用例通过，包括新增的 2 个 M1 测试用例
+- 兼容性验证：现有测试用例全部通过，保证了向后兼容性
+
+### 结果
+成功完成需求 2025-11-27/3 的所有要求：
+✓ 增加了 M1 封装方法，隔离了 stringT 接口依赖
+✓ 重新组织方法分组，代码结构更清晰
+✓ 补充了 M1 方法的单元测试
+✓ 保持了完整的功能兼容性
+✓ 提升了代码的可维护性和扩展性
+
+EOF;

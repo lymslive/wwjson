@@ -155,11 +155,46 @@ string(buffer) 类定义，输入字符串先只支持标准类。
 
 ### DONE: 20251127-112133
 
-## TODO: 增加 GenericBuilder::PutChar 方法
+## TODO:2025-11-27/3 重构 GenericBuilder 方法封装及顺序调整
 
-- 在 PutComma() 定义位置之前再增加一个 PutChar 方法
-- 后面的 PutComma/beginArray/beginObject 等方法，凡是调用 push_back 方法的都统
-  一改为调用 PutChar 方法，使得只有一个方法依赖模板参数的 push_back 方法。
+增加封装方法，隔离依赖 stringT 的接口在少量方法内：
+
+- 增加 PutChar 方法统一入口调用 stringT::push_back 方法
+- 删除 PutComma ，SetItme 改为 PutNext 调用 PutChar(',')
+- 增加 FixTail 方法，EndArray 默认分支调用 FixTail(',', ']')，EndOject 类似
+- 增加 Append 方法，调用 stringT::append 方法
+- 其他方法不再显式调用 json.push_back/append 等
+
+方法数量比较多了，按以下分组调整顺序：
+
+- M0: 基本方法，目前只有构造方法
+- M1: 对接 stringT 接口的封装/桥接方法，PutChar/FixTail/Append 等
+- M2: 处理 json 单字符拼接的方法，PutNext, Begin/End Array/Object 等
+- M3: 处理 json 标量值的方法，PutNull/PutKey/PutValue 等
+- M4: 添加 json 数组元素的方法，AddItem 等
+- M5: 添加 json 对象元素的方法，AddMember 等
+- M6: 处理字符串转义的方法变体，*Escape
+- M7: 创建 ScopeArray/Object 的方法
+- M8: 其他高级方法，Merge 等，其中用到的 size/back/front 方法也提到 M1 ，命名
+  首字母改大写。
+
+每个分组加上显著注释与分隔，格式形如：
+
+/// M0: title
+/* -------- */ (整行总长 78 字符)
+
+补充说明：
+- EmptyArry/EmptyObject 暂放在 M2 后面，相当于连续调用 Begin/End 方法
+- EndLine 也放在 M2 后面
+- 再检查核对 M0 M1 组中的方法调用了 stringT 哪些接口，与 StringConcept 保持一
+  致，不多不少。且取消注释，直接写出完整签名的声明。原则上 M2 组以后的方法不要
+  直接调用 stringT 的方法。
+
+单元测试，没有新功能，没改变逻辑。补充用例：
+- `t_basic.cpp` 中补充对 M1 各方法的简单测试
+- `t_cusom.cpp` 中也补充一个类似的用例，验证 M1 的接口方法可定制
+
+### DONE: 20251127-14162
 
 ## TODO: 重载 [] 索引操作符
 

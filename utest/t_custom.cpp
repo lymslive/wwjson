@@ -38,6 +38,50 @@ DEF_TAST(custom_builder, "test json builder with custom string")
     COUT(builder.json.c_str(), expect);
 }
 
+DEF_TAST(custom_wrapper, "test M1 string interface wrapper methods with custom string")
+{
+    wwjson::GenericBuilder<test::string> builder(64);
+    
+    // Test PutChar
+    builder.PutChar('{');
+    builder.PutChar('}');
+    std::string expect1 = "{}";
+    COUT(builder.json.c_str(), expect1);
+    
+    // Test FixTail - replace trailing '}' with ','
+    builder.FixTail('}', ',');
+    std::string expect2 = "{,";
+    COUT(builder.json.c_str(), expect2);
+    
+    // Test FixTail - add ']' when tail doesn't match
+    builder.FixTail('{', ']');
+    std::string expect3 = "{,]";
+    COUT(builder.json.c_str(), expect3);
+    
+    // Test Append methods
+    builder.Clear();
+    builder.Append("test");
+    builder.Append(" string", 7);
+    std::string expect4 = "test string";
+    COUT(builder.json.c_str(), expect4);
+    
+    // Test Size
+    size_t size = builder.Size();
+    size_t expectSize = 11;
+    COUT(size, expectSize);
+    
+    // Test Back and Front
+    char front = builder.Front();
+    char back = builder.Back();
+    COUT(front, 't');
+    COUT(back, 'g');
+    
+    // Test PushBack
+    builder.PushBack('!');
+    std::string expect5 = "test string!";
+    COUT(builder.json.c_str(), expect5);
+}
+
 DEF_TAST(custom_scope, "test build nest json with custom string using auto close scope methods")
 {
     wwjson::GenericBuilder<test::string> builder;
