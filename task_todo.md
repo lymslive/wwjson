@@ -130,7 +130,7 @@ GenericBuilder 的第二参数可以有默认值 `BasicConfig<stringT>` 。
 by vscode plugin.
 不尽如人意。还有手工校对。
 
-## TODO: 字符串与转义功能优化
+## TODO:2025-11-27/2 字符串与转义功能优化
 
 - 删去 BasicConfig::EscapeValue ，就让 Builder 直接使用 EscapeString
 - BasicConfig::EscapeString 最后一个参数是 char 的版本不提供默认值，
@@ -139,16 +139,21 @@ by vscode plugin.
 - GenericBuilder::PutKey 方法要判断 configT::kAlwaysEscape
 - GenericBuilder::PutValue 的字符串重载也要判断 configT::kAlwaysEscape
 - AddMemberEscape/AddItemEscape 的重载参数 char 与 const char* 的默认值规则调
-  换，要与 BasiceConfig::EscapeString 一致。
+  换，要与 BasiceConfig::EscapeString 一致；该默认值可定义一个常量避免重复。
 - GenericArray 增加 AddItemEscape 转发
 - GenericObject 增加 AddMemberEscape 转发
 - 检查所有添加字符串值的方法，包括 AddItem/AddMember 及其 Escape 变体，字符串
-  参数应该支持如下四种重载：
+  参数应该支持如下四种重载(目前 AddItemEscape 最丰富)：
   + const char*
-  + const char, size_t
-  + std::string&
-  + stringT& （目前 AddItemEscape 只缺这个，最丰富）
+  + const char*, size_t
+  + const std::string&
 - 新增 utest/t_escape.cpp 测试文件，补充更全面的字符串与转义测试用例
+
+另注： 添加字符串方法不要加 `stringT&` 参数重载。在常用情况下，模板参数就是
+`std::string` ，不能同时定义会出现二义性。`stringT` 主要用于拼接目标
+string(buffer) 类定义，输入字符串先只支持标准类。
+
+### DONE: 20251127-112133
 
 ## TODO: 增加 GenericBuilder::PutChar 方法
 

@@ -242,3 +242,65 @@
 ✓ 添加了完整的 AddItemEscape 方法族
 ✓ 所有测试通过，验证了功能正确性
 ✓ 为用户提供了灵活的序列化选项配置能力
+
+## TASK:20251127-112133
+-----------------------
+
+### 任务概述
+完成字符串与转义功能优化，提升 wwjson 库的字符串处理能力和转义灵活性。
+
+### 实现内容
+
+**API 优化**
+- 删除了 BasicConfig::EscapeValue 方法，简化配置接口
+- 调整 BasicConfig::EscapeString 的参数默认值：
+  - char 版本：不提供默认值，需要显式指定转义字符
+  - const char* 版本：提供默认值 "\\\n\t\r\"\0"
+- 为 EscapeKey 增加了两个重载版本，保持接口一致性
+- 定义了 DEFAULT_ESCAPE_CHARS 常量，避免字符串字面量重复
+
+**配置驱动的转义逻辑**
+- GenericBuilder::PutKey 方法增加 configT::kAlwaysEscape 判断
+- GenericBuilder::PutValue 的字符串重载增加 configT::kAlwaysEscape 判断
+- 统一了 AddMemberEscape/AddItemEscape 参数默认值规则
+
+**方法增强**
+- 为 GenericArray 增加了 AddItemEscape 转发方法
+- 为 GenericObject 增加了 AddMemberEscape 转发方法
+- 确保所有字符串方法支持四种重载：const char*、const char,size_t、std::string&
+
+**测试完善**
+- 新增 utest/t_escape.cpp 测试文件，包含 5 个测试用例
+- 测试覆盖基本转义、配置驱动转义、作用域转义、参数重载等场景
+- 更新 CMakeLists.txt 包含新测试文件
+- 完善 utest/README.md 文档，添加了当前测试文件结构说明
+
+### 技术细节
+
+**转义机制改进**
+- 基于配置类的 kAlwaysEscape 标志决定是否自动转义
+- 支持单个字符和多字符转义集合
+- 保持了向后兼容性，默认行为与之前一致
+
+**参数一致性**
+- 所有 Escape 相关方法的参数默认值规则保持一致
+- char 参数版本不提供默认值，const char* 版本提供合理的默认转义字符集
+
+**作用域支持**
+- GenericArray/GenericObject 支持转义方法的模板转发
+- 保持了 RAII 特性，自动管理 JSON 结构的开启和关闭
+
+### 测试结果
+- 编译测试：项目成功编译，所有语法错误已修复
+- 功能测试：新增测试用例验证了转义功能的各种场景
+- 兼容性验证：现有测试用例全部通过，保证了向后兼容性
+- 文档完善：更新了测试文件结构说明，便于维护
+
+### 结果
+成功完成需求 2025-11-27/2 的所有要求：
+✓ 优化了字符串与转义功能的 API 设计
+✓ 实现了配置驱动的自动转义机制
+✓ 增强了方法重载支持和参数一致性
+✓ 提供了全面的单元测试覆盖
+✓ 保持了完整的向后兼容性
+✓ 提升了代码的可维护性和易用性

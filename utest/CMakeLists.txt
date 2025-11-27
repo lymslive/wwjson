@@ -45,6 +45,7 @@ add_executable(utwwjson
     t_scope.cpp
     t_experiment.cpp
     t_custom.cpp
+    t_escape.cpp
     custom_string.cpp
 )
 
