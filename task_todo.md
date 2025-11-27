@@ -196,6 +196,32 @@ string(buffer) 类定义，输入字符串先只支持标准类。
 
 ### DONE: 20251127-14162
 
+## TODO:2025-11-27/4 优化 GenericBuilder Meger Json 功能
+
+目标：include/wwjson.hpp GenericBuilder M8 分组下的 3 个方法。
+
+当前实现只能处理根是对象 {} 的 json ，希望能扩展支持根是数组 [] 的 json .
+
+- ReopenOject 方法名简化为 Reopen
+- static MergeObject 方法简化为 Merge
+- 三个方法都返回 bool
+- Merge 时只有同为对象为同为数组时才能 Merge ，否则返回 false 表示失败
+- 单元测试增加 `utest/t_advance.cpp` 文件，补充测试用例
+
+### DONE: 20251127-171004
+
+## TODO:2025-11-27/5 优化 GenericBuilder 方法间调用
+
+分析 PutValue/AddItem/AddMember 三套方法及其各自的重载版本，尽量简化、复用代码
+。
+
+我初步发现的一些问题与修改建议：
+- PutValue std::string 参数版简化调用 (const char*, size_t) 版
+- AddItem/AddMember 三种字符串版本重载可合并为模板方法
+
+请再深度分析有没其他可优化点。
+
+
 ## TODO: 重载 [] 索引操作符
 
 json["key"] = value; 添加对象字段

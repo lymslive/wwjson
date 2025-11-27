@@ -179,6 +179,9 @@ struct GenericBuilder
     /// Append std::string to JSON string.
     void Append(const std::string& str) { json.append(str); }
     
+    /// Check if JSON string is empty.
+    bool Empty() const { return json.empty(); }
+    
     /// Get JSON string size.
     size_t Size() const { return json.size(); }
     
@@ -621,44 +624,80 @@ struct GenericBuilder
     /// M8: Advanced Methods
     /* ---------------------------------------------------------------------- */
     
-    /// Reopen object {} to add more fields.
-    void ReopenObject()
+    /// Reopen object {} or array [] to add more fields.
+    bool Reopen()
     {
-        if (!json.empty() && Back() == '}')
+        if (Empty())
+        {
+            return false;
+        }
+        
+        char lastChar = Back();
+        if (lastChar == '}' || lastChar == ']')
         {
             Back() = ',';
+            return true;
         }
+        
+        return false;
     }
 
-    /// Merge two JSON object serialized strings.
-    void Merge(const GenericBuilder<stringT, configT>& that)
+    /// Merge two JSON serialized strings (objects or arrays).
+    /// Simple algorithm: only checking closing/opening pairs, 
+    /// change `*self}{that*` or `*self][that*` to `*self,that*` .
+    bool Merge(const GenericBuilder<stringT, configT>& that)
     {
-        if (Size() < 2)
+        if (Empty())
         {
             json = that.json;
+            return true;
         }
-        else if (that.Size() > 2 && that.Front() == '{')
+        
+        if (that.Empty())
         {
-            ReopenObject();
-            Append(that.json.c_str() + 1, that.Size() - 1);
+            return true;
         }
+        
+        char selfLast = Back();
+        char thatFirst = that.Front();
+        
+        if ((selfLast == '}' && thatFirst == '{') || (selfLast == ']' && thatFirst == '['))
+        {
+            Back() = ',';
+            Append(that.json.c_str() + 1, that.Size() - 1);
+            return true;
+        }
+        
+        return false;
     }
 
-    /// Static method version, merge two object {}.
-    static void MergeObject(stringT& self, const stringT& that)
+    /// Static method version, merge two objects {} or arrays [].
+    /// Simple algorithm: only checking closing/opening pairs, 
+    /// change `*self}{that*` or `*self][that*` to `*self,that*` .
+    static bool Merge(stringT& self, const stringT& that)
     {
-        if (self.size() < 2)
+        if (self.empty())
         {
             self = that;
+            return true;
         }
-        else if (that.size() > 2 && that.front() == '{')
+        
+        if (that.empty())
         {
-            if (self.back() == '}')
-            {
-                self.back() = ',';
-            }
-            self.append(that.c_str() + 1, that.size() - 1);
+            return true;
         }
+        
+        char selfLast = self.back();
+        char thatFirst = that.front();
+        
+        if ((selfLast == '}' && thatFirst == '{') || (selfLast == ']' && thatFirst == '['))
+        {
+            self.back() = ',';
+            self.append(that.c_str() + 1, that.size() - 1);
+            return true;
+        }
+        
+        return false;
     }
 };
 

@@ -41,11 +41,17 @@ endif()
 
 # Create test executable
 add_executable(utwwjson
+    # functional test files
     t_basic.cpp
     t_scope.cpp
-    t_experiment.cpp
     t_custom.cpp
     t_escape.cpp
+    t_advance.cpp
+
+    # just experiment/research test
+    t_experiment.cpp
+
+    # not test file, but used by other test file
     custom_string.cpp
 )
 
