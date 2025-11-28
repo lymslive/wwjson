@@ -282,6 +282,11 @@ kEscapeKey 的配置测试。
 重载，那组合情况就有 9 种，方法重载数量暴增的问题如何解决，以及这 9 种重载都写
 来的话是否会可能有二义性。
 
+最接近目标的解决方案(2/3)：
+AddMember 改用不定模板参数实现为 PutKey + forward AddItem.
+但是不定参数包之前只能允许一个 Key 参数，const char* 或 std::string&.
+AddMemberEscape 类似.
+
 ### DONE: 20251128-180546
 
 ## TODO: 增加 GetResulti/MoveResult 方法

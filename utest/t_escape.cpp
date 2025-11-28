@@ -102,6 +102,13 @@ DEF_TAST(escape_builder_api, "test escape methods in builder")
     json.AddMemberEscape("key", "value\nwith\ttabs");
     expect = R"("key":"value\nwith\ttabs",)";
     COUT(json.json, expect);
+
+    // Test std::string as key
+    std::string key = "key";
+    json.Clear();
+    json.AddMemberEscape(key, "value\nwith\ttabs");
+    expect = R"("key":"value\nwith\ttabs",)";
+    COUT(json.json, expect);
     
     // Test with std::string
     json.Clear();

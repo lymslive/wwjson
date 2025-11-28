@@ -250,3 +250,28 @@ DEF_TAST(basic_low_level, "test using low-level methods PutKey/PutValue/PutNext"
     std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.500000,"double":0.333333,"ints":"124","intf":"125","numbers":[1,2,3]})";
     COUT(builder.json, expect);
 }
+
+DEF_TAST(basic_addmember_overloads, "test new AddMember overloads with different key parameter types")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+
+    // Test AddMember with const char* key (original)
+    builder.AddMember("str_key", "string_value");
+    builder.AddMember("int_key", 42);
+
+    // Test AddMember with const char* key + size_t length
+    //! not support
+//  builder.AddMember("len_key", 5, "hello");
+//  builder.AddMember("len_key2", 4, 3.14);
+
+    // Test AddMember with std::string key
+    std::string string_key = "std_key";
+    builder.AddMember(string_key, "std_value");
+    builder.AddMember(string_key, 123);
+
+    builder.EndObject();
+
+    std::string expect = R"({"str_key":"string_value","int_key":42,"std_key":"std_value","std_key":123})";
+    COUT(builder.json, expect);
+}

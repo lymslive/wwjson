@@ -416,36 +416,21 @@ struct GenericBuilder
     /// M5: JSON Object Element Methods
     /* ---------------------------------------------------------------------- */
     
-    /// Add numeric member to object.
-    template <typename numberT>
-    std::enable_if_t<std::is_arithmetic_v<numberT>, void>
-    /*void*/ AddMember(const char* pszKey, numberT value)
-    {
-        PutKey(pszKey);
-        PutNumber(value);
-        SepItem();
-    }
-
-    /// Add numeric member as quoted string to object.
-    /// Suggest pass `true` as last argument but not used.
-    template <typename numberT>
-    std::enable_if_t<std::is_arithmetic_v<numberT>, void>
-    /*void*/ AddMember(const char* pszKey, numberT value, bool /*asString*/)
-    {
-        PutKey(pszKey);
-        PutChar('"');
-        PutValue(value);
-        PutChar('"');
-        SepItem();
-    }
-
-    /// Add string(and bool) member to object.
+    /// Add member to object with key and value (C-string key).
+    /// Note: The key not support (pszKey, len) argument, as len will match into args.
     template<typename... Args>
     void AddMember(const char* pszKey, Args&&... args)
     {
         PutKey(pszKey);
-        PutValue(std::forward<Args>(args)...);
-        SepItem();
+        AddItem(std::forward<Args>(args)...);
+    }
+
+    /// Add member to object with key and value (std::string key).
+    template<typename... Args>
+    void AddMember(const std::string& strKey, Args&&... args)
+    {
+        PutKey(strKey);
+        AddItem(std::forward<Args>(args)...);
     }
 
     /// M6: String Escaping Methods
@@ -473,23 +458,22 @@ struct GenericBuilder
         AddItemEscape(value.c_str(), value.length());
     }
     
-    /// Add C-string member with length after escaping.
-    void AddMemberEscape(const char* pszKey, const char* value, size_t len)
+    /// Add member to object with escaped string value.
+    /// Handles any supported value types automatically.
+    template<typename... Args>
+    void AddMemberEscape(const char* pszKey, Args&&... args)
     {
         PutKey(pszKey);
-        AddItemEscape(value, len);
+        AddItemEscape(std::forward<Args>(args)...);
     }
 
-    /// Add C-string member after escaping.
-    void AddMemberEscape(const char* pszKey, const char* value)
+    /// Add member to object with escaped string value (std::string key).
+    /// Handles any supported value types automatically.
+    template<typename... Args>
+    void AddMemberEscape(const std::string& strKey, Args&&... args)
     {
-        AddMemberEscape(pszKey, value, ::strlen(value));
-    }
-
-    /// Add string member after escaping.
-    void AddMemberEscape(const char* pszKey, const std::string& value)
-    {
-        AddMemberEscape(pszKey, value.c_str(), value.length());
+        PutKey(strKey);
+        AddItemEscape(std::forward<Args>(args)...);
     }
 
     /// M7: Scope Creation Methods
