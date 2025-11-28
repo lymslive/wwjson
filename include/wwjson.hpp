@@ -370,13 +370,10 @@ struct GenericBuilder
         Append("\":");
     }
 
-    /// M4: JSON Array Element Methods
-    /* ---------------------------------------------------------------------- */
-    
-    /// Add numeric item to array.
+    /// Append numeric value to JSON, handling quoting based on config.
     template <typename numberT>
     std::enable_if_t<std::is_arithmetic_v<numberT>, void>
-    /*void*/ AddItem(numberT value)
+    PutNumber(numberT value)
     {
         if constexpr (configT::kQuoteNumber)
         {
@@ -388,6 +385,17 @@ struct GenericBuilder
         {
             PutValue(value);
         }
+    }
+
+    /// M4: JSON Array Element Methods
+    /* ---------------------------------------------------------------------- */
+    
+    /// Add numeric item to array.
+    template <typename numberT>
+    std::enable_if_t<std::is_arithmetic_v<numberT>, void>
+    /*void*/ AddItem(numberT value)
+    {
+        PutNumber(value);
         SepItem();
     }
 
@@ -420,16 +428,7 @@ struct GenericBuilder
     /*void*/ AddMember(const char* pszKey, numberT value)
     {
         PutKey(pszKey);
-        if constexpr (configT::kQuoteNumber)
-        {
-            PutChar('"');
-            PutValue(value);
-            PutChar('"');
-        }
-        else
-        {
-            PutValue(value);
-        }
+        PutNumber(value);
         SepItem();
     }
 

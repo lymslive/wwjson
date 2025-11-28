@@ -543,3 +543,48 @@
 ✓ 所有测试通过，保持向后兼容性
 ✓ 为用户提供了直观的使用示例
 
+## TASK:20251128-113745
+-----------------------
+
+### 任务概述
+优化 GenericBuilder 类的方法结构，提取 PutNumber 方法统一数字判断逻辑，分析 EscapeString 方法的优化空间。
+
+### 实现内容
+
+**核心优化**
+- 在 `include/wwjson.hpp` 中提取 `PutNumber` 方法统一处理数字引号逻辑
+- 将 `PutNumber` 方法放置在 `PutKey` 方法之后，保持方法分组逻辑
+- 修改 `AddItem` 和 `AddMember` 方法调用 `PutNumber` 替代重复代码
+- 分析并保留 `EscapeString` 相关方法的原始设计，避免重载歧义
+
+**代码重构**
+- 消除了 `AddItem(numberT)` 和 `AddMember(const char*, numberT)` 中的重复引号判断逻辑
+- 保持手动加引号版本（带 `bool` 参数）不变，提供灵活控制
+- 恢复原始的 6 个 `AddItemEscape`/`AddMemberEscape` 重载方法
+
+**测试验证**
+- 在 `utest/t_custom.cpp` 添加 `custom_putnumber` 测试用例，验证 PutNumber 基本功能
+- 添加 `custom_putnumber_quoted` 测试用例，验证自定义配置下的数字引号功能
+- 所有 23 个测试用例通过，确保功能正确性和向后兼容性
+
+### 技术细节
+
+**PutNumber 方法实现**
+- 使用模板特化和 `std::enable_if_t` 确保仅接受算术类型
+- 根据 `configT::kQuoteNumber` 配置决定是否自动添加引号
+- 提供统一且可配置的数字处理逻辑
+
+**EscapeString 分析结果**
+- 当前设计已优化：允许用户精确控制转义行为
+- 避免提取单独的 `EscapeString` 方法，防止重载歧义
+- 保持原始 6 个重载方法的完整性和性能优势
+
+### 完成结果
+成功完成任务要求：
+✓ 提取 PutNumber 方法统一数字处理逻辑
+✓ 优化 AddItem/AddMember 方法减少代码重复
+✓ 分析 EscapeString 方法设计，确认其合理性
+✓ 添加全面测试用例验证 PutNumber 功能
+✓ 编译通过，所有 23 个测试用例正常运行
+✓ 保持向后兼容性和性能优化特性
+

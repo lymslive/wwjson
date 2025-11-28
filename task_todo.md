@@ -224,11 +224,6 @@ string(buffer) 类定义，输入字符串先只支持标准类。
 
 ### DONE: 20251127-180345
 
-补充需求：
-提取 PutNubmer 方法统一判断是否自动加引号，AddItem/AddMember 添加数字类型改调
-PutNumber ，手动加引号的版本不改。
-
-
 ## TODO:2025-11-28/1 完善添加特殊 json null/boll/空容器的支持访求
 
 - PutValue 增加 std::nullptr_t ，保用高层方法 AddItem/Member 支持增加 null
@@ -237,7 +232,27 @@ PutNumber ，手动加引号的版本不改。
 
 ### DONE:20251128-100515
 
-## TODO: 增加 GetResult/MoveResult 方法
+## TODO:2025-11-28/2 GenericBuilder 方法再优化
+
+- 提取 PutNubmer 方法统一判断是否自动加引号，AddItem/AddMember 添加数字类型改调
+PutNumber ，手动加引号的版本不改。
+- 提取 EscapeString 方法，字符串参数三种重载，escape 目标字符两种重载，共 6 个
+  方法。但原来 AddItemEscape/AddMemberEscape 的 6 个方法应该能化简一个模板方法。
+- 在 `t_custom.cpp` 增加测试用例覆盖 PutNumber ，以及自定义 configT::kQuoteNumber
+  的情况。
+- 在 `t_escape.cpp` 增加测试用例覆盖 EscapeString 方法。
+
+### Rollback:
+
+这样提取 EscapeString 6 个重载看来确实会出现二义性。先把对 EscapeString 的改动
+回滚。保留 PutNumber 但我希望放在 PutKey 函数后面。然后再分析一下 EscapeString
+还有没优化空间。这个方法设计的原由是因为转义字符串比较慢，因此推荐默认配置不转
+义，但用户可以根据业务需求只转义某一个字段的值，然后进一步如果用户知道可能出现
+的特殊字符，还可以当作将具体待转义字符传参进去，所以出现了这么多重载方法。
+
+### DONE: 20251128-113745
+
+## TODO: 增加 GetResulti/MoveResult 方法
 
 ## TODO: 重载 [] 索引操作符
 
