@@ -252,6 +252,21 @@ PutNumber ，手动加引号的版本不改。
 
 ### DONE: 20251128-113745
 
+## TODO:2025-11-28/3 使用转义表重构 EscapeString 方法
+
+目标：inclue/wwjson.hpp 的类 BasicConfig 与 GenericBuilder
+
+参考 doing_plan.tmp/escape_table_implementation.md 文档中对 BasicConfig 的建议
+，增加编译期转义表，用一个 EscapeString 方法代替原来的两个重载，减少一个参数传
+递，只由转义表决定如何转义。
+
+接口涉及不兼容修改，需要同步修改 GenericBuilder 与单元测试：
+- `basic_escape` 用例删除，让转义测试用例集中在 `t_escape.cpp`
+- `t_escape.cpp` 的用例可以重新设计，覆盖修改后的转义功能实现
+- 其他测试文件的用例应该不受影响
+
+### DONE: 20251128-163723
+
 ## TODO: 增加 GetResulti/MoveResult 方法
 
 ## TODO: 重载 [] 索引操作符

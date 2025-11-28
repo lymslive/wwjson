@@ -588,3 +588,63 @@
 ✓ 编译通过，所有 23 个测试用例正常运行
 ✓ 保持向后兼容性和性能优化特性
 
+
+## TASK:20251128-163723
+-----------------------
+
+### 任务概述
+使用转义表重构 BasicConfig 与 GenericBuilder 的 EscapeString 方法，减少参数传递，优化性能和代码维护性。
+
+### 实现内容
+
+**核心重构**
+- 在 `include/wwjson.hpp` 的 `BasicConfig` 类中添加了编译期转义表 `kEscapeTable`
+- 使用 128 元素的数组仅处理 ASCII 字符 (0-127)，优化内存使用
+- 将原来的两个 EscapeString 重载方法替换为单一实现，移除了自定义字符集参数
+- 优化转义逻辑：先检查字符范围 (c >= 128)，避免不必要的查表操作
+
+**接口变更**
+- 移除单字符转义重载 `EscapeString(dst, src, len, char)`
+- 简化多字符转义版本为 `EscapeString(dst, src, len)`，统一使用固定转义表
+- 更新 `EscapeKey` 方法，移除不必要的转义参数
+- 同步修改 `GenericBuilder` 中所有调用 EscapeString 的方法
+
+**测试重构**
+- 从 `utest/t_basic.cpp` 移除 `basic_escape` 测试用例
+- 重新设计 `utest/t_escape.cpp`，集中测试转义功能
+- 添加覆盖 UTF-8 字符、性能优化和边界情况的测试用例
+- 更新自定义配置测试以适配新接口
+
+### 关键技术
+
+**转义表设计**
+```cpp
+static constexpr auto kEscapeTable = []() constexpr {
+    std::array<uint8_t, 128> table{};
+    table['\n'] = 'n';
+    // 定义常用转义映射 c --> \c
+    table['\0'] = '0';
+    return table;
+}();
+```
+
+**性能优化**
+- 转义表大小从 256 字节减少到 128 字节
+- UTF-8 字符直接跳过，避免查表操作
+- 预分配内存策略：`dst.reserve(dst.size() + len + len / 4)`
+
+**兼容性处理**
+- 保留 `kAlwaysEscape` 配置功能
+- 更新 `AddItemEscape` 和 `AddMemberEscape` 方法使用新的统一接口
+- 移除旧的重载版本，保持接口简洁
+
+### 完成结果
+成功完成任务要求：
+✓ 实现了 128 元素的编译期转义表
+✓ 重构 EscapeString 方法使用转义表，减少参数传递
+✓ 移除了冗余的单字符转义重载
+✓ 更新 GenericBuilder 适配新接口
+✓ 重新设计测试用例，集中测试转义功能
+✓ 所有测试用例通过（25个PASS，0个FAIL）
+✓ 接口更简洁，性能更优，代码更易维护
+

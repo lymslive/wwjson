@@ -16,9 +16,9 @@
 
 #include <type_traits>
 #include <string>
+#include <array>
 // for std::to_chars C++17
 // #include <charconv>
-// #include <array>
 
 namespace wwjson
 {
@@ -64,70 +64,54 @@ struct BasicConfig
     /// Whether to allow trailing commas in arrays and objects.
     static constexpr bool kTailComma = false;
     
-    /// Escape a specific single character `ec` in string `src`, write to `dst`.
-    /// eg: only need to escpae '"' when sub json as a string field.
-    /// Note: simple algorithm by inserting back slash, so not suitable for
-    /// escaping \n \t ect.
-    static void EscapeString(stringT& dst, const char* src, size_t len, char ec)
-    {
-        for (size_t i = 0; i < len; ++i)
-        {
-            char c = src[i];
-            if (c == ec)
-            {
-                dst.push_back('\\');
-            }
-            dst.push_back(c);
-        }
-    }
+    /// Escape table for ASCII characters (0-127), 0 means no escape needed.
+    static constexpr auto kEscapeTable = []() constexpr {
+        std::array<uint8_t, 128> table{}; // Default 0 means not escape
+        
+        table['\n'] = 'n';
+        table['\t'] = 't';
+        table['\r'] = 'r';
+        table['"'] = '"';
+        table['\\'] = '\\';
+        table['\0'] = '0';
+        
+        return table;
+    }();
     
-    /// Escape each character of `ecs` in string `src`, write to `dst`.
-    static void EscapeString(stringT& dst, const char* src, size_t len, const char* ecs = DEFAULT_ESCAPE_CHARS)
+    /// Escape string using the compile-time escape table.
+    static void EscapeString(stringT& dst, const char* src, size_t len)
     {
+        // Pre-allocate memory to reduce reallocations
+        dst.reserve(dst.size() + len + len / 4);
+        
         for (size_t i = 0; i < len; ++i)
         {
-            char c = src[i];
-            bool escaped = false;
-            for (const char* p = ecs; *p != '\0'; ++p)
+            unsigned char c = static_cast<unsigned char>(src[i]);
+            
+            if (c >= 128)
             {
-                if (c == *p)
-                {
-                    dst.push_back('\\');
-                    if (c == '\n')
-                    {
-                        dst.push_back('n');
-                    }
-                    else if (c == '\t')
-                    {
-                        dst.push_back('t');
-                    }
-                    else if (c == '\r')
-                    {
-                        dst.push_back('r');
-                    }
-                    else
-                    {
-                        dst.push_back(c);
-                    }
-                    escaped = true;
-                    break;
-                }
-            }
-            if (!escaped)
-            {
+                // May UTF-8 byte stream, append directly
                 dst.push_back(c);
             }
+            else
+            {
+                // ASCII character, check escape table once
+                uint8_t escape_char = kEscapeTable[c];
+                if (escape_char != 0)
+                {
+                    dst.push_back('\\');
+                    dst.push_back(escape_char);
+                }
+                else
+                {
+                    dst.push_back(c);
+                }
+            }
         }
     }
 
-    /// Escape object key with single character (default NO escaping).
-    static void EscapeKey(stringT& dst, const char* key, size_t len, char ec)
-    {
-        dst.append(key, len);
-    }
-
-    /// Escape object key with multiple characters (default NO escaping).
-    static void EscapeKey(stringT& dst, const char* key, size_t len, const char* ecs = DEFAULT_ESCAPE_CHARS)
+    /// Escape object key (usually no escaping needed for keys).
+    static void EscapeKey(stringT& dst, const char* key, size_t len)
     {
         dst.append(key, len);
     }
@@ -321,7 +305,7 @@ struct GenericBuilder
         PutChar('"');
         if constexpr (configT::kAlwaysEscape)
         {
-            configT::EscapeString(json, pszVal, len, DEFAULT_ESCAPE_CHARS);
+            configT::EscapeString(json, pszVal, len);
         }
         else
         {
@@ -361,7 +345,7 @@ struct GenericBuilder
         PutChar('"');
         if constexpr (configT::kAlwaysEscape)
         {
-            configT::EscapeKey(json, pszKey, ::strlen(pszKey), DEFAULT_ESCAPE_CHARS);
+            configT::EscapeKey(json, pszKey, ::strlen(pszKey));
         }
         else
         {
@@ -457,90 +441,45 @@ struct GenericBuilder
     /// M6: String Escaping Methods
     /* ---------------------------------------------------------------------- */
 
-    /// Add C-string item with length and single character escaping.
-    void AddItemEscape(const char* value, size_t len, char ec)
+    /// Add C-string item with length after escaping.
+    /// Use configed escape method.
+    void AddItemEscape(const char* value, size_t len)
     {
         PutChar('"');
-        configT::EscapeString(json, value, len, ec);
-        PutChar('"');
-        SepItem();
-    }
-
-    /// Add C-string item with length and multiple character escaping.
-    void AddItemEscape(const char* value, size_t len, const char* ecs = DEFAULT_ESCAPE_CHARS)
-    {
-        PutChar('"');
-        configT::EscapeString(json, value, len, ecs);
+        configT::EscapeString(json, value, len);
         PutChar('"');
         SepItem();
     }
 
-    /// Add C-string item with single character escaping.
-    void AddItemEscape(const char* value, char ec)
+    /// Add C-string item after escaping.
+    void AddItemEscape(const char* value)
     {
-        AddItemEscape(value, ::strlen(value), ec);
+        AddItemEscape(value, ::strlen(value));
     }
 
-    /// Add C-string item with multiple character escaping.
-    void AddItemEscape(const char* value, const char* ecs = DEFAULT_ESCAPE_CHARS)
+    /// Add string item after escaping.
+    void AddItemEscape(const std::string& value)
     {
-        AddItemEscape(value, ::strlen(value), ecs);
-    }
-
-    /// Add item with single character escaping.
-    void AddItemEscape(const std::string& value, char ec)
-    {
-        AddItemEscape(value.c_str(), value.length(), ec);
-    }
-
-    /// Add item with multiple character escaping.
-    void AddItemEscape(const std::string& value, const char* ecs = DEFAULT_ESCAPE_CHARS)
-    {
-        AddItemEscape(value.c_str(), value.length(), ecs);
+        AddItemEscape(value.c_str(), value.length());
     }
     
-    /// Add C-string member with length and single character escaping.
-    void AddMemberEscape(const char* pszKey, const char* value, size_t len, char ec)
+    /// Add C-string member with length after escaping.
+    void AddMemberEscape(const char* pszKey, const char* value, size_t len)
     {
         PutKey(pszKey);
-        PutChar('"');
-        configT::EscapeString(json, value, len, ec);
-        PutChar('"');
-        SepItem();
+        AddItemEscape(value, len);
     }
 
-    /// Add C-string member with length and multiple character escaping.
-    void AddMemberEscape(const char* pszKey, const char* value, size_t len, const char* ecs = DEFAULT_ESCAPE_CHARS)
+    /// Add C-string member after escaping.
+    void AddMemberEscape(const char* pszKey, const char* value)
     {
-        PutKey(pszKey);
-        PutChar('"');
-        configT::EscapeString(json, value, len, ecs);
-        PutChar('"');
-        SepItem();
+        AddMemberEscape(pszKey, value, ::strlen(value));
     }
 
-    /// Add C-string member with single character escaping.
-    void AddMemberEscape(const char* pszKey, const char* value, char ec)
+    /// Add string member after escaping.
+    void AddMemberEscape(const char* pszKey, const std::string& value)
     {
-        AddMemberEscape(pszKey, value, ::strlen(value), ec);
-    }
-
-    /// Add C-string member with multiple character escaping.
-    void AddMemberEscape(const char* pszKey, const char* value, const char* ecs = DEFAULT_ESCAPE_CHARS)
-    {
-        AddMemberEscape(pszKey, value, ::strlen(value), ecs);
-    }
-
-    /// Add member with single character escaping.
-    void AddMemberEscape(const char* pszKey, const std::string& value, char ec)
-    {
-        AddMemberEscape(pszKey, value.c_str(), value.length(), ec);
-    }
-
-    /// Add member with multiple character escaping.
-    void AddMemberEscape(const char* pszKey, const std::string& value, const char* ecs = DEFAULT_ESCAPE_CHARS)
-    {
-        AddMemberEscape(pszKey, value.c_str(), value.length(), ecs);
+        AddMemberEscape(pszKey, value.c_str(), value.length());
     }
 
     /// M7: Scope Creation Methods

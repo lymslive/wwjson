@@ -6,44 +6,95 @@ struct EscapeConfig : wwjson::BasicConfig<std::string> {
 };
 
 struct NoEscapeConfig : wwjson::BasicConfig<std::string> {
-    static void EscapeKey(std::string& dst, const char* key, size_t len, char ec) {
-        dst.append(key, len);
-    }
-    
-    static void EscapeKey(std::string& dst, const char* key, size_t len, const char* ecs = wwjson::DEFAULT_ESCAPE_CHARS) {
-        dst.append(key, len);
-    }
-    
-    static void EscapeString(std::string& dst, const char* src, size_t len, char ec) {
-        dst.append(src, len);
-    }
-    
-    static void EscapeString(std::string& dst, const char* src, size_t len, const char* ecs = wwjson::DEFAULT_ESCAPE_CHARS) {
+    static void EscapeString(std::string& dst, const char* src, size_t len) {
         dst.append(src, len);
     }
 };
 
-DEF_TAST(escape_basic, "test basic escape functionality")
+DEF_TAST(escape_table_basic, "test escape table functionality")
+{
+    // Test basic escape characters
+    std::string dst;
+    wwjson::BasicConfig<std::string>::EscapeString(dst, "Hello\nWorld\tTest", ::strlen("Hello\nWorld\tTest"));
+    std::string expect = "Hello\\nWorld\\tTest";
+    COUT(dst, expect);
+    
+    // Test quotes and backslash
+    dst.clear();
+    wwjson::BasicConfig<std::string>::EscapeString(dst, "Quote\"Here\\Back", ::strlen("Quote\"Here\\Back"));
+    expect = "Quote\\\"Here\\\\Back";
+    COUT(dst, expect);
+    
+    // Test null character
+    dst.clear();
+    const char* src_with_null = "Test\0Null";
+    wwjson::BasicConfig<std::string>::EscapeString(dst, src_with_null, 9);
+    expect = "Test\\0Null";
+    COUT(dst, expect);
+    
+    // Test carriage return
+    dst.clear();
+    wwjson::BasicConfig<std::string>::EscapeString(dst, "Line1\r\nLine2", 12);
+    expect = "Line1\\r\\nLine2";
+    COUT(dst, expect);
+}
+
+DEF_TAST(escape_table_utf8, "test UTF-8 characters are not escaped")
+{
+    // Test UTF-8 characters should pass through unchanged
+    std::string dst;
+    const char* utf8_str = "你好世界";  // Chinese characters in UTF-8
+    wwjson::BasicConfig<std::string>::EscapeString(dst, utf8_str, ::strlen(utf8_str));
+    std::string expect = "你好世界";
+    COUT(dst, expect);
+    
+    // Test mixed ASCII and UTF-8
+    dst.clear();
+    const char* mixed = "Hello 世界\nTest";
+    wwjson::BasicConfig<std::string>::EscapeString(dst, mixed, ::strlen(mixed));
+    expect = "Hello 世界\\nTest";
+    COUT(dst, expect);
+}
+
+DEF_TAST(escape_table_mapping, "test escape table map optimization")
+{
+    // Verify the escape table size is 128 bytes
+    constexpr size_t table_size = wwjson::BasicConfig<std::string>::kEscapeTable.size();
+    COUT(table_size, size_t{128});
+    
+    // Verify some escape mappings
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\n'], uint8_t{'n'});
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\t'], uint8_t{'t'});
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\r'], uint8_t{'r'});
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['"'], uint8_t{'"'});
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\\'], uint8_t{'\\'});
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\0'], uint8_t{'0'});
+    
+    // Verify a non-escaped character returns 0
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['A'], uint8_t{0});
+}
+
+DEF_TAST(escape_builder_api, "test escape methods in builder")
 {
     wwjson::RawBuilder json;
+    
+    // Test AddItemEscape (now uses default escape table)
     json.AddItemEscape("hello\"world");
     std::string expect = R"("hello\"world",)";
     COUT(json.json, expect);
     
-    wwjson::RawBuilder json2;
-    json2.AddMemberEscape("key", "value\nwith\tabs");
-    std::string expect2 = R"("key":"value\nwith\tabs",)";
-    COUT(json2.json, expect2);
+    // Test AddMemberEscape
+    json.Clear();
+    json.AddMemberEscape("key", "value\nwith\ttabs");
+    expect = R"("key":"value\nwith\ttabs",)";
+    COUT(json.json, expect);
     
-    wwjson::RawBuilder json3;
-    json3.AddItemEscape("path\\to\\file", '\\');
-    std::string expect3 = R"("path\\to\\file",)";
-    COUT(json3.json, expect3);
-    
-    wwjson::RawBuilder json4;
-    json4.AddMemberEscape("key", "multi\r\nchars\r\ntest", "\r\n");
-    std::string expect4 = R"("key":"multi\r\nchars\r\ntest",)";
-    COUT(json4.json, expect4);
+    // Test with std::string
+    json.Clear();
+    std::string str = "test\\path";
+    json.AddItemEscape(str);
+    expect = R"("test\\path",)";
+    COUT(json.json, expect);
 }
 
 DEF_TAST(escape_always_config, "test custom config with always escape")
@@ -55,83 +106,24 @@ DEF_TAST(escape_always_config, "test custom config with always escape")
     std::string expect = R"("hello\"world",)";
     COUT(json.json, expect);
     
-    EscapeBuilder json2;
-    json2.AddMember("key", "value\nwith\tabs");
-    std::string expect2 = R"("key":"value\nwith\tabs",)";
-    COUT(json2.json, expect2);
-    
-    EscapeBuilder json3;
-    json3.BeginArray();
-    json3.AddItem("test");
-    json3.AddItem("another\"test");
-    json3.EndArray();
-    std::string expect3 = R"(["test","another\"test"])";
-    COUT(json3.json, expect3);
-}
-
-DEF_TAST(escape_scope, "test escape functionality with scope objects")
-{
-    wwjson::RawBuilder json;
-    {
-        auto arr = json.ScopeArray("items");
-        arr.AddItemEscape("first\"item");
-        arr.AddItemEscape("second\nitem");
-    }
-    std::string expect = R"("items":["first\"item","second\nitem"])";
+    json.Clear();
+    json.AddMember("key", "value\nwith\ttabs");
+    expect = R"("key":"value\nwith\ttabs",)";
     COUT(json.json, expect);
     
-    wwjson::RawBuilder json2;
-    {
-        auto obj = json2.ScopeObject("data");
-        obj.AddMemberEscape("text", "quote\"here", '\"');
-        obj.AddMemberEscape("path", "C:\\path", '\\');
-    }
-    std::string expect2 = R"("data":{"text":"quote\"here","path":"C:\\path"})";
-    COUT(json2.json, expect2);
-}
-
-DEF_TAST(escape_overloads, "test various string parameter overloads")
-{
-    wwjson::RawBuilder json;
-    // Test const char*
+    json.Clear();
+    json.BeginArray();
     json.AddItem("test");
-    // Test const char*, size_t
-    json.AddItem("partial", 4);
-    // Test std::string
-    std::string str = "string";
-    json.AddItem(str);
-    
-    std::string expect = R"("test","part","string",)";
+    json.AddItem("another\"test");
+    json.EndArray();
+    expect = R"(["test","another\"test"])";
     COUT(json.json, expect);
     
-    wwjson::RawBuilder json2;
-    // Test const char*
-    json2.AddMember("key1", "value1");
-    // Test std::string
-    std::string key = "key2";
-    std::string value = "value2";
-    json2.AddMember(key.c_str(), value);
-    
-    std::string expect2 = R"("key1":"value1","key2":"value2",)";
-    COUT(json2.json, expect2);
-    
-    wwjson::RawBuilder json3;
-    // Test escape overloads
-    json3.AddItemEscape("char\"", '\"');
-    json3.AddItemEscape("chars\n\t", "\n\t");
-    json3.AddItemEscape("cstr", 't');
-    
-    std::string expect3 = R"("char\"","chars\n\t","cs\tr",)";
-    COUT(json3.json, expect3);
-    
-    wwjson::RawBuilder json4;
-    // Test member escape overloads
-    json4.AddMemberEscape("k1", "v1", '1');
-    json4.AddMemberEscape("k2", "v2", "2");
-    json4.AddMemberEscape("k3", "v3", 2, '3');
-    
-    std::string expect4 = R"("k1":"v\1","k2":"v\2","k3":"v\3",)";
-    COUT(json4.json, expect4);
+    // Test that even regular PutValue uses escaping when kAlwaysEscape=true
+    json.Clear();
+    json.PutValue("quote\"here");
+    expect = R"("quote\"here")";
+    COUT(json.json, expect);
 }
 
 DEF_TAST(escape_no_config, "test custom config with no escaping")
@@ -143,9 +135,57 @@ DEF_TAST(escape_no_config, "test custom config with no escaping")
     std::string expect = R"("hello"world",)";
     COUT(json.json, expect);
     
-    NoEscapeBuilder json2;
-    json2.AddMemberEscape("key", "value\nwith\ttabs");
-    std::string expect2 = R"("key":"value
+    json.Clear();
+    json.AddMemberEscape("key", "value\nwith\ttabs");
+    expect = R"("key":"value
 with	tabs",)";
-    COUT(json2.json, expect2);
+    COUT(json.json, expect);
+}
+
+DEF_TAST(escape_scope_objects, "test escape functionality with scope objects")
+{
+    wwjson::RawBuilder json;
+    {
+        auto arr = json.ScopeArray("items");
+        arr.AddItemEscape("first\"item");
+        arr.AddItemEscape("second\nitem");
+    }
+    std::string expect = R"("items":["first\"item","second\nitem"])";
+    COUT(json.json, expect);
+    
+    json.Clear();
+    {
+        auto obj = json.ScopeObject("data");
+        obj.AddMemberEscape("text", "quote\"here");
+        obj.AddMemberEscape("path", "C:\\path");
+    }
+    expect = R"("data":{"text":"quote\"here","path":"C:\\path"})";
+    COUT(json.json, expect);
+}
+
+DEF_TAST(escape_edge_cases, "test edge cases for escape functionality")
+{
+    // Empty string
+    std::string dst;
+    wwjson::BasicConfig<std::string>::EscapeString(dst, "", 0);
+    std::string expect = "";
+    COUT(dst, expect);
+    
+    // String with only non-escaped characters
+    dst.clear();
+    wwjson::BasicConfig<std::string>::EscapeString(dst, "ABC123", 6);
+    expect = "ABC123";
+    COUT(dst, expect);
+    
+    // String with only escaped characters
+    dst.clear();
+    wwjson::BasicConfig<std::string>::EscapeString(dst, "\n\t\r\"\0\\", 6);
+    expect = "\\n\\t\\r\\\"\\0\\\\";
+    COUT(dst, expect);
+    
+    // Builder with empty escape
+    wwjson::RawBuilder json;
+    json.AddItemEscape("");
+    expect = R"("",)";
+    COUT(json.json, expect);
 }

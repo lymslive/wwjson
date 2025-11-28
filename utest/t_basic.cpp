@@ -77,56 +77,6 @@ DEF_TAST(basic_builder_nest, "test build nest json with array of object")
     COUT(builder.json, expect);
 }
 
-DEF_TAST(basic_escape, "test add string with escape")
-{
-    wwjson::RawBuilder child;
-    child.BeginObject();
-    child.AddMember("int", 123);
-    child.AddMember("string", "123");
-    child.AddMember("char", '1');
-    child.EndObject();
-
-    std::string childExpect = R"({"int":123,"string":"123","char":49})";
-    COUT(child.json, childExpect);
-
-    wwjson::RawBuilder root;
-    root.BeginObject();
-    root.AddMember("version", 1);
-    root.AddMemberEscape("child", child.json);
-    root.EndObject();
-
-    std::string rootExpect = R"({"version":1,"child":"{\"int\":123,\"string\":\"123\",\"char\":49}"})";
-    COUT(root.json, rootExpect);
-
-    {
-        wwjson::RawBuilder child;
-        child.BeginObject();
-        child.AddMember("int", 123);
-        child.AddMember("string", "\\1\t2\t3\\");
-        child.AddMember("char", '1');
-        child.EndObject();
-
-        std::string childExpect = R"({"int":123,"string":"\1	2	3\","char":49})";
-        COUT(child.json, childExpect);
-
-        wwjson::RawBuilder root;
-        root.BeginObject();
-        root.AddMember("version", 1);
-        root.AddMemberEscape("child", child.json, "\"\\\t");
-        root.EndObject();
-
-        std::string rootExpect = R"({"version":1,"child":"{\"int\":123,\"string\":\"\\1\t2\t3\\\",\"char\":49}"})";
-        COUT(root.json, rootExpect);
-    }
-
-    {
-        std::string src = "\\1\t2\t3\\";
-        std::string dst;
-        wwjson::BasicConfig<std::string>::EscapeString(dst, src.c_str(), src.length(), "\"\\\t");
-        COUT(src);
-        COUT(dst);
-    }
-}
 
 DEF_TAST(basic_wrapper, "test M1 string interface wrapper methods")
 {
