@@ -267,6 +267,23 @@ PutNumber ，手动加引号的版本不改。
 
 ### DONE: 20251128-163723
 
+## TODO:2025-11-28/4 扩展 PutKey 支持三种字符串重载
+
+GenericBuilder::PutKey 目前只支持一种 (const char*) 类型的字符串参数，需要与
+PutValue 字符串参数支持一致，以 (const char*, size_t) 为主方法，另两个重载调用
+它。
+
+BasicConfig::kAlwaysEscape 配置项拆成 kEscapeKey 与 kEscapeValue 两个常量，默
+认都是 false, PutValue 判断 kEscapeValue ，PutKey 判断 kEscapeKey ，分别控制。
+检查 `t_escape.cpp` 用例，同步这项修改，相当于原来只测了 kEscapeValue, 增加
+kEscapeKey 的配置测试。
+
+最后再分析一下 AddMember(Escape) 上层 api ，如果说 key/value 都支持三种字符串
+重载，那组合情况就有 9 种，方法重载数量暴增的问题如何解决，以及这 9 种重载都写
+来的话是否会可能有二义性。
+
+### DONE: 20251128-180546
+
 ## TODO: 增加 GetResulti/MoveResult 方法
 
 ## TODO: 重载 [] 索引操作符

@@ -55,8 +55,11 @@ constexpr const char* DEFAULT_ESCAPE_CHARS = "\\\n\t\r\"\0";
 template<typename stringT>
 struct BasicConfig
 {
-    /// Whether to always escape string values in AddMember methods.
-    static constexpr bool kAlwaysEscape = false;
+    /// Whether to auto call EscapeKey method in the Builder api.
+    static constexpr bool kEscapeKey = false;
+    
+    /// Whether to auto call EscapeString methodes in the Builder api.
+    static constexpr bool kEscapeValue = false;
     
     /// Whether to quote numeric values by default.
     static constexpr bool kQuoteNumber = false;
@@ -77,6 +80,12 @@ struct BasicConfig
         
         return table;
     }();
+
+    /// Escape object key (usually no escaping needed for keys).
+    static void EscapeKey(stringT& dst, const char* key, size_t len)
+    {
+        dst.append(key, len);
+    }
     
     /// Escape string using the compile-time escape table.
     static void EscapeString(stringT& dst, const char* src, size_t len)
@@ -108,12 +117,6 @@ struct BasicConfig
                 }
             }
         }
-    }
-
-    /// Escape object key (usually no escaping needed for keys).
-    static void EscapeKey(stringT& dst, const char* key, size_t len)
-    {
-        dst.append(key, len);
     }
 
 };
@@ -269,16 +272,10 @@ struct GenericBuilder
     /* ---------------------------------------------------------------------- */
     
     /// Append null value to JSON.
-    void PutNull()
-    {
-        Append("null");
-    }
+    void PutNull() { Append("null"); }
 
     /// Append null value to JSON (nullptr_t overload).
-    void PutValue(std::nullptr_t)
-    {
-        PutNull();
-    }
+    void PutValue(std::nullptr_t) { PutNull(); }
 
     /// Append boolean value to JSON.
     void PutValue(bool tf)
@@ -293,17 +290,11 @@ struct GenericBuilder
         }
     }
 
-    /// Append C-string value to JSON with quotes.
-    void PutValue(const char* pszVal)
-    {
-        PutValue(pszVal, ::strlen(pszVal));
-    }
-
     /// Append C-string value with length to JSON with quotes.
     void PutValue(const char* pszVal, size_t len)
     {
         PutChar('"');
-        if constexpr (configT::kAlwaysEscape)
+        if constexpr (configT::kEscapeValue)
         {
             configT::EscapeString(json, pszVal, len);
         }
@@ -312,6 +303,12 @@ struct GenericBuilder
             Append(pszVal, len);
         }
         PutChar('"');
+    }
+
+    /// Append C-string value to JSON with quotes.
+    void PutValue(const char* pszVal)
+    {
+        PutValue(pszVal, ::strlen(pszVal));
     }
 
     /// Append std::string value to JSON with quotes.
@@ -340,18 +337,31 @@ struct GenericBuilder
     }
     
     /// Append object key with quotes and colon.
-    void PutKey(const char* pszKey)
+    void PutKey(const char* pszKey, size_t len)
     {
         PutChar('"');
-        if constexpr (configT::kAlwaysEscape)
+        if constexpr (configT::kEscapeKey)
         {
-            configT::EscapeKey(json, pszKey, ::strlen(pszKey));
+            configT::EscapeKey(json, pszKey, len);
         }
         else
         {
-            Append(pszKey);
+            Append(pszKey, len);
         }
-        Append("\":");
+        PutChar('"');
+        PutChar(':');
+    }
+
+    /// Append object key with quotes and colon.
+    void PutKey(const char* pszKey)
+    {
+        PutKey(pszKey, ::strlen(pszKey));
+    }
+
+    /// Append object key with quotes and colon.
+    void PutKey(const std::string& strKey)
+    {
+        PutKey(strKey.c_str(), strKey.length());
     }
 
     /// Append numeric value to JSON, handling quoting based on config.

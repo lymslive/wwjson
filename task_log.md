@@ -2,9 +2,6 @@
 
 格式说明:
 - **任务ID**: YYYYMMDD-HHMMSS ，生成命令 `date +"%Y%m%d-%H%M%S"`
-- **任务类型**: 重构/开发/调试/优化/文档
-- **任务状态**: 已完成/进行中/失败
-- **执行AI**: Agent(模型)，如 Claud / Codebuddy(DeepSeek-V3.1)
 - 每条日志开始一个二级标题，标题名就是任务ID
 - 可适合分几个三级标题，简明扼要描叙任务过程与结果
 - **追加至文件末尾**，与上条日志隔一空行
@@ -647,4 +644,44 @@ static constexpr auto kEscapeTable = []() constexpr {
 ✓ 重新设计测试用例，集中测试转义功能
 ✓ 所有测试用例通过（25个PASS，0个FAIL）
 ✓ 接口更简洁，性能更优，代码更易维护
+
+## TASK:20251128-180546
+-----------------------
+
+### 任务概述
+扩展 PutKey 方法支持三种字符串重载，将 BasicConfig::kAlwaysEscape 配置拆分为 kEscapeKey 和 kEscapeValue，分别控制键和值的转义。
+
+### 实现内容
+
+**配置重构**
+- 在 `include/wwjson.hpp` 的 `BasicConfig` 类中将 `kAlwaysEscape` 拆分为：
+  - `kEscapeKey = false` - 控制键的转义
+  - `kEscapeValue = false` - 控制值的转义
+- 保持向后兼容性，两个配置默认都是 false
+
+**PutKey 方法扩展**
+- 添加主方法 `PutKey(const char* pszKey, size_t len)`，支持显式长度
+- 保留原有重载 `PutKey(const char* pszKey)`，调用主方法
+- 新增重载 `PutKey(const std::string& strKey)`，调用主方法
+- 根据 `kEscapeKey` 配置决定是否调用 `EscapeKey`
+
+**PutValue 方法更新**
+- 更新 `PutValue(const char* pszVal, size_t len)` 使用 `kEscapeValue` 而非 `kAlwaysEscape`
+- 保持其他重载不变
+
+**测试用例增强**
+- 在 `utest/t_escape.cpp` 中新增配置类：
+  - `EscapeKeyConfig` - 仅转义键，重写 `EscapeKey` 方法调用 `EscapeString`
+  - `EscapeValueConfig` - 仅转义值
+- 更新 `EscapeConfig` 使用新的分离配置
+- 添加测试用例覆盖键值转义分离的各种场景
+
+### 完成结果
+成功完成任务要求：
+✓ 扩展 PutKey 支持三种字符串重载，与 PutValue 保持一致
+✓ 将 kAlwaysEscape 拆分为 kEscapeKey 和 kEscapeValue，独立控制键值转义
+✓ 更新测试用例，新增 kEscapeKey 配置测试
+✓ 所有测试用例通过（29个PASS，0个FAIL）
+✓ PutKey 与 PutValue 的字符串重载支持保持一致
+✓ 配置分离使得键值转义控制更加灵活
 

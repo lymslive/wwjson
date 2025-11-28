@@ -2,13 +2,27 @@
 #include "wwjson.hpp"
 
 struct EscapeConfig : wwjson::BasicConfig<std::string> {
-    static constexpr bool kAlwaysEscape = true;
+    static constexpr bool kEscapeKey = true;
+    static constexpr bool kEscapeValue = true;
 };
 
 struct NoEscapeConfig : wwjson::BasicConfig<std::string> {
     static void EscapeString(std::string& dst, const char* src, size_t len) {
         dst.append(src, len);
     }
+};
+
+struct EscapeKeyConfig : wwjson::BasicConfig<std::string> {
+    static constexpr bool kEscapeKey = true;
+    static constexpr bool kEscapeValue = false;
+    static void EscapeKey(std::string& dst, const char* src, size_t len) {
+        EscapeString(dst, src, len);
+    }
+};
+
+struct EscapeValueConfig : wwjson::BasicConfig<std::string> {
+    static constexpr bool kEscapeKey = false;
+    static constexpr bool kEscapeValue = true;
 };
 
 DEF_TAST(escape_table_basic, "test escape table functionality")
@@ -123,6 +137,48 @@ DEF_TAST(escape_always_config, "test custom config with always escape")
     json.Clear();
     json.PutValue("quote\"here");
     expect = R"("quote\"here")";
+    COUT(json.json, expect);
+}
+
+DEF_TAST(escape_key_config, "test custom config with key escaping only")
+{
+    using EscapeKeyBuilder = wwjson::GenericBuilder<std::string, EscapeKeyConfig>;
+    
+    EscapeKeyBuilder json;
+    json.AddMember("key\"with\"quotes", "value\nwith\ttabs");
+    std::string expect = R"("key\"with\"quotes":"value
+with	tabs",)";
+    COUT(json.json, expect);
+    
+    // Test PutKey overloads
+    json.Clear();
+    std::string key = "test\"key";
+    json.PutKey(key);
+    json.PutValue("value");
+    expect = R"("test\"key":"value")";
+    COUT(json.json, expect);
+    
+    json.Clear();
+    json.PutKey("key", ::strlen("key"));
+    json.PutValue("value");
+    expect = R"("key":"value")";
+    COUT(json.json, expect);
+}
+
+DEF_TAST(escape_value_config, "test custom config with value escaping only")
+{
+    using EscapeValueBuilder = wwjson::GenericBuilder<std::string, EscapeValueConfig>;
+    
+    EscapeValueBuilder json;
+    json.AddMember("key\"with\"quotes", "value\nwith\ttabs");
+    std::string expect = R"("key"with"quotes":"value\nwith\ttabs",)";
+    COUT(json.json, expect);
+    
+    // Test PutKey doesn't escape keys
+    json.Clear();
+    json.PutKey("key\"with\"quotes");
+    json.PutValue("value\nwith\ttabs");
+    expect = R"("key"with"quotes":"value\nwith\ttabs")";
     COUT(json.json, expect);
 }
 
