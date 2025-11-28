@@ -290,6 +290,12 @@ struct GenericBuilder
         Append("null");
     }
 
+    /// Append null value to JSON (nullptr_t overload).
+    void PutValue(std::nullptr_t)
+    {
+        PutNull();
+    }
+
     /// Append boolean value to JSON.
     void PutValue(bool tf)
     {

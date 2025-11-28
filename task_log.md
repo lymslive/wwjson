@@ -487,7 +487,6 @@
 - 编译测试：成功编译，无错误
 - 功能验证：所有现有测试继续通过
 - 向后兼容：API接口保持不变
-
 ### 结果
 成功完成需求 2025-11-27/5 的所有要求：
 ✓ PutValue方法间调用优化，消除重复逻辑
@@ -495,4 +494,52 @@
 ✓ Escape方法简化，使用主版本调用模式
 ✓ 所有优化保持向后兼容和功能正确性
 ✓ 编译和测试验证通过
+
+## TASK:20251128-100515
+-----------------------
+
+### 任务概述
+在 utest/t_basic.cpp 测试文件中补充用例，测试构造 JSON 时添加 null、bool、空数组、空对象，并增强 wwjson 库支持 nullptr 参数。
+
+### 实现内容
+
+**库功能增强**
+- 在 `include/wwjson.hpp` 中添加 `PutValue(std::nullptr_t)` 重载函数
+- 使 `AddMember` 和 `AddItem` 方法可以直接使用 `nullptr` 参数
+- 保持向后兼容性，所有现有功能不受影响
+
+**测试用例添加**
+- `basic_null_bool_empty`：全面测试 null、bool、空数组和空对象
+  - 使用 `AddMember` 和 `nullptr` 添加 null 值
+  - 使用 `PutKey` + `PutNull` + `SepItem` 添加 null 值
+  - 测试 bool 值（true/false）的添加
+  - 测试空数组创建（`EmptyArray()`）
+  - 测试空对象创建（`EmptyObject()`）
+  - 展示 `SepItem()` 和 `PutNext()` 的使用方法
+
+- `basic_low_level`：使用低层方法重构 basic_builder 功能
+  - 使用 `PutKey`/`PutValue`/`PutNext` 替代 `AddMember`
+  - 在数组中使用 `PutValue`/`PutNext` 替代 `AddItem`
+  - 展示手动添加引号创建字符串形式数字
+  - 在末尾添加数组使用低层方法
+
+### 技术细节
+
+**nullptr 支持实现**
+- 通过模板参数包完美转发支持 `nullptr` 参数
+- `PutValue(std::nullptr_t)` 内部调用 `PutNull()`
+- 保持类型安全，避免空指针问题
+
+**测试覆盖全面**
+- 覆盖高层便利方法和低层手动控制方法
+- 展示多种分隔符使用方法（`SepItem()` vs `PutNext()`）
+- 验证数组和对象中混合 null、bool、字符串的处理
+
+### 完成结果
+成功完成任务要求：
+✓ 增强了 wwjson 库支持 nullptr 参数
+✓ 添加了全面的 null、bool、空数组、空对象测试用例
+✓ 展示了高层和低层 API 的使用方法
+✓ 所有测试通过，保持向后兼容性
+✓ 为用户提供了直观的使用示例
 

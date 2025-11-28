@@ -228,7 +228,16 @@ string(buffer) 类定义，输入字符串先只支持标准类。
 提取 PutNubmer 方法统一判断是否自动加引号，AddItem/AddMember 添加数字类型改调
 PutNumber ，手动加引号的版本不改。
 
-`t_basic.cpp` 补充用例测试添加 null bool 空数组、空对象。
+
+## TODO:2025-11-28/1 完善添加特殊 json null/boll/空容器的支持访求
+
+- PutValue 增加 std::nullptr_t ，保用高层方法 AddItem/Member 支持增加 null
+- `t_basic.cpp` 补充用例测试构造 json 时添加一些 null bool 空数组、空对象。
+- 增加测试用例只用低层 PutKey/PutValue/PutNext 构造 json
+
+### DONE:20251128-100515
+
+## TODO: 增加 GetResult/MoveResult 方法
 
 ## TODO: 重载 [] 索引操作符
 
