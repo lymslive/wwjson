@@ -1,11 +1,19 @@
+# build dir
 build/
 build_*/
 build-*/
 
+# symbol link to file in build/
+compile_commands.json
+utwwjson
+
+# tmp files
 *.bak
 backup-*
 *.log
 *.tmp
 
-compile_commands.json
-utwwjson
+# agent files
+AGENTS.md
+.codebuddy/
+.tool/
