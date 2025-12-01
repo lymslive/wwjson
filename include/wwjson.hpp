@@ -138,6 +138,26 @@ struct GenericBuilder
         json.reserve(capacity);
     }
 
+    /// Get result string (const version).
+    const stringT& GetResult() const { return json; }
+
+    /// Get result string (non-const version, removes trailing comma if any).
+    stringT& GetResult()
+    {
+        // Always remove trailing comma from final result for valid JSON
+        if (!json.empty() && json.back() == ',')
+        {
+            json.pop_back();
+        }
+        return json;
+    }
+
+    /// Move result string (transfer ownership).
+    stringT&& MoveResult()
+    {
+        return std::move(json);
+    }
+
     /// M1: String Interface Wrapper Methods
     /* ---------------------------------------------------------------------- */
     

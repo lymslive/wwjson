@@ -289,7 +289,18 @@ AddMemberEscape 类似.
 
 ### DONE: 20251128-180546
 
-## TODO: 增加 GetResulti/MoveResult 方法
+## TODO:2025-12-01/1 增加 GetResult/MoveResult 方法
+
+目标：inclue/wwjson.hpp 的类 GenericBuilder，在 M0 方法组中增加新方法
+
+- GetResult() const 返回构建好的 json
+- GetResult() 非 const 版本，检查构建的 json 末尾是否残余尾逗号，删除之再返回
+  json ，可解决 EndArray/Object 意外添加的逗号
+- MoveResult() 返回右值引用的 json，转移构建好的 json 串
+
+然后在 `utest/t_basic.cpp` 增加测试用例覆盖新功能。
+
+### DONE: 20251202-000356
 
 ## TODO: 重载 [] 索引操作符
 

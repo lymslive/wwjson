@@ -275,3 +275,43 @@ DEF_TAST(basic_addmember_overloads, "test new AddMember overloads with different
     std::string expect = R"({"str_key":"string_value","int_key":42,"std_key":"std_value","std_key":123})";
     COUT(builder.json, expect);
 }
+
+DEF_TAST(basic_getresult, "test GetResult removes trailing comma")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+    builder.AddMember("key1", "value1");
+    builder.AddMember("key2", "value2");
+    // Simulate case where trailing comma might exist
+    builder.EndObject(true);
+
+    // const GetResult has trailing comma
+    {
+        const wwjson::RawBuilder& cb = const_cast<const wwjson::RawBuilder&>(builder);
+        auto& result = cb.GetResult();
+        std::string expect = R"({"key1":"value1","key2":"value2"},)";
+        COUT(result, expect);
+    }
+
+    // Non-const GetResult should remove the trailing comma
+    auto& result = builder.GetResult();
+    std::string expect = R"({"key1":"value1","key2":"value2"})";
+    COUT(result, expect);
+    COUT(builder.json, expect);
+}
+
+DEF_TAST(basic_moveresult, "test MoveResult method")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+    builder.AddMember("moved", true);
+    builder.EndObject();
+
+    // Test MoveResult - transfer ownership
+    std::string moved_result = builder.MoveResult();
+    std::string expect = R"({"moved":true})";
+    COUT(moved_result, expect);
+
+    // After MoveResult, the builder should be empty
+    COUT(builder.json, R"()");
+}

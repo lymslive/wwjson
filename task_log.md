@@ -685,3 +685,37 @@ static constexpr auto kEscapeTable = []() constexpr {
 ✓ PutKey 与 PutValue 的字符串重载支持保持一致
 ✓ 配置分离使得键值转义控制更加灵活
 
+## TASK:20251202-000356
+-----------------------
+
+### 任务概述
+为 GenericBuilder 类的 M0 方法组增加 GetResult 和 MoveResult 方法，提升用户获取构建结果的使用体验。
+
+### 实现内容
+
+**新增方法实现**
+- 在 GenericBuilder 类 M0 方法组中添加：
+  -  - const 版本，直接返回构建的 JSON 字符串
+  -  - 非 const 版本，自动删除末尾残余逗号后返回
+  -  - 返回右值引用，实现转移语义
+
+**方法设计细节**
+- 非 const  自动处理尾逗号移除，无论配置如何，保证最终结果是合法 JSON
+-  使用右值引用返回 ，实现所有权转移
+- 三个方法都位于 M0 组，与构造方法保持一致
+
+**测试用例补充**
+- 在  中新增测试用例：
+  -  - 测试 GetResult 方法的基本功能和尾逗号移除
+  -  - 测试 MoveResult 的转移语义功能
+- 覆盖了 const/非 const 版本的不同行为
+- 验证 MoveResult 后构建器变为空状态
+
+### 完成结果
+成功完成任务要求：
+✓ 实现 GetResult() const 方法，直接返回 JSON 字符串
+✓ 实现 GetResult() 非 const 方法，自动删除尾逗号
+✓ 实现 MoveResult() 方法，支持转移语义
+✓ 添加完整测试用例覆盖新功能
+✓ 所有测试用例通过（30个PASS，0个FAIL）
+✓ 提升了用户获取构建结果的便捷性和安全性
