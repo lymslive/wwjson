@@ -49,18 +49,8 @@ DEF_TAST(operator_array_index, "test operator[] with array indices and assignmen
     builder.EndArray();
 
     std::string result = builder.GetResult();
-    // Verify array format
-    COUT(result.front(), '[');
-    COUT(result.back(), ']');
-    
-    // Verify content presence
-    COUT(result.find("\"first\"") != std::string::npos, true);
-    COUT(result.find("\"second\"") != std::string::npos, true);
-    COUT(result.find("\"negative_test\"") != std::string::npos, true);
-    COUT(result.find("\"large_index\"") != std::string::npos, true);
-    COUT(result.find("42") != std::string::npos, true);
-    COUT(result.find("3.14") != std::string::npos, true);
-    COUT(result.find("false") != std::string::npos, true);
+    std::string expect = R"(["first","second","third","negative_test","large_index",42,3.140000,false])";
+    COUT(result, expect);
 }
 
 DEF_TAST(operator_mixed_usage, "test operator[] mixed with traditional methods")
@@ -79,7 +69,7 @@ DEF_TAST(operator_mixed_usage, "test operator[] mixed with traditional methods")
     builder[0] = "item1";
     builder.AddItem("item2");  // Traditional array method
     builder[2] = "item3";
-    builder.EndArray();
+    builder.EndArray(true);
 
     // Mix in object
     builder.BeginObject("nested");
@@ -90,16 +80,8 @@ DEF_TAST(operator_mixed_usage, "test operator[] mixed with traditional methods")
     builder.EndObject();
 
     std::string result = builder.GetResult();
-    // Verify all methods work together
-    COUT(result.find("\"traditional_key\":\"traditional_value\"") != std::string::npos, true);
-    COUT(result.find("\"operator_key\":\"operator_value\"") != std::string::npos, true);
-    COUT(result.find("\"items\":[") != std::string::npos, true);
-    COUT(result.find("\"item1\"") != std::string::npos, true);
-    COUT(result.find("\"item2\"") != std::string::npos, true);
-    COUT(result.find("\"item3\"") != std::string::npos, true);
-    COUT(result.find("\"nested\":{") != std::string::npos, true);
-    COUT(result.find("\"nested_operator\":\"nested_value\"") != std::string::npos, true);
-    COUT(result.find("\"nested_traditional\":\"traditional_value\"") != std::string::npos, true);
+    std::string expect = R"({"traditional_key":"traditional_value","operator_key":"operator_value","items":["item1","item2","item3"],"nested":{"nested_operator":"nested_value","nested_traditional":"traditional_value"}})";
+    COUT(result, expect);
 }
 
 DEF_TAST(operator_edge_cases, "test operator[] edge cases and special characters")
@@ -124,15 +106,8 @@ DEF_TAST(operator_edge_cases, "test operator[] edge cases and special characters
     builder.EndObject();
 
     std::string result = builder.GetResult();
-    // Verify special characters are properly handled
-    COUT(result.find("\"\":\"empty_key_value\"") != std::string::npos, true);
-    COUT(result.find("\":42") != std::string::npos, true);
-    COUT(result.find("\"key with spaces\":\"space value\"") != std::string::npos, true);
-    COUT(result.find("\"key\"with\"quotes\":\"quote value\"") != std::string::npos, true);
-    COUT(result.find("\"key\\with\\backslash\":\"backslash value\"") != std::string::npos, true);
-    COUT(result.find("\"emoji\":\"😀🎉\"") != std::string::npos, true);
-    COUT(result.find("\"chinese\":\"中文测试\"") != std::string::npos, true);
-    COUT(result.find("\"russian\":\"привет\"") != std::string::npos, true);
+    std::string expect = R"({"":"empty_key_value","":42,"key with spaces":"space value","key"with"quotes":"quote value","key\with\backslash":"backslash value","emoji":"😀🎉","chinese":"中文测试","russian":"привет"})";
+    COUT(result, expect);
 }
 
 DEF_TAST(operator_type_safety, "test operator[] with different data types")
@@ -159,6 +134,7 @@ DEF_TAST(operator_type_safety, "test operator[] with different data types")
     bool false_val = false;
     builder["true_val"] = true_val;
     builder["false_val"] = false_val;
+    builder["null_key"] = nullptr;
 
     // Character types
     char c_val = 'A';
@@ -169,16 +145,8 @@ DEF_TAST(operator_type_safety, "test operator[] with different data types")
     builder.EndObject();
 
     std::string result = builder.GetResult();
-    // Verify type handling
-    COUT(result.find("\"int\":42") != std::string::npos, true);
-    COUT(result.find("\"short\":10") != std::string::npos, true);
-    COUT(result.find("\"long\":1000") != std::string::npos, true);
-    COUT(result.find("\"float\":3.14") != std::string::npos, true);
-    COUT(result.find("\"double\":2.71828") != std::string::npos, true);
-    COUT(result.find("\"true_val\":true") != std::string::npos, true);
-    COUT(result.find("\"false_val\":false") != std::string::npos, true);
-    COUT(result.find("\"char\":65") != std::string::npos, true);
-    COUT(result.find("\"uchar\":66") != std::string::npos, true);
+    std::string expect = R"({"int":42,"short":10,"long":1000,"float":3.140000,"double":2.718280,"true_val":true,"false_val":false,"null_key":null,"char":65,"uchar":66})";
+    COUT(result, expect);
 }
 
 DEF_TAST(operator_nested_structures, "test operator[] with nested objects and arrays")
@@ -198,7 +166,7 @@ DEF_TAST(operator_nested_structures, "test operator[] with nested objects and ar
     builder["zipcode"] = "12345";
     builder.EndObject();
 
-    builder.EndObject();
+    builder.EndObject(true);
 
     // Nested array using operator[]
     builder.BeginArray("matrix");
@@ -206,7 +174,7 @@ DEF_TAST(operator_nested_structures, "test operator[] with nested objects and ar
     builder[0] = 1;
     builder[1] = 2;
     builder[2] = 3;
-    builder.EndArray();
+    builder.EndArray(true);
 
     builder.BeginArray();
     builder[0] = 4;
@@ -218,17 +186,8 @@ DEF_TAST(operator_nested_structures, "test operator[] with nested objects and ar
     builder.EndObject();
 
     std::string result = builder.GetResult();
-    // Verify nested structure
-    COUT(result.find("\"person\":{") != std::string::npos, true);
-    COUT(result.find("\"name\":\"John Doe\"") != std::string::npos, true);
-    COUT(result.find("\"age\":30") != std::string::npos, true);
-    COUT(result.find("\"address\":{") != std::string::npos, true);
-    COUT(result.find("\"street\":\"123 Main St\"") != std::string::npos, true);
-    COUT(result.find("\"city\":\"Anytown\"") != std::string::npos, true);
-    COUT(result.find("\"zipcode\":\"12345\"") != std::string::npos, true);
-    COUT(result.find("\"matrix\":[") != std::string::npos, true);
-    COUT(result.find("[1,2,3]") != std::string::npos, true);
-    COUT(result.find("[4,5,6]") != std::string::npos, true);
+    std::string expect = R"({"person":{"name":"John Doe","age":30,"address":{"street":"123 Main St","city":"Anytown","zipcode":"12345"}},"matrix":[[1,2,3],[4,5,6]]})";
+    COUT(result, expect);
 }
 
 DEF_TAST(operator_raii_compatibility, "test operator[] compatibility with RAII scope classes")
@@ -238,7 +197,7 @@ DEF_TAST(operator_raii_compatibility, "test operator[] compatibility with RAII s
 
     {
         // Test with RawObject scope
-        wwjson::RawObject obj = builder.ScopeObject("scoped");
+        wwjson::RawObject obj = builder.ScopeObject("scoped", true);
         obj["inner_key"] = "inner_value";
         obj["inner_number"] = 42;
 
@@ -247,6 +206,9 @@ DEF_TAST(operator_raii_compatibility, "test operator[] compatibility with RAII s
         arr[0] = "array_item_1";
         arr[1] = "array_item_2";
         arr[-1] = "array_item_3";
+
+        // destroy arr then obj in reversed order,
+        // so put char ]}
     }
 
     // Test with RawArray scope
@@ -264,72 +226,8 @@ DEF_TAST(operator_raii_compatibility, "test operator[] compatibility with RAII s
     builder.EndObject();
 
     std::string result = builder.GetResult();
-    // Verify RAII compatibility
-    COUT(result.find("\"scoped\":{") != std::string::npos, true);
-    COUT(result.find("\"inner_key\":\"inner_value\"") != std::string::npos, true);
-    COUT(result.find("\"inner_number\":42") != std::string::npos, true);
-    COUT(result.find("\"inner_array\":[") != std::string::npos, true);
-    COUT(result.find("\"array_item_1\"") != std::string::npos, true);
-    COUT(result.find("\"array_item_2\"") != std::string::npos, true);
-    COUT(result.find("\"array_item_3\"") != std::string::npos, true);
-    COUT(result.find("\"scoped_array\":[") != std::string::npos, true);
-    COUT(result.find("\"arr_value_1\"") != std::string::npos, true);
-    COUT(result.find("123") != std::string::npos, true);
-    COUT(result.find("true") != std::string::npos, true);
-    // Note: nested object in array should also be present
-}
-
-DEF_TAST(operator_performance, "test operator[] performance with many operations")
-{
-    wwjson::RawBuilder builder;
-    builder.BeginObject();
-
-    // Test with many operations
-    for (int i = 0; i < 100; ++i) {
-        builder["key_" + std::to_string(i)] = "value_" + std::to_string(i);
-    }
-
-    builder.EndObject();
-
-    std::string result = builder.GetResult();
-    // Verify multiple operations
-    COUT(result.find("\"key_0\":\"value_0\"") != std::string::npos, true);
-    COUT(result.find("\"key_99\":\"value_99\"") != std::string::npos, true);
-    
-    // Should be valid JSON (no trailing comma)
-    COUT(result.back(), '}');
-    COUT(result.front(), '{');
-}
-
-DEF_TAST(operator_chaining, "test operator[] chaining behavior")
-{
-    wwjson::RawBuilder builder;
-    builder.BeginObject();
-
-    // Simple chaining
-    builder["key1"] = "value1";
-    builder["key2"] = "value2";
-    builder["key3"] = 42;
-
-    // Test with different types
-    builder["string_key"] = "string_value";
-    builder["int_key"] = 123;
-    builder["double_key"] = 3.14159;
-    builder["bool_key"] = true;
-    builder["null_key"] = nullptr;
-
-    builder.EndObject();
-
-    std::string result = builder.GetResult();
-    // Verify chaining results
-    COUT(result.find("\"key1\":\"value1\"") != std::string::npos, true);
-    COUT(result.find("\"key2\":\"value2\"") != std::string::npos, true);
-    COUT(result.find("\"key3\":42") != std::string::npos, true);
-    COUT(result.find("\"string_key\":\"string_value\"") != std::string::npos, true);
-    COUT(result.find("\"int_key\":123") != std::string::npos, true);
-    COUT(result.find("\"double_key\":3.14159") != std::string::npos, true);
-    COUT(result.find("\"bool_key\":true") != std::string::npos, true);
-    COUT(result.find("\"null_key\":null") != std::string::npos, true);
+    std::string expect = R"({"scoped":{"inner_key":"inner_value","inner_number":42,"inner_array":["array_item_1","array_item_2","array_item_3"]},"scoped_array":["arr_value_1",123,true,{"nested_key":"nested_value"}]})";
+    COUT(result, expect);
 }
 
 DEF_TAST(operator_copy_move, "test operator[] with copy and move operations")

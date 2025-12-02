@@ -691,16 +691,18 @@ public:
     }
 
     /// Create a scoped GenericArray that auto-closes when destroyed.
-    GenericArray<stringT, configT> ScopeArray(bool hasNext = false);
-    
-    /// Create a scoped GenericArray with key that auto-closes when destroyed.
-    GenericArray<stringT, configT> ScopeArray(const char* pszKey, bool hasNext = false);
+    template<typename... Args>
+    auto ScopeArray(Args&&... args)
+    {
+        return m_builder.ScopeArray(std::forward<Args>(args)...);
+    }
     
     /// Create a scoped GenericObject that auto-closes when destroyed.
-    GenericObject<stringT, configT> ScopeObject(bool hasNext = false);
-    
-    /// Create a scoped GenericObject with key that auto-closes when destroyed.
-    GenericObject<stringT, configT> ScopeObject(const char* pszKey, bool hasNext = false);
+    template<typename... Args>
+    auto ScopeObject(Args&&... args)
+    {
+        return m_builder.ScopeObject(std::forward<Args>(args)...);
+    }
 };
 
 /// Auto open and close object {}.
@@ -768,16 +770,18 @@ public:
     }
 
     /// Create a scoped GenericArray that auto-closes when destroyed.
-    GenericArray<stringT, configT> ScopeArray(bool hasNext = false);
-    
-    /// Create a scoped GenericArray with key that auto-closes when destroyed.
-    GenericArray<stringT, configT> ScopeArray(const char* pszKey, bool hasNext = false);
+    template<typename... Args>
+    auto ScopeArray(Args&&... args)
+    {
+        return m_builder.ScopeArray(std::forward<Args>(args)...);
+    }
     
     /// Create a scoped GenericObject that auto-closes when destroyed.
-    GenericObject<stringT, configT> ScopeObject(bool hasNext = false);
-    
-    /// Create a scoped GenericObject with key that auto-closes when destroyed.
-    GenericObject<stringT, configT> ScopeObject(const char* pszKey, bool hasNext = false);
+    template<typename... Args>
+    auto ScopeObject(Args&&... args)
+    {
+        return m_builder.ScopeObject(std::forward<Args>(args)...);
+    }
 };
 
 /// Add scope methods to GenericBuilder.
@@ -803,56 +807,6 @@ template<typename stringT, typename configT>
 inline GenericObject<stringT, configT> GenericBuilder<stringT, configT>::ScopeObject(const char* pszKey, bool hasNext)
 {
     return GenericObject<stringT, configT>(*this, pszKey, hasNext);
-}
-
-// GenericArray scope method implementations
-template<typename stringT, typename configT>
-inline GenericArray<stringT, configT> GenericArray<stringT, configT>::ScopeArray(bool hasNext)
-{
-    return GenericArray<stringT, configT>(m_builder, hasNext);
-}
-
-template<typename stringT, typename configT>
-inline GenericArray<stringT, configT> GenericArray<stringT, configT>::ScopeArray(const char* pszKey, bool hasNext)
-{
-    return GenericArray<stringT, configT>(m_builder, pszKey, hasNext);
-}
-
-template<typename stringT, typename configT>
-inline GenericObject<stringT, configT> GenericArray<stringT, configT>::ScopeObject(bool hasNext)
-{
-    return GenericObject<stringT, configT>(m_builder, hasNext);
-}
-
-template<typename stringT, typename configT>
-inline GenericObject<stringT, configT> GenericArray<stringT, configT>::ScopeObject(const char* pszKey, bool hasNext)
-{
-    return GenericObject<stringT, configT>(m_builder, pszKey, hasNext);
-}
-
-// GenericObject scope method implementations
-template<typename stringT, typename configT>
-inline GenericArray<stringT, configT> GenericObject<stringT, configT>::ScopeArray(bool hasNext)
-{
-    return GenericArray<stringT, configT>(m_builder, hasNext);
-}
-
-template<typename stringT, typename configT>
-inline GenericArray<stringT, configT> GenericObject<stringT, configT>::ScopeArray(const char* pszKey, bool hasNext)
-{
-    return GenericArray<stringT, configT>(m_builder, pszKey, hasNext);
-}
-
-template<typename stringT, typename configT>
-inline GenericObject<stringT, configT> GenericObject<stringT, configT>::ScopeObject(bool hasNext)
-{
-    return GenericObject<stringT, configT>(m_builder, hasNext);
-}
-
-template<typename stringT, typename configT>
-inline GenericObject<stringT, configT> GenericObject<stringT, configT>::ScopeObject(const char* pszKey, bool hasNext)
-{
-    return GenericObject<stringT, configT>(m_builder, pszKey, hasNext);
 }
 
 /// Type aliases for backward compatibility and common usage.

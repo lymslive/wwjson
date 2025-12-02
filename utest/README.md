@@ -10,24 +10,13 @@
 - 以 `t_xxx.cpp` 命名每个测试文件，收集相关用例，以 `xxx_` 前缀命名；
 - 非测试功能的辅助文件不以 `t_` 前缀命名；
 
-当前测试文件结构：
+当前测试文件列表：
 - `t_basic.cpp` - 基础构建功能测试
-  - `basic_builder` - 测试基础对象构建
-  - `basic_builder_array` - 测试数组与对象嵌套
-  - `basic_escape` - 测试基本字符串转义
 - `t_escape.cpp` - 字符串与转义功能测试
-  - `escape_basic` - 测试基本转义功能
-  - `escape_always_config` - 测试 always escape 配置
-  - `escape_scope` - 测试作用域对象的转义
-  - `escape_overloads` - 测试各种字符串参数重载
-  - `escape_no_config` - 测试无转义配置
 - `t_scope.cpp` - 作用域管理测试
-  - `scope_ctor_nest` - 测试构造函数嵌套
-  - `scope_auto_nest` - 测试作用域方法自动嵌套
-  - `scope_vs_constructor` - 测试作用域方法与构造函数对比
+- `t_advance.cpp` - 高级功能测试（如 Reopen 方法）
 - `t_custom.cpp` - 自定义字符串类型测试
-  - `custom_builder` - 测试自定义字符串构建器
-  - `custom_scope` - 测试自定义字符串作用域方法
+- `t_operator.cpp` - 操作符重载测试
 - `t_experiment.cpp` - 实验性功能测试（各种探索性用例）
 - `custom_string.cpp` - 自定义字符串类实现（非测试文件）
 
