@@ -302,10 +302,29 @@ AddMemberEscape 类似.
 
 ### DONE: 20251202-000356
 
-## TODO: 重载 [] 索引操作符
+## TODO:2025-12-02/1 为 GenericBuilder 重载 [] 索引与赋值操作符
 
-json["key"] = value; 添加对象字段
-json[-1] = value; 添加数组元素，支持任意整数
+希望实现如下功能：
+- builder["key"] = value; 添加对象字段，key 支持 `const char*` 与 `std::string`
+- builder[-1] = value; 添加数组元素，支持任意整数 size_t
+
+判断一下 builder[0] 是否会出现编译歧义问题。整数参数只定义 `size_t` 的话，传入
+int 是否会自动提升？
+
+我的初步方案：
+- operator[] 返回 *this，[key] 先调用 PutKey
+- operator= 调用 AddItem，支持各种单参数泛型
+- 特化类本身的拷贝赋值函数与移动赋值函数
+- GenericArray/Object 也要支持 operator[]
+
+这几个操作符重载定义的位置放在 wwjson.hpp GenericBuilder 的 M7 方法组，原来的
+M7 M8 方法组后移为 M8 M9。
+
+然后为了对称，在 M0 构造函数后面，增加拷贝构造与移动构造函数。
+
+utest/ 子目录增加 `t_operator.cpp` 文件测试这些新功能。
+
+### DONE: 20251202-111929
 
 ## TODO: 重载 << 输入操作符
 

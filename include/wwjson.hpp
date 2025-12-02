@@ -137,6 +137,12 @@ struct GenericBuilder
     /// Constructor with optional initial capacity.
     GenericBuilder(int capacity = 1024) { json.reserve(capacity); }
 
+    /// Copy constructor.
+    GenericBuilder(const GenericBuilder& other) = default;
+
+    /// Move constructor.
+    GenericBuilder(GenericBuilder&& other) noexcept = default;
+
     /// Get result string (const version).
     const stringT& GetResult() const { return json; }
 
@@ -493,7 +499,48 @@ struct GenericBuilder
         AddItemEscape(std::forward<Args>(args)...);
     }
 
-    /// M7: Scope Creation Methods
+    /// M7: Special Member Functions and Operator Overloads
+    /* ---------------------------------------------------------------------- */
+    
+    /// Copy assignment operator.
+    GenericBuilder& operator=(const GenericBuilder& other) = default;
+
+    /// Move assignment operator.
+    GenericBuilder& operator=(GenericBuilder&& other) noexcept = default;
+
+    /// Array element operator[] for integer indices.
+    /// For array elements, no key setup needed, just returns *this for assignment.
+    GenericBuilder& operator[](int /* index */)
+    {
+        return *this;
+    }
+
+    /// String key operator[] for C-string keys.
+    /// Sets up the key and returns *this for assignment.
+    GenericBuilder& operator[](const char* key)
+    {
+        PutKey(key);
+        return *this;
+    }
+
+    /// String key operator[] for std::string keys.
+    /// Sets up the key and returns *this for assignment.
+    GenericBuilder& operator[](const std::string& key)
+    {
+        PutKey(key);
+        return *this;
+    }
+
+    /// Generic assignment operator that delegates to AddItem.
+    /// Enables builder["key"] = value and builder[index] = value syntax.
+    template<typename T>
+    GenericBuilder& operator=(const T& value)
+    {
+        AddItem(value);
+        return *this;
+    }
+
+    /// M8: Scope Creation Methods
     /* ---------------------------------------------------------------------- */
     
     /// Create a scoped GenericArray that auto-closes when destroyed.
@@ -508,7 +555,7 @@ struct GenericBuilder
     /// Create a scoped GenericObject with key that auto-closes when destroyed.
     GenericObject<stringT, configT> ScopeObject(const char* pszKey, bool hasNext = false);
 
-    /// M8: Advanced Methods
+    /// M9: Advanced Methods
     /* ---------------------------------------------------------------------- */
     
     /// Reopen object {} or array [] to add more fields.
@@ -635,6 +682,25 @@ public:
     {
         m_builder.AddItemEscape(std::forward<Args>(args)...);
     }
+
+    /// Array element operator[] for integer indices.
+    /// For array elements, no key setup needed, just returns m_builder for assignment.
+    GenericBuilder<stringT, configT>& operator[](int /* index */)
+    {
+        return m_builder;
+    }
+
+    /// Create a scoped GenericArray that auto-closes when destroyed.
+    GenericArray<stringT, configT> ScopeArray(bool hasNext = false);
+    
+    /// Create a scoped GenericArray with key that auto-closes when destroyed.
+    GenericArray<stringT, configT> ScopeArray(const char* pszKey, bool hasNext = false);
+    
+    /// Create a scoped GenericObject that auto-closes when destroyed.
+    GenericObject<stringT, configT> ScopeObject(bool hasNext = false);
+    
+    /// Create a scoped GenericObject with key that auto-closes when destroyed.
+    GenericObject<stringT, configT> ScopeObject(const char* pszKey, bool hasNext = false);
 };
 
 /// Auto open and close object {}.
@@ -684,6 +750,34 @@ public:
     {
         m_builder.AddMemberEscape(std::forward<Args>(args)...);
     }
+
+    /// String key operator[] for C-string keys.
+    /// Sets up the key and returns m_builder for assignment.
+    GenericBuilder<stringT, configT>& operator[](const char* key)
+    {
+        m_builder.PutKey(key);
+        return m_builder;
+    }
+
+    /// String key operator[] for std::string keys.
+    /// Sets up the key and returns m_builder for assignment.
+    GenericBuilder<stringT, configT>& operator[](const std::string& key)
+    {
+        m_builder.PutKey(key);
+        return m_builder;
+    }
+
+    /// Create a scoped GenericArray that auto-closes when destroyed.
+    GenericArray<stringT, configT> ScopeArray(bool hasNext = false);
+    
+    /// Create a scoped GenericArray with key that auto-closes when destroyed.
+    GenericArray<stringT, configT> ScopeArray(const char* pszKey, bool hasNext = false);
+    
+    /// Create a scoped GenericObject that auto-closes when destroyed.
+    GenericObject<stringT, configT> ScopeObject(bool hasNext = false);
+    
+    /// Create a scoped GenericObject with key that auto-closes when destroyed.
+    GenericObject<stringT, configT> ScopeObject(const char* pszKey, bool hasNext = false);
 };
 
 /// Add scope methods to GenericBuilder.
@@ -709,6 +803,56 @@ template<typename stringT, typename configT>
 inline GenericObject<stringT, configT> GenericBuilder<stringT, configT>::ScopeObject(const char* pszKey, bool hasNext)
 {
     return GenericObject<stringT, configT>(*this, pszKey, hasNext);
+}
+
+// GenericArray scope method implementations
+template<typename stringT, typename configT>
+inline GenericArray<stringT, configT> GenericArray<stringT, configT>::ScopeArray(bool hasNext)
+{
+    return GenericArray<stringT, configT>(m_builder, hasNext);
+}
+
+template<typename stringT, typename configT>
+inline GenericArray<stringT, configT> GenericArray<stringT, configT>::ScopeArray(const char* pszKey, bool hasNext)
+{
+    return GenericArray<stringT, configT>(m_builder, pszKey, hasNext);
+}
+
+template<typename stringT, typename configT>
+inline GenericObject<stringT, configT> GenericArray<stringT, configT>::ScopeObject(bool hasNext)
+{
+    return GenericObject<stringT, configT>(m_builder, hasNext);
+}
+
+template<typename stringT, typename configT>
+inline GenericObject<stringT, configT> GenericArray<stringT, configT>::ScopeObject(const char* pszKey, bool hasNext)
+{
+    return GenericObject<stringT, configT>(m_builder, pszKey, hasNext);
+}
+
+// GenericObject scope method implementations
+template<typename stringT, typename configT>
+inline GenericArray<stringT, configT> GenericObject<stringT, configT>::ScopeArray(bool hasNext)
+{
+    return GenericArray<stringT, configT>(m_builder, hasNext);
+}
+
+template<typename stringT, typename configT>
+inline GenericArray<stringT, configT> GenericObject<stringT, configT>::ScopeArray(const char* pszKey, bool hasNext)
+{
+    return GenericArray<stringT, configT>(m_builder, pszKey, hasNext);
+}
+
+template<typename stringT, typename configT>
+inline GenericObject<stringT, configT> GenericObject<stringT, configT>::ScopeObject(bool hasNext)
+{
+    return GenericObject<stringT, configT>(m_builder, hasNext);
+}
+
+template<typename stringT, typename configT>
+inline GenericObject<stringT, configT> GenericObject<stringT, configT>::ScopeObject(const char* pszKey, bool hasNext)
+{
+    return GenericObject<stringT, configT>(m_builder, pszKey, hasNext);
 }
 
 /// Type aliases for backward compatibility and common usage.
