@@ -1,5 +1,6 @@
 #include "couttast/tinytast.hpp"
 #include "wwjson.hpp"
+#include "test_util.h"
 #include <string>
 
 DEF_TAST(scope_ctor_nest, "test build nest json with RAII auto close")
@@ -41,6 +42,7 @@ DEF_TAST(scope_ctor_nest, "test build nest json with RAII auto close")
 
     std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.500000,"double":0.333333}]})";
     COUT(builder.json, expect);
+    COUT(test::IsJsonValid(builder.json), true);
 }
 
 DEF_TAST(scope_auto_nest, "test build nest json with auto close using scope methods")
@@ -82,6 +84,7 @@ DEF_TAST(scope_auto_nest, "test build nest json with auto close using scope meth
 
     std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.500000,"double":0.333333}]})";
     COUT(builder.json, expect);
+    COUT(test::IsJsonValid(builder.json), true);
 }
 
 DEF_TAST(scope_vs_constructor, "test scope methods vs constructor approach")

@@ -326,6 +326,22 @@ utest/ 子目录增加 `t_operator.cpp` 文件测试这些新功能。
 
 ### DONE: 20251202-111929
 
+## TODO:2025-12-02/2 单元测试引入三方库校验构造 json 合法性
+
+在 `utest/test_util.cpp` 已经写了个简单校验函数 `test::IsJsonValid`，它依赖
+xyjson.h ，而后者依赖 yyjson.h 库。请完善 CMake 构建脚本，使该函数可用。参考依
+赖 couttast 库，先从本地查找，再从远程 github 下载。
+
+当前本地安装情况：
+- yyjson 安装在系统目录 /usr/local
+- xyjson 安装个人 $HOME 目录，且在 ../xyjson 兄弟目录有源码
+
+然后分析其他单元测试文件，使用 `test::IsJsonValid` 校验拼装的 json 是合法的。
+注意有些测试用例测试中间结果，未必都是合法的 json 。需要找出意图拼装完整的
+json 的用例，断言其是合法有效的 json 。
+
+### DONE: 20251202-213730
+
 ## TODO: 重载 << 输入操作符
 
 添加数组元素：json << v1 << v2

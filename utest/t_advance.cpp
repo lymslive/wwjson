@@ -1,5 +1,6 @@
 #include "couttast/tinytast.hpp"
 #include "wwjson.hpp"
+#include "test_util.h"
 #include <string>
 
 DEF_TAST(advance_reopen, "test Reopen method for objects and arrays")
@@ -12,6 +13,7 @@ DEF_TAST(advance_reopen, "test Reopen method for objects and arrays")
     
     std::string expect1 = R"({"a":1})";
     COUT(builder1.json, expect1);
+    COUT(test::IsJsonValid(builder1.json), true);
     
     bool result1 = builder1.Reopen();
     COUT(result1, true);
@@ -20,6 +22,7 @@ DEF_TAST(advance_reopen, "test Reopen method for objects and arrays")
     builder1.EndObject();
     std::string expect1_reopened = R"({"a":1,"b":2})";
     COUT(builder1.json, expect1_reopened);
+    COUT(test::IsJsonValid(builder1.json), true);
     
     // Test Reopen for array
     wwjson::RawBuilder builder2;
@@ -29,6 +32,7 @@ DEF_TAST(advance_reopen, "test Reopen method for objects and arrays")
     
     std::string expect2 = R"([1])";
     COUT(builder2.json, expect2);
+    COUT(test::IsJsonValid(builder2.json), true);
     
     bool result2 = builder2.Reopen();
     COUT(result2, true);
@@ -37,6 +41,7 @@ DEF_TAST(advance_reopen, "test Reopen method for objects and arrays")
     builder2.EndArray();
     std::string expect2_reopened = R"([1,2])";
     COUT(builder2.json, expect2_reopened);
+    COUT(test::IsJsonValid(builder2.json), true);
     
     // Test Reopen failure cases
     wwjson::RawBuilder builder3; // Empty builder

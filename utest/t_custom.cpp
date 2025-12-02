@@ -6,6 +6,7 @@
 #include "custom_string.h"
 #include "wwjson.hpp"
 #include "couttast/tinytast.hpp"
+#include "test_util.h"
 
 DEF_TAST(custom_builder, "test json builder with custom string")
 {
@@ -36,6 +37,7 @@ DEF_TAST(custom_builder, "test json builder with custom string")
 
     std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.500000,"double":0.333333,"ints":"124","intf":"125"})";
     COUT(builder.json.c_str(), expect);
+    COUT(test::IsJsonValid(builder.json.c_str()), true);
 }
 
 DEF_TAST(custom_wrapper, "test M1 string interface wrapper methods with custom string")
@@ -47,6 +49,7 @@ DEF_TAST(custom_wrapper, "test M1 string interface wrapper methods with custom s
     builder.PutChar('}');
     std::string expect1 = "{}";
     COUT(builder.json.c_str(), expect1);
+    COUT(test::IsJsonValid(builder.json.c_str()), true);
     
     // Test FixTail - replace trailing '}' with ','
     builder.FixTail('}', ',');

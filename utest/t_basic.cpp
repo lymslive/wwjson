@@ -1,5 +1,6 @@
 #include "couttast/tinytast.hpp"
 #include "wwjson.hpp"
+#include "test_util.h"
 #include <string>
 
 DEF_TAST(basic_builder, "test json builder with raw string")
@@ -31,6 +32,7 @@ DEF_TAST(basic_builder, "test json builder with raw string")
 
     std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.500000,"double":0.333333,"ints":"124","intf":"125"})";
     COUT(builder.json, expect);
+    COUT(test::IsJsonValid(builder.json), true);
 }
 
 DEF_TAST(basic_builder_nest, "test build nest json with array of object")
@@ -75,6 +77,7 @@ DEF_TAST(basic_builder_nest, "test build nest json with array of object")
 
     std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},{"short":280,"double":0.500000,"double":0.333333}]})";
     COUT(builder.json, expect);
+    COUT(test::IsJsonValid(builder.json), true);
 }
 
 
@@ -87,16 +90,19 @@ DEF_TAST(basic_wrapper, "test M1 string interface wrapper methods")
     builder.PutChar('}');
     std::string expect1 = "{}";
     COUT(builder.json, expect1);
+    COUT(test::IsJsonValid(builder.json), true);
     
     // Test FixTail - replace trailing '}' with ','
     builder.FixTail('}', ',');
     std::string expect2 = "{,";
     COUT(builder.json, expect2);
+    COUT(test::IsJsonValid(builder.json), false); // Invalid JSON
     
     // Test FixTail - add ']' when tail doesn't match
     builder.FixTail('{', ']');
     std::string expect3 = "{,]";
     COUT(builder.json, expect3);
+    COUT(test::IsJsonValid(builder.json), false); // Invalid JSON
     
     // Test Append methods
     builder.Clear();
@@ -179,6 +185,7 @@ DEF_TAST(basic_null_bool_empty, "test null, bool, empty array and empty object")
 
     std::string expect = R"({"null_value":null,"null_direct":null,"bool_true":true,"bool_false":false,"bool_direct_true":true,"bool_direct_false":false,"empty_array_direct":[],"empty_object_direct":{},"array_with_null_bool":[null,true,false,"string"],"object_with_null_bool":{"null_field":null,"true_field":true,"false_field":false}})";
     COUT(builder.json, expect);
+    COUT(test::IsJsonValid(builder.json), true);
 }
 
 DEF_TAST(basic_low_level, "test using low-level methods PutKey/PutValue/PutNext")
