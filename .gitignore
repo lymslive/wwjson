@@ -17,6 +17,8 @@ backup-*
 AGENTS.md
 .codebuddy/
 .tool/
+.iflow/
+IFLOW.md
 
 # ide helper fiels
 .clangd

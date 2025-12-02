@@ -342,12 +342,17 @@ json 的用例，断言其是合法有效的 json 。
 
 ### DONE: 20251202-213730
 
-## TODO: 重载 << 输入操作符
+## TODO:2025-12-02/3 重载 << 输入操作符支持链式拼装 json
 
-添加数组元素：json << v1 << v2
-添加对象字段：json << k1 << v1 << k2 << v2
+希望 `>>` 作用于数组或对象时有不同含义，所以不好在 GenericBuilder 重载，而在两
+个衍生类中重载。
 
-可能需要加一个栈，保存当前（尾部）操作的是数组还是对象。
+- 添加数组元素：GenericArray << v1 << v2，链式调用 AddItem
+- 添加对象字段：GenericObject << k1 << v1 << k2 << v2，交替调用 PutKey 与 AddItem
+
+在 utest/t_operator.cpp 中添加测试用例覆盖新功能。
+
+### DONE: 20251202-233040
 
 ## TODO: 支持 EndAll 方法
 

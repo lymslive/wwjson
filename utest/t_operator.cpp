@@ -284,3 +284,130 @@ DEF_TAST(operator_copy_move, "test operator[] with copy and move operations")
         COUT(result2, expect);
     }
 }
+
+DEF_TAST(operator_stream_array, "test operator<< with GenericArray for chained element addition")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+    {
+        // Test GenericArray operator<< with scope
+        wwjson::RawArray arr = builder.ScopeArray("items");
+        arr << "first_item" << 42 << true << 3.14 << false;
+
+        // Test mixing with operator[], but can not modify, only append too
+        arr[4] = "replaced_item";
+    }
+    builder.EndObject();
+
+    std::string result = builder.GetResult();
+    std::string expect = R"({"items":["first_item",42,true,3.140000,false,"replaced_item"]})";
+    COUT(result, expect);
+}
+
+DEF_TAST(operator_stream_object, "test operator<< with GenericObject for alternating key-value")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+    {
+        // Test GenericObject operator<< with scope
+        wwjson::RawObject obj = builder.ScopeObject("person");
+        obj << "name" << "John" << "age" << 30 << "active" << true << "score" << 95.5;
+
+    }
+    builder.EndObject();
+
+    std::string result = builder.GetResult();
+    std::string expect = R"({"person":{"name":"John","age":30,"active":true,"score":95.500000}})";
+    COUT(result, expect);
+}
+
+DEF_TAST(operator_stream_mixed, "test operator<< mixed with traditional methods")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+
+    // Traditional method first
+    builder.AddMember("traditional", "value");
+    {
+        // Operator<< with array scope
+        wwjson::RawArray arr = builder.ScopeArray("operators", true);
+        arr << "stream1" << 123 << "stream2";
+    }
+
+    {
+        // Mix in object scope
+        wwjson::RawObject obj = builder.ScopeObject("mixed", true);
+        obj << "key1" << "value1";
+        obj.AddMember("key2", "value2");  // Mix with traditional
+        obj << "key3" << "value3";
+        {
+            // More array mixing
+            wwjson::RawArray arr2 = obj.ScopeArray("nested_array", true);
+            arr2 << "nested1";
+            arr2.AddItem("nested2");
+            arr2 << "nested3";
+        }
+    }
+
+
+    builder.EndObject();
+
+    std::string result = builder.GetResult();
+    std::string expect = R"({"traditional":"value","operators":["stream1",123,"stream2"],"mixed":{"key1":"value1","key2":"value2","key3":"value3","nested_array":["nested1","nested2","nested3"]}})";
+    COUT(result, expect);
+}
+
+DEF_TAST(operator_stream_types, "test operator<< with various data types")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+    {
+        // Array with different types via operator<<
+        wwjson::RawArray arr = builder.ScopeArray("data", true);
+        arr << "string" << 123 << 3.14 << true << false << nullptr;
+    }
+    {
+        // Object with different types via operator<<
+        wwjson::RawObject obj = builder.ScopeObject("types", true);
+        obj << "str" << "hello" << "int" << 42 << "float" << 2.5 << "bool" << true << "null_val" << nullptr;
+
+    }
+    builder.EndObject();
+
+    std::string result = builder.GetResult();
+    std::string expect = R"({"data":["string",123,3.140000,true,false,null],"types":{"str":"hello","int":42,"float":2.500000,"bool":true,"null_val":null}})";
+    COUT(result, expect);
+}
+
+DEF_TAST(operator_stream_complex, "test operator<< with complex nested structures")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+
+    {
+        // Complex nested structure using operator<<
+        wwjson::RawObject config = builder.ScopeObject("config", true);
+        config << "database" << "postgresql" << "port" << 5432;
+        {
+            // Nested object with arrays
+            wwjson::RawObject database = config.ScopeObject("settings", true);
+            database << "timeout" << 30 << "retries" << 3;
+            {
+                // Array in nested object
+                wwjson::RawArray hosts = database.ScopeArray("hosts", true);
+                hosts << "localhost" << "127.0.0.1" << "remote-server";
+            }
+        }
+        {
+            // More complex nesting
+            wwjson::RawObject features = config.ScopeObject("features");
+            features << "cache" << true << "ssl" << false;
+        }
+    }
+    
+    builder.EndObject();
+
+    std::string result = builder.GetResult();
+    std::string expect = R"({"config":{"database":"postgresql","port":5432,"settings":{"timeout":30,"retries":3,"hosts":["localhost","127.0.0.1","remote-server"]},"features":{"cache":true,"ssl":false}}})";
+    COUT(result, expect);
+}

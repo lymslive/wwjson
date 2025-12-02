@@ -690,6 +690,15 @@ public:
         return m_builder;
     }
 
+    /// Stream operator<< for chained array element addition.
+    /// Enables syntax: arr << v1 << v2 << v3
+    template<typename T>
+    GenericArray& operator<<(const T& value)
+    {
+        AddItem(value);
+        return *this;
+    }
+
     /// Create a scoped GenericArray that auto-closes when destroyed.
     template<typename... Args>
     auto ScopeArray(Args&&... args)
@@ -767,6 +776,44 @@ public:
     {
         m_builder.PutKey(key);
         return m_builder;
+    }
+
+    /// Stream operator<< for alternating key-value addition.
+    /// Enables syntax: obj << k1 << v1 << k2 << v2
+    /// Checks the last character in builder to determine if expecting key or value.
+    GenericObject& operator<<(const char* key)
+    {
+        if (m_builder.Back() != ':')
+        {
+            m_builder.PutKey(key);
+        }
+        else
+        {
+            m_builder.AddItem(key);
+        }
+        return *this;
+    }
+    
+    // For std::string keys when expecting a key  
+    GenericObject& operator<<(const std::string& key)
+    {
+        if (m_builder.Back() != ':')
+        {
+            m_builder.PutKey(key);
+        }
+        else
+        {
+            m_builder.AddItem(key);
+        }
+        return *this;
+    }
+    
+    // For values (non-string types) - use PutValue for objects
+    template<typename T>
+    GenericObject& operator<<(const T& value)
+    {
+        m_builder.AddItem(value);
+        return *this;
     }
 
     /// Create a scoped GenericArray that auto-closes when destroyed.
