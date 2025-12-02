@@ -17,3 +17,6 @@ backup-*
 AGENTS.md
 .codebuddy/
 .tool/
+
+# ide helper fiels
+.clangd

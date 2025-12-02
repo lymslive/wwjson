@@ -285,7 +285,7 @@ DEF_TAST(basic_getresult, "test GetResult removes trailing comma")
     // Simulate case where trailing comma might exist
     builder.EndObject(true);
 
-    // const GetResult has trailing comma
+    // const GetResult keep trailing comma
     {
         const wwjson::RawBuilder& cb = const_cast<const wwjson::RawBuilder&>(builder);
         auto& result = cb.GetResult();
@@ -298,6 +298,41 @@ DEF_TAST(basic_getresult, "test GetResult removes trailing comma")
     std::string expect = R"({"key1":"value1","key2":"value2"})";
     COUT(result, expect);
     COUT(builder.json, expect);
+}
+
+// Best practice example: standalone function returning JSON string
+// NOTE: We use MoveResult() instead of direct return for optimal performance
+// because NRVO (Named Return Value Optimization) only applies to local variables,
+// not to member variables of objects. The builder.json is a member variable,
+// so returning it directly would trigger a copy. MoveResult() uses move semantics
+// to transfer ownership without copying the string content.
+std::string buildJsonString() {
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+    builder.AddMember("function", "buildJsonString");
+    builder.AddMember("optimized", true);
+    builder.AddMember("method", "MoveResult");
+    builder.EndObject();
+    
+    // Best practice: use MoveResult() for zero-copy performance
+    // This moves the string content instead of copying it
+    return builder.MoveResult();
+}
+
+// Overload version: build JSON string into provided reference parameter
+// This approach can be useful when you want to avoid any potential moves
+// or when you need to build multiple JSON strings in sequence
+void buildJsonString(std::string& output) {
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+    builder.AddMember("function", "buildJsonString");
+    builder.AddMember("output_param", true);
+    builder.AddMember("method", "MoveResult");
+    builder.EndObject();
+    
+    // Assign the moved result to the output parameter
+    // This is still zero-copy due to move assignment
+    output = builder.MoveResult();
 }
 
 DEF_TAST(basic_moveresult, "test MoveResult method")
@@ -314,4 +349,21 @@ DEF_TAST(basic_moveresult, "test MoveResult method")
 
     // After MoveResult, the builder should be empty
     COUT(builder.json, R"()");
+    
+    // Test best practice: standalone function returning JSON string
+    std::string function_result = buildJsonString();
+    std::string expect_function = R"({"function":"buildJsonString","optimized":true,"method":"MoveResult"})";
+    COUT(function_result, expect_function);
+    
+    // Test overload version: build into reference parameter
+    std::string ref_result;
+    buildJsonString(ref_result);
+    std::string expect_ref = R"({"function":"buildJsonString","output_param":true,"method":"MoveResult"})";
+    COUT(ref_result, expect_ref);
+    
+    // Performance recommendation summary:
+    // 1. For most cases: use return builder.MoveResult() - zero-copy move semantics
+    // 2. For reference parameter: use output = builder.MoveResult() - still zero-copy
+    // 3. Avoid: return builder.json - triggers copy, NRVO doesn't apply to members
+    // 4. Avoid: return std::move(builder.json) - same as MoveResult() but less clear
 }

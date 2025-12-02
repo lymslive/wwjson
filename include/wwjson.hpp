@@ -20,6 +20,8 @@
 // for std::to_chars C++17
 // #include <charconv>
 
+#include <string.h>
+
 namespace wwjson
 {
 
@@ -133,18 +135,16 @@ struct GenericBuilder
     /* ---------------------------------------------------------------------- */
     
     /// Constructor with optional initial capacity.
-    GenericBuilder(int capacity = 1024)
-    {
-        json.reserve(capacity);
-    }
+    GenericBuilder(int capacity = 1024) { json.reserve(capacity); }
 
     /// Get result string (const version).
     const stringT& GetResult() const { return json; }
 
     /// Get result string (non-const version, removes trailing comma if any).
+    /// Always remove trailing comma from final result for valid JSON, Not
+    /// consult configT::kTailComma.
     stringT& GetResult()
     {
-        // Always remove trailing comma from final result for valid JSON
         if (!json.empty() && json.back() == ',')
         {
             json.pop_back();
@@ -153,10 +153,7 @@ struct GenericBuilder
     }
 
     /// Move result string (transfer ownership).
-    stringT&& MoveResult()
-    {
-        return std::move(json);
-    }
+    stringT&& MoveResult() { return std::move(json); }
 
     /// M1: String Interface Wrapper Methods
     /* ---------------------------------------------------------------------- */
