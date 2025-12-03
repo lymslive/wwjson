@@ -411,3 +411,89 @@ DEF_TAST(basic_moveresult, "test MoveResult method")
     // 3. Avoid: return builder.json - triggers copy, NRVO doesn't apply to members
     // 4. Avoid: return std::move(builder.json) - same as MoveResult() but less clear
 }
+
+DEF_TAST(basic_null_string, "test null pointer safety in string edge cases")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+    
+    // Test null pointer safety - should not crash and return early
+    builder.PutKey((const char*)nullptr);
+    builder.PutKey((const char*)nullptr, 10);
+    builder.PutValue((const char*)nullptr);
+    builder.PutValue((const char*)nullptr, 10);
+    builder.AddItemEscape((const char*)nullptr);
+    builder.AddItemEscape((const char*)nullptr, 10);
+    builder.Append((const char*)nullptr);
+    builder.Append((const char*)nullptr, 10);
+    
+    // Test null pointer in static escape methods
+    std::string str;
+    wwjson::BasicConfig<std::string>::EscapeKey(str, (const char*)nullptr, 10);
+    wwjson::BasicConfig<std::string>::EscapeString(str, (const char*)nullptr, 10);
+    
+    // Add some valid content to verify builder still works
+    builder.AddMember("valid_key", "valid_value");
+    
+    builder.EndObject();
+    
+    // Result should contain only the valid member, null calls should be ignored
+    std::string expect = R"({"valid_key":"valid_value"})";
+    COUT(builder.json, expect);
+    COUT(test::IsJsonValid(builder.json), true);
+}
+
+DEF_TAST(basic_empty_string, "test not null but empty string edge cases")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+    
+    // Test zero-length strings - should work properly
+    builder.PutKey("", 0);
+    builder.PutValue("", 0);
+    builder.AddItemEscape("", 0);
+    builder.Append("", 0);
+    
+    // Test empty C-string - should work properly
+    builder.PutKey("");
+    builder.PutValue("");
+    builder.AddItemEscape("");
+    builder.Append("");
+    
+    // Add separator after empty strings that add keys
+    builder.SepItem();
+    
+    // Add a valid member to separate from empty key-value pairs
+    builder.AddMember("valid_key", "valid_value");
+    
+    builder.EndObject();
+    
+    // Empty strings should be processed and added as empty JSON strings with quotes
+    std::string expect = R"({"":"""","":"""",,"valid_key":"valid_value"})";
+    COUT(builder.json, expect);
+    
+    // Check if it's valid JSON (might be invalid due to empty keys)
+    COUT(test::IsJsonValid(builder.json), false);  // Likely false due to empty keys or malformed structure
+    
+    // Test a cleaner version with just one empty string
+    wwjson::RawBuilder builder2;
+    builder2.BeginObject();
+    builder2.PutKey("empty_key");
+    builder2.PutValue("");
+    builder2.EndObject();
+    
+    std::string expect2 = R"({"empty_key":""})";
+    COUT(builder2.json, expect2);
+    COUT(test::IsJsonValid(builder2.json), true);
+    
+    // Test empty key with empty value
+    wwjson::RawBuilder builder3;
+    builder3.BeginObject();
+    builder3.PutKey("");
+    builder3.PutValue("empty_val");
+    builder3.EndObject();
+    
+    std::string expect3 = R"({"":"empty_val"})";
+    COUT(builder3.json, expect3);
+    COUT(test::IsJsonValid(builder3.json), true);  // JSON is actually valid even with empty key
+}

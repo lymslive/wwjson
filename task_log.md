@@ -1007,3 +1007,37 @@ if (m_builder.Back() != ':') {
 - 修复了重要的重载决议问题，提升了代码可靠性
 - `std::string_view` 支持为高性能 JSON 构建提供了更多选择
 
+## TASK:20251203-171352
+-----------------------
+
+### 需求关联：2025-12-03/2 wwjson.hpp 代码安全优化
+
+#### 完成内容：
+- 分析 wwjson.hpp 中指针参数的安全隐患
+- 为以下函数添加了空指针安全检查，提前返回避免空指针解引用：
+  - `PutKey(const char* pszKey, size_t len)` 
+  - `PutKey(const char* pszKey)`
+  - `PutValue(const char* pszVal, size_t len)`
+  - `PutValue(const char* pszVal)`
+  - `AddItemEscape(const char* value, size_t len)`
+  - `AddItemEscape(const char* value)`
+  - `Append(const char* str)`
+  - `Append(const char* str, size_t len)`
+  - `BasicConfig::EscapeKey(stringT& dst, const char* key, size_t len)`
+  - `BasicConfig::EscapeString(stringT& dst, const char* src, size_t len)`
+
+- 增加了两个测试用例：
+  - `basic_null_string`：测试空指针安全性
+  - `basic_empty_string`：测试空字符串边界情况
+
+#### 测试结果：
+- 所有46个测试用例通过，包括新增的2个测试用例
+- 编译正常，现有功能保持不变
+- 空指针参数被安全处理，不会导致程序崩溃
+
+#### 技术细节：
+- 使用一致的空指针检查模式：`if (pointer == nullptr) { return; }`
+- 对于需要调用 `strlen()` 的函数，先检查指针再调用
+- 保持了向后兼容性，所有现有合法用法继续工作
+- 空字符串(`""`)仍正常处理，不同于空指针(`nullptr`)
+

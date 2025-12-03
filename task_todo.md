@@ -397,6 +397,35 @@ json 的用例，断言其是合法有效的 json 。
 
 ### DONE: 20251203-103249
 
+## TODO:2025-12-03/2 wwjson.hpp 代码安全优化
+
+分析 wwjson.hpp 中指针参数的使用，做必要的安全判空处理，提前返回。
+尤其是 C-Style 字符串参数大量使用。
+
+包括但可能不限于如下函数：
+- PutKey
+- PutValue
+- AddItemEscape
+- EscapeString
+- EscapeKey
+
+请全面分析是否还有其他安全隐患的代码，也一并修正。
+
+### DONE: 20251203-171352
+
+## TODO:2025-12-03/3 GenericBuilder 代码组织优化
+
+M5 方法组只剩一个通用模板转发函数了，与 M4 合并，后续方法组命名编号递减。
+
+PutNubmer 方法只有一处调用者了，无代码冗余问题，不必单独提取为函数。删除该函数
+，其逻辑移回 AddItem(numberT) 方法。
+
+同时删除 `t_custom.cpp` 文件中 `custom_putnumber` 测试用例，将
+`custom_putnumber_quoted` 用例改名 `custom_number_quoted` 并调整其描叙，删除该
+用例内对 PutNumber 的调用语句，只测试上层方法 AddItem/AddMember 在添加数字时的
+不同行为。可增加对比情况，未定制 kQuoteNumber ，以及手动传第二参数 true 显式为
+数字加引号。
+
 ## TODO: 优化 std::to_string 性能
 
 对标 `std::to_chars` 的性能。

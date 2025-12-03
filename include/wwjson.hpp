@@ -97,12 +97,15 @@ struct BasicConfig
     /// Escape object key (usually no escaping needed for keys).
     static void EscapeKey(stringT& dst, const char* key, size_t len)
     {
+        if (key == nullptr) { return; }
         dst.append(key, len);
     }
     
     /// Escape string using the compile-time escape table.
     static void EscapeString(stringT& dst, const char* src, size_t len)
     {
+        if (src == nullptr) { return; }
+        
         // Pre-allocate memory to reduce reallocations
         dst.reserve(dst.size() + len + len / 4);
         
@@ -192,10 +195,18 @@ struct GenericBuilder
     }
     
     /// Append C-string to JSON string.
-    void Append(const char* str) { json.append(str); }
+    void Append(const char* str)
+    {
+        if (str == nullptr) { return; }
+        json.append(str);
+    }
     
     /// Append C-string with length to JSON string.
-    void Append(const char* str, size_t len) { json.append(str, len); }
+    void Append(const char* str, size_t len)
+    {
+        if (str == nullptr) { return; }
+        json.append(str, len);
+    }
     
     /// Append std::string to JSON string.
     void Append(const std::string& str) { json.append(str); }
@@ -331,6 +342,7 @@ struct GenericBuilder
     /// Append C-string value with length to JSON with quotes.
     void PutValue(const char* pszVal, size_t len)
     {
+        if (pszVal == nullptr) { return; }
         PutChar('"');
         if constexpr (configT::kEscapeValue)
         {
@@ -346,6 +358,7 @@ struct GenericBuilder
     /// Append C-string value to JSON with quotes.
     void PutValue(const char* pszVal)
     {
+        if (pszVal == nullptr) { return; }
         PutValue(pszVal, ::strlen(pszVal));
     }
 
@@ -383,6 +396,7 @@ struct GenericBuilder
     /// Append object key with quotes and colon.
     void PutKey(const char* pszKey, size_t len)
     {
+        if (pszKey == nullptr) { return; }
         PutChar('"');
         if constexpr (configT::kEscapeKey)
         {
@@ -399,6 +413,7 @@ struct GenericBuilder
     /// Append object key with quotes and colon.
     void PutKey(const char* pszKey)
     {
+        if (pszKey == nullptr) { return; }
         PutKey(pszKey, ::strlen(pszKey));
     }
 
@@ -483,6 +498,7 @@ struct GenericBuilder
     /// Use configed escape method.
     void AddItemEscape(const char* value, size_t len)
     {
+        if (value == nullptr) { return; }
         PutChar('"');
         configT::EscapeString(json, value, len);
         PutChar('"');
@@ -492,6 +508,7 @@ struct GenericBuilder
     /// Add C-string item after escaping.
     void AddItemEscape(const char* value)
     {
+        if (value == nullptr) { return; }
         AddItemEscape(value, ::strlen(value));
     }
 
