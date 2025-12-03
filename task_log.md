@@ -1041,3 +1041,23 @@ if (m_builder.Back() != ':') {
 - 保持了向后兼容性，所有现有合法用法继续工作
 - 空字符串(`""`)仍正常处理，不同于空指针(`nullptr`)
 
+## Task: 20251203-173522
+-----------------------
+
+### 需求关联: 2025-12-03/3 GenericBuilder 代码组织优化
+
+### 完成工作：
+- 将 M5 方法组合并到 M4，后续方法组编号递减（M6→M5, M7→M6, M8→M7, M9→M8）
+- 删除 PutNumber 方法，将其逻辑移回 AddItem(numberT) 方法中
+- 从 t_custom.cpp 中删除 custom_putnumber 测试用例
+- 将 custom_putnumber_quoted 改名为 custom_number_quoted 并调整描述
+- 移除测试用例中对 PutNumber 的调用，只测试上层方法 AddItem/AddMember 在添加数字时的行为
+- 增加对比测试：默认 kQuoteNumber 配置、手动传第二参数 true 显式为数字加引号、自定义配置启用 kQuoteNumber
+
+测试结果：全部 45 个测试用例通过
+
+验证：
+- 编译通过
+- 所有测试用例通过
+- 功能保持一致
+- 代码结构更加简洁

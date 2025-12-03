@@ -429,10 +429,14 @@ struct GenericBuilder
         PutKey(strKey.data(), strKey.length());
     }
 
-    /// Append numeric value to JSON, handling quoting based on config.
+
+    /// M4: JSON Array and Object Element Methods
+    /* ---------------------------------------------------------------------- */
+    
+    /// Add numeric item to array.
     template <typename numberT>
     std::enable_if_t<std::is_arithmetic_v<numberT>, void>
-    PutNumber(numberT value)
+    /*void*/ AddItem(numberT value)
     {
         if constexpr (configT::kQuoteNumber)
         {
@@ -444,17 +448,6 @@ struct GenericBuilder
         {
             PutValue(value);
         }
-    }
-
-    /// M4: JSON Array Element Methods
-    /* ---------------------------------------------------------------------- */
-    
-    /// Add numeric item to array.
-    template <typename numberT>
-    std::enable_if_t<std::is_arithmetic_v<numberT>, void>
-    /*void*/ AddItem(numberT value)
-    {
-        PutNumber(value);
         SepItem();
     }
 
@@ -478,9 +471,6 @@ struct GenericBuilder
         SepItem();
     }
 
-    /// M5: JSON Object Element Methods
-    /* ---------------------------------------------------------------------- */
-    
     /// Add member to object with key and value (template key type).
     /// Note: The key not support (pszKey, len) argument, as len will match into args.
     template<typename keyT, typename... Args>
@@ -491,7 +481,7 @@ struct GenericBuilder
         AddItem(std::forward<Args>(args)...);
     }
 
-    /// M6: String Escaping Methods
+    /// M5: String Escaping Methods
     /* ---------------------------------------------------------------------- */
 
     /// Add C-string item with length after escaping.
@@ -534,7 +524,7 @@ struct GenericBuilder
         AddItemEscape(std::forward<Args>(args)...);
     }
 
-    /// M7: Special Member Functions and Operator Overloads
+    /// M6: Special Member Functions and Operator Overloads
     /* ---------------------------------------------------------------------- */
     
     /// Copy assignment operator.
@@ -569,7 +559,7 @@ struct GenericBuilder
         return *this;
     }
 
-    /// M8: Scope Creation Methods
+    /// M7: Scope Creation Methods
     /* ---------------------------------------------------------------------- */
     
     /// Create a scoped GenericArray that auto-closes when destroyed.
@@ -588,7 +578,7 @@ struct GenericBuilder
     std::enable_if_t<is_key_v<keyT>, GenericObject<stringT, configT>>
     ScopeObject(keyT&& key, bool hasNext = false);
 
-    /// M9: Advanced Methods
+    /// M8: Advanced Methods
     /* ---------------------------------------------------------------------- */
     
     /// Reopen object {} or array [] to add more fields.
