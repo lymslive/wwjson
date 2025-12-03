@@ -283,6 +283,43 @@ DEF_TAST(basic_addmember_overloads, "test new AddMember overloads with different
     COUT(builder.json, expect);
 }
 
+DEF_TAST(basic_string_view_support, "test std::string_view support for keys and values")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+
+    // Test AddMember with std::string_view key
+    std::string_view sv_key1 = "sv_key1";
+    builder.AddMember(sv_key1, "string_value");
+    builder.AddMember(sv_key1, 42);
+
+    // Test AddMember with std::string_view value
+    std::string_view sv_value = "sv_value";
+    builder.AddMember("sv_value_key", sv_value);
+
+    // Test operator[] with std::string_view key
+    std::string_view sv_key2 = "sv_key2";
+    builder[sv_key2] = "assigned_value";
+
+    // Test operator[] with std::string_view key and number assignment
+    std::string_view sv_key3 = "sv_key3";
+    builder[sv_key3] = 3.14;
+
+    // Test AddMemberEscape with std::string_view key
+    std::string_view sv_key4 = "sv_key4";
+    builder.AddMemberEscape(sv_key4, "escaped\nvalue");
+
+    // Test with std::string_view value that needs escaping
+    std::string_view sv_escape_value = "value\twith\ttabs";
+    builder.AddMemberEscape("escape_sv_value", sv_escape_value);
+
+    builder.EndObject();
+
+    std::string expect = R"({"sv_key1":"string_value","sv_key1":42,"sv_value_key":"sv_value","sv_key2":"assigned_value","sv_key3":3.140000,"sv_key4":"escaped\nvalue","escape_sv_value":"value\twith\ttabs"})";
+    COUT(builder.json, expect);
+    COUT(test::IsJsonValid(builder.json), true);
+}
+
 DEF_TAST(basic_getresult, "test GetResult removes trailing comma")
 {
     wwjson::RawBuilder builder;

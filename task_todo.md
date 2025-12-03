@@ -358,10 +358,44 @@ json 的用例，断言其是合法有效的 json 。
 
 深层嵌套 json 末尾，可能是连续多个 `]` 或 `}` ，手动逐个调用 `EndArray` 与
 `EndObject` 有点麻烦，提供 `EndAll` 方法一次性封端。
+## UNDO
 
 ## TODO: 增加编译宏控制是否要额外维护栈
 
 影响 << 重载与 EndAll 方法。
+## UNDO
+输入操作 << 不在 GenericBuilder 类重载，不用维护栈，保持简单
+
+## TODO:2025-12-03/1 增加支持 std::string_view
+
+现在 GenericBuilder 支持的字符串类型有 `const char*` 与 `std::string` ，以及内
+部实现主方法用 `(const char*, size_t)` 参数表示字符串。需要再增加
+`std::string_view` 参数重载，扩展以下两个基本方法：
+
+- PutValue
+- PutKey
+
+然后其他地方调用 PutKey 的方法，也需要支持 `std::string_view` 。希望化简为模板
+转发，先提取 `is_key` 的特性萃取，能匹配如下类：
+
+- const char*: 应该也包括 char* 以及字符串字面量，
+- std::string
+- std::string_view
+
+以下涉及调用 PutKey 的方法，改用 `is_key` 限定模板参数 `keyT`:
+- GenericBuilder::AddMember
+- GenericBuilder::AddMemberEscape
+- GenericBuilder::operator[]
+- GenericBuilder::BeginArray/BeginObject
+- GenericBuilder::ScopeArray 与 GenericArray 构造方法
+- GenericBuilder::ScopeObject 与 GenericObject 构造方法
+- GenericObject::operator[]
+- GenericObject::operator<<
+
+再检查 utest 原来的单元测试用例，在涉及字符串类型或键处理的用例中，增加使用
+`std::string_view` 的语句。
+
+### DONE: 20251203-103249
 
 ## TODO: 优化 std::to_string 性能
 

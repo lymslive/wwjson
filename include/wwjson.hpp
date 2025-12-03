@@ -16,6 +16,7 @@
 
 #include <type_traits>
 #include <string>
+#include <string_view>
 #include <array>
 // for std::to_chars C++17
 // #include <charconv>
@@ -24,6 +25,16 @@
 
 namespace wwjson
 {
+
+/// Type trait to detect supported key types (const char*, std::string, std::string_view).
+template<typename T> struct is_key : std::false_type {};
+template<> struct is_key<const char*> : std::true_type {};
+template<> struct is_key<char*> : std::true_type {};
+template<> struct is_key<std::string> : std::true_type {};
+template<> struct is_key<std::string_view> : std::true_type {};
+
+template<typename T>
+inline constexpr bool is_key_v = is_key<std::decay_t<T>>::value;
 
 /// String concept struct to document required interfaces for custom string types.
 /// Although C++17 doesn't support concepts, this serves as documentation.
@@ -223,9 +234,11 @@ struct GenericBuilder
     void SepItem() { PutNext(); }
 
     /// Begin array with key.
-    void BeginArray(const char* pszKey)
+    template<typename keyT>
+    std::enable_if_t<is_key_v<keyT>, void>
+    BeginArray(keyT&& key)
     {
-        PutKey(pszKey);
+        PutKey(std::forward<keyT>(key));
         BeginArray();
     }
 
@@ -256,9 +269,11 @@ struct GenericBuilder
     void EmptyArray() { Append("[]"); }
 
     /// Begin object with key.
-    void BeginObject(const char* pszKey)
+    template<typename keyT>
+    std::enable_if_t<is_key_v<keyT>, void>
+    BeginObject(keyT&& key)
     {
-        PutKey(pszKey);
+        PutKey(std::forward<keyT>(key));
         BeginObject();
     }
 
@@ -340,6 +355,12 @@ struct GenericBuilder
         PutValue(strValue.c_str(), strValue.length());
     }
 
+    /// Append std::string_view value to JSON with quotes.
+    void PutValue(const std::string_view& strValue)
+    {
+        PutValue(strValue.data(), strValue.length());
+    }
+
     /// Append integral number value to JSON.
     template <typename numberT>
     std::enable_if_t<std::is_integral_v<numberT>, void>
@@ -385,6 +406,12 @@ struct GenericBuilder
     void PutKey(const std::string& strKey)
     {
         PutKey(strKey.c_str(), strKey.length());
+    }
+
+    /// Append object key with quotes and colon.
+    void PutKey(const std::string_view& strKey)
+    {
+        PutKey(strKey.data(), strKey.length());
     }
 
     /// Append numeric value to JSON, handling quoting based on config.
@@ -439,20 +466,13 @@ struct GenericBuilder
     /// M5: JSON Object Element Methods
     /* ---------------------------------------------------------------------- */
     
-    /// Add member to object with key and value (C-string key).
+    /// Add member to object with key and value (template key type).
     /// Note: The key not support (pszKey, len) argument, as len will match into args.
-    template<typename... Args>
-    void AddMember(const char* pszKey, Args&&... args)
+    template<typename keyT, typename... Args>
+    std::enable_if_t<is_key_v<keyT>, void>
+    AddMember(keyT&& key, Args&&... args)
     {
-        PutKey(pszKey);
-        AddItem(std::forward<Args>(args)...);
-    }
-
-    /// Add member to object with key and value (std::string key).
-    template<typename... Args>
-    void AddMember(const std::string& strKey, Args&&... args)
-    {
-        PutKey(strKey);
+        PutKey(std::forward<keyT>(key));
         AddItem(std::forward<Args>(args)...);
     }
 
@@ -481,21 +501,19 @@ struct GenericBuilder
         AddItemEscape(value.c_str(), value.length());
     }
     
+    /// Add string_view item after escaping.
+    void AddItemEscape(const std::string_view& value)
+    {
+        AddItemEscape(value.data(), value.length());
+    }
+    
     /// Add member to object with escaped string value.
     /// Handles any supported value types automatically.
-    template<typename... Args>
-    void AddMemberEscape(const char* pszKey, Args&&... args)
+    template<typename keyT, typename... Args>
+    std::enable_if_t<is_key_v<keyT>, void>
+    AddMemberEscape(keyT&& key, Args&&... args)
     {
-        PutKey(pszKey);
-        AddItemEscape(std::forward<Args>(args)...);
-    }
-
-    /// Add member to object with escaped string value (std::string key).
-    /// Handles any supported value types automatically.
-    template<typename... Args>
-    void AddMemberEscape(const std::string& strKey, Args&&... args)
-    {
-        PutKey(strKey);
+        PutKey(std::forward<keyT>(key));
         AddItemEscape(std::forward<Args>(args)...);
     }
 
@@ -515,19 +533,13 @@ struct GenericBuilder
         return *this;
     }
 
-    /// String key operator[] for C-string keys.
+    /// String key operator[] for key types.
     /// Sets up the key and returns *this for assignment.
-    GenericBuilder& operator[](const char* key)
+    template<typename keyT>
+    std::enable_if_t<is_key_v<keyT>, GenericBuilder&>
+    operator[](keyT&& key)
     {
-        PutKey(key);
-        return *this;
-    }
-
-    /// String key operator[] for std::string keys.
-    /// Sets up the key and returns *this for assignment.
-    GenericBuilder& operator[](const std::string& key)
-    {
-        PutKey(key);
+        PutKey(std::forward<keyT>(key));
         return *this;
     }
 
@@ -547,13 +559,17 @@ struct GenericBuilder
     GenericArray<stringT, configT> ScopeArray(bool hasNext = false);
     
     /// Create a scoped GenericArray with key that auto-closes when destroyed.
-    GenericArray<stringT, configT> ScopeArray(const char* pszKey, bool hasNext = false);
+    template<typename keyT>
+    std::enable_if_t<is_key_v<keyT>, GenericArray<stringT, configT>>
+    ScopeArray(keyT&& key, bool hasNext = false);
     
     /// Create a scoped GenericObject that auto-closes when destroyed.
     GenericObject<stringT, configT> ScopeObject(bool hasNext = false);
     
     /// Create a scoped GenericObject with key that auto-closes when destroyed.
-    GenericObject<stringT, configT> ScopeObject(const char* pszKey, bool hasNext = false);
+    template<typename keyT>
+    std::enable_if_t<is_key_v<keyT>, GenericObject<stringT, configT>>
+    ScopeObject(keyT&& key, bool hasNext = false);
 
     /// M9: Advanced Methods
     /* ---------------------------------------------------------------------- */
@@ -653,9 +669,10 @@ public:
     }
 
     /// Constructor with key.
-    GenericArray(GenericBuilder<stringT, configT>& build, const char* pszKey, bool hasNext = false) : m_builder(build), m_next(hasNext)
+    template<typename keyT>
+    GenericArray(GenericBuilder<stringT, configT>& build, keyT&& key, bool hasNext = false) : m_builder(build), m_next(hasNext)
     {
-        m_builder.PutKey(pszKey);
+        m_builder.PutKey(std::forward<keyT>(key));
         m_builder.BeginArray();
     }
 
@@ -732,9 +749,10 @@ public:
     }
 
     /// Constructor with key.
-    GenericObject(GenericBuilder<stringT, configT>& build, const char* pszKey, bool hasNext = false) : m_builder(build), m_next(hasNext)
+    template<typename keyT>
+    GenericObject(GenericBuilder<stringT, configT>& build, keyT&& key, bool hasNext = false) : m_builder(build), m_next(hasNext)
     {
-        m_builder.PutKey(pszKey);
+        m_builder.PutKey(std::forward<keyT>(key));
         m_builder.BeginObject();
     }
 
@@ -762,55 +780,38 @@ public:
         m_builder.AddMemberEscape(std::forward<Args>(args)...);
     }
 
-    /// String key operator[] for C-string keys.
+    /// String key operator[] for key types.
     /// Sets up the key and returns m_builder for assignment.
-    GenericBuilder<stringT, configT>& operator[](const char* key)
+    template<typename keyT>
+    std::enable_if_t<is_key_v<keyT>, GenericBuilder<stringT, configT>&>
+    operator[](keyT&& key)
     {
-        m_builder.PutKey(key);
+        m_builder.PutKey(std::forward<keyT>(key));
         return m_builder;
     }
 
-    /// String key operator[] for std::string keys.
-    /// Sets up the key and returns m_builder for assignment.
-    GenericBuilder<stringT, configT>& operator[](const std::string& key)
-    {
-        m_builder.PutKey(key);
-        return m_builder;
-    }
-
-    /// Stream operator<< for alternating key-value addition.
-    /// Enables syntax: obj << k1 << v1 << k2 << v2
+    /// Stream operator<< for key types when expecting a key.
     /// Checks the last character in builder to determine if expecting key or value.
-    GenericObject& operator<<(const char* key)
+    template<typename keyT>
+    std::enable_if_t<is_key_v<keyT>, GenericObject&>
+    operator<<(keyT&& key)
     {
         if (m_builder.Back() != ':')
         {
-            m_builder.PutKey(key);
+            m_builder.PutKey(std::forward<keyT>(key));
         }
         else
         {
-            m_builder.AddItem(key);
+            // When expecting value, delegate to the value handler
+            m_builder.AddItem(std::forward<keyT>(key));
         }
         return *this;
     }
     
-    // For std::string keys when expecting a key  
-    GenericObject& operator<<(const std::string& key)
-    {
-        if (m_builder.Back() != ':')
-        {
-            m_builder.PutKey(key);
-        }
-        else
-        {
-            m_builder.AddItem(key);
-        }
-        return *this;
-    }
-    
-    // For values (non-string types) - use PutValue for objects
+    /// Stream operator<< for values (non-string types).
     template<typename T>
-    GenericObject& operator<<(const T& value)
+    std::enable_if_t<!is_key_v<T>, GenericObject&>
+    operator<<(const T& value)
     {
         m_builder.AddItem(value);
         return *this;
@@ -839,9 +840,11 @@ inline GenericArray<stringT, configT> GenericBuilder<stringT, configT>::ScopeArr
 }
 
 template<typename stringT, typename configT>
-inline GenericArray<stringT, configT> GenericBuilder<stringT, configT>::ScopeArray(const char* pszKey, bool hasNext)
+template<typename keyT>
+inline std::enable_if_t<is_key_v<keyT>, GenericArray<stringT, configT>>
+GenericBuilder<stringT, configT>::ScopeArray(keyT&& key, bool hasNext)
 {
-    return GenericArray<stringT, configT>(*this, pszKey, hasNext);
+    return GenericArray<stringT, configT>(*this, std::forward<keyT>(key), hasNext);
 }
 
 template<typename stringT, typename configT>
@@ -851,9 +854,11 @@ inline GenericObject<stringT, configT> GenericBuilder<stringT, configT>::ScopeOb
 }
 
 template<typename stringT, typename configT>
-inline GenericObject<stringT, configT> GenericBuilder<stringT, configT>::ScopeObject(const char* pszKey, bool hasNext)
+template<typename keyT>
+inline std::enable_if_t<is_key_v<keyT>, GenericObject<stringT, configT>>
+GenericBuilder<stringT, configT>::ScopeObject(keyT&& key, bool hasNext)
 {
-    return GenericObject<stringT, configT>(*this, pszKey, hasNext);
+    return GenericObject<stringT, configT>(*this, std::forward<keyT>(key), hasNext);
 }
 
 /// Type aliases for backward compatibility and common usage.

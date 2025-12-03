@@ -234,3 +234,62 @@ if (m_builder.Back() != ':') {
 - 链式语法显著提升了 JSON 构建的代码可读性和编写效率
 - 与现有方法完美兼容，用户可以渐进式采用新语法
 
+## TASK:20251203-103249
+-----------------------
+
+### 任务概述
+为 GenericBuilder 增加 `std::string_view` 支持，扩展支持的字符串类型，并使用 `is_key` 类型特性进行模板约束。
+
+### 实现内容
+
+**类型特性设计**
+- 创建 `is_key` 类型特性，识别支持的键类型：`const char*`, `std::string`, `std::string_view`
+- 使用 `std::decay_t` 处理各种变型，包括字符串字面量和引用类型
+- 定义 `is_key_v` 便捷模板变量用于 SFINAE 约束
+
+**std::string_view 支持**
+- 为 `PutValue` 方法添加 `std::string_view` 重载
+- 为 `PutKey` 方法添加 `std::string_view` 重载
+- 内部调用现有的 `(const char*, size_t)` 底层实现
+
+**模板化重构**
+- 将 `AddMember` 方法统一为模板版本，使用 `is_key_v` 约束
+- 将 `AddMemberEscape` 方法统一为模板版本
+- 将 `operator[]` 方法统一为模板版本
+- 将 `BeginArray` 和 `BeginObject` 的键参数版本改为模板
+
+**Scope 方法更新**
+- 更新 `ScopeArray` 和 `ScopeObject` 的键参数版本为模板
+- 更新 `GenericArray` 和 `GenericObject` 构造函数支持模板键类型
+
+**operator<< 修复**
+- 修复了 `operator<<` 的重载决议问题：使用 `!is_key_v<T>` 约束值版本
+- 确保键类型优先匹配键版本，值类型匹配值版本
+- 保持键值交替的智能状态管理
+
+**测试用例**
+- 在 `utest/t_basic.cpp` 中添加 `basic_string_view_support` 测试用例
+- 验证 `std::string_view` 键和值的正确处理
+- 测试各种组合使用场景
+
+### 测试结果
+- 编译测试：成功编译，所有模板约束正确解析
+- 功能测试：新增 `std::string_view` 测试用例全部通过
+- 回归测试：所有现有测试用例保持通过 (44 PASS, 0 FAIL)
+- 重载测试：验证了模板重载决议的正确性
+
+### 完成结果
+成功完成任务要求：
+✓ 增加了 `std::string_view` 对 `PutValue` 和 `PutKey` 的支持
+✓ 设计了 `is_key` 类型特性，统一支持三种字符串类型
+✓ 将所有调用 `PutKey` 的方法改为使用 `is_key` 约束的模板
+✓ 修复了 `operator<<` 的重载决议问题，确保键值正确匹配
+✓ 添加了全面的 `std::string_view` 测试用例
+✓ 保持了与现有 API 的完全兼容性
+
+### 关键改进
+- 使用 `std::decay_t` 简化类型特性，统一处理各种变型
+- 模板化设计提升了代码的可维护性和扩展性
+- 修复了重要的重载决议问题，提升了代码可靠性
+- `std::string_view` 支持为高性能 JSON 构建提供了更多选择
+
