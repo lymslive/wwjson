@@ -331,7 +331,7 @@ struct GenericBuilder
     /// Append newline character.
     void EndLine() { PutChar('\n'); }
 
-    /// M3: JSON Scalar Value Methods
+    /// M3: JSON Scalar Value and Low-level Methods
     /* ---------------------------------------------------------------------- */
     
     /// Append null value to JSON.
@@ -469,7 +469,6 @@ struct GenericBuilder
     {
         PutSub(strSub.data(), strSub.length());
     }
-
 
     /// M4: JSON Array and Object Element Methods
     /* ---------------------------------------------------------------------- */
@@ -714,8 +713,7 @@ struct GenericBuilder
     AddMemberSub(keyT&& key, Args&&... args)
     {
         PutKey(std::forward<keyT>(key));
-        PutSub(std::forward<Args>(args)...);
-        SepItem();
+        AddItemSub(std::forward<Args>(args)...);
     }
 };
 
