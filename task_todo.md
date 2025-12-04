@@ -428,7 +428,167 @@ PutNubmer 方法只有一处调用者了，无代码冗余问题，不必单独�
 
 ### DONE: 20251203-173522
 
-## TODO: 优化 std::to_string 性能
+## TODO:2025-12-04/1 完善转义表
 
-对标 `std::to_chars` 的性能。
-有些 gcc 版本支持 C++17 但支持 `std::to_chars` 不完整。
+目标：在不增加代码复杂度、不影响性能的情况下尽量支持更多的字符转义，使组装的
+json 是合法、可读的。
+
+修改 BasicConfig::kEscapeTable：
+- 不可打印 assic 字符尽量按标准转义
+- 在转义表中按顺序重排
+- 删除默认转义字符常量`DEFAULT_ESCAPE_CHARS`，无用的历史遗留了
+- 在 `t_escape.cpp` 中添加单元测试覆盖
+
+## TODO: 支持添加 json 子串
+
+应用场景：假设已有一个合法的 json 串，想把它加到另一个更大的 json 中，作为一个
+数组的元素或对象的字段。比如最简单的 `{}` 空对象。
+
+有两种处理方案：
+- 当作一个字符串类型插入，一般需要转义子 json 中的引号。这用
+  AddItemEscape/AddMemberEscape 可满足需求。
+- 直接当成 json 源子串，保持其子结构，这在大部分场景下更合理。
+  目前没有上层方法支持，只可用底层 append 实现。
+
+所以需要增加一对类似的 AddItemSub/AddMemberSub 上层方法应对第二种处理需求。
+这两个方法宜归于 GenericBuilder M8 方法组，属于处理子 json 的高级功能。
+
+在 M3 方法组增加一个底层方法 PutSub ，类似 PutKey/PutValue 支持各种字符串参数
+。实现上直接调用 Append ，不加额外引号，不转义。由用户负责传入的是合法子 json
+串。M8 的 AddItemSub/AddMemberSub 尽可能简化为模板转调 PutSub 。
+
+## TODO: 支持调用函数就地生成 json 子结构
+
+GenericBuilder 组装嵌套 json ，目前支持的几种方法：
+- 手动 BeginArray/Object 与 EndArray/Object 配对，End 方法一般还要传 true 参数
+  补上逗号 `,` 才能正确地拼接下一个元素。
+- 创建 ScopeArray/Object ，析构中自动调用配对的 End，可能需要在构造方法中传入
+  true 参数补逗号 `,` 。
+- 独立拼装子 json ，再用 Merge 方法，或 AddItemSub/AddMemberSub 方法合并。但这
+  涉及额外拷贝，不宜有意这样做，只适合处理已有的子 json 串。
+
+前两种方法本质上是一样的，ScopeArray/Object 理论上能使代码结构化更优雅，但有时
+需要写一对裸 `{}` ，强行划分作用域使析构函数生效，有时看起来奇怪。另外嵌套较深
+时适合将子 json 的组装逻辑提取到独立函数中。
+
+为此，希望能在 AddItem/Member 方法中直接支持写个函数参数，调用函数就地组装子
+json 。函数参数应该支持两种签名类型：
+
+- 空参数，适合于 lambda 捕获当前 builder 引用
+- 要求一个 GenericBuilder 引用参数，传入当前 builder 引用，适合独立函数
+
+函数返回值可为 void ，直接操作当前 builder 。
+
+实现要求：
+- 原则上只要增加 AddItem 重载，AddMember 由通用模板方法转发自动支持函数
+- 需要考虑与已有 AddItem 模板重载的兼容，能区分两种函数参数，各种数字参数，
+  各种字符串参数，以及 bool 与 null 参数。
+- 传函数参数的 AddItem 也按之前逻辑自动加逗号，函数只负责拼装合法 json
+
+单元测试要求：
+- 在 `t_advance.cpp` 新增用例覆盖新功能
+- 测试场景包括调用 lambda，自由函数，类方法
+
+再仔细思考该如何支持类方法更适合：
+- 能为 AddItem 增加重载表达调用类方法吗？
+- 让用户借用 lambda 封装，或 bind 适配后再传给 AddItem/AddMember
+
+## TODO: 建立性能测试框架
+
+也用自研测试库 couttast 构建性能测试。
+
+- 参考 utest/ 建立一个 perf/ 子目录
+- perf/CMakeLists.txt 预计也用到 couttast 与 yyjson 库，因此将处理这两个依赖库
+  的逻辑上移到根目录 CMakeLists.txt，xyjson 的依赖暂时只留在 utest
+- 主 CMakeLists.txt 增加一个 WWJSON_LIB_ONLY 选项，默认 OFF。将 utest 与 perf
+  子目录添加及其共用依赖的逻辑都放在 if NOT WWJSON_LIB_ONLY 限定之下。
+- 主 CMakeLists.txt 增加 BUILD_PERF_TESTS 选项，默认 OFF ，需发主动打开选项才
+  添加 perf 子目录
+- 更新根目录 makefile 的封装命令，BUILD_PERF 同步改名 BUILD_PERF_TESTS
+
+perf/ 子目录初步内容，先构建测试数据：
+- readme 文档，初步的说明文档，后面再补充更新
+- test_data.h/.cpp ，生成测试数据的函数集
+- 编译可执行目标 pfwwjson，显式添加 test_data.cpp
+
+perf/test_data.cpp 要求：
+- 命名空间 test:: 内定义辅助函数
+- 用 RawBuilder 生成 [0.5k, 1k, 10k, 100k, 500K, 1M] 几个不同规模的 json 。
+- 接口函数可设计为一个，`void BuildJson(std::string& dst, double size)` ，size
+  的单位是 k ，表示生成的 json 串预期大小。
+- 参考 utest/ 的单元测试写法，在全局空间（test::之外）创建一个测试用例
+  `data_sample`，调用 test::BuildJson 函数生成几个不同规模的 json ，校验其大小
+  符合预期，误差不大。
+
+用例 data_sample 补充要求：
+- 使用 DEF_TOOL 代替 DEF_TAST ，这个宏的区别是在默认情况下不会运行，需在命令行
+  显式指定参数才运行。
+- COUT 断言语句，对于 double 参数，可传入第三参数表示允许误差，如
+  `COUT(size*1.0, expect_size*1024.0, 10.0)`
+- 将生成示例 json 写入 `perf/test_data.tmp/*.json` 文件。
+
+## TODO: 初始观察比较 wwjson 与 yyjson 构造 json 的性能
+
+在 perf/test_data.cpp 中扩展生成函数，增加 test::yyjson::BuildJson() 函数，使
+用 yyjson 的 api （可参考本地安装的 /usr/local/include/yyjson.h）生成与原来利
+用 wwjson::GenericBuilder 生成完全一样的 json 串。更新 `data_sample` 用例，校
+验大小符合预期误差，json 内容相同。
+
+新增 perf/p_builder.cpp 文件，用 `DEF_TAST` 创建一系列测试用例，每个用例很简单
+，就循环调用 `test::BuildJson` 或 `test::yyjson::BuildJson` n 次。运行
+`pfwwjson` 会打印每个用例的运行时间（微秒单位）。
+
+再增加 `perf/argv.h` 文件，处理命令行参数。
+- 需要 include couttast/tastargv.hpp，已本地安装于 ~/include 目录
+- 使用 `BIND_ARGV` 读取命令行参数的值
+- 封装一个 test::CArgv struct ，含成员 int loop ，在构造函数中绑定命令参数
+  `BIND_AGV(loop)` ，能获取命令行参数 --loop=n 的值。
+- 在 perf/p_builder.cpp 定义的每个测试用例中，先定义一个 test::CArgv 对象，取
+  其 loop 成员控制循环次数。
+- 在测试用例循环调用 BuildJson 前后使用 `TIME_TIC` 与 `TIME_TOC` ，能更精确地
+  控制用例运行计时，排除读取命令行参数的微小影响。循环后没有其他语句的话
+  `TIME_TOC` 是没必要的。
+
+最后运行 pfwwjson 数次，观察统计每个用例的运行用时。
+
+另注：新 .cpp 文件需添加到 CMakeLists.txt
+
+## TODO: 测试整数序列化性能
+
+在 perf/test_data.cpp 文件中 `test::` 命令空间增加函数：
+
+- BuildTinyIntArray(std::string& dst, uint8_t start, int count)
+- BuildShortIntArray(std::string& dst, uint16_t start, int count)
+- BuildIntArray(std::string& dst, uint32_t start, int count)
+- BuildBigIntArray(std::string& dst, uint64_t start, int count)
+
+构建 json 数组，交替写入正整数与负整数，例如传参数 (1, 3) ，输出
+[1,-1,2,-2,3-,3] ，共 `2*count` 个元素。在小整数数组中，如果 count 比较大，从
+整数溢界时返回 0 重新循环。
+
+新增 perf/p_int.cpp 写几个测试用例，调用以上方法。
+
+## TODO: 使用小整数缓存策略优化整数序列化
+
+参考 doing_plan.tmp/small_int_optimization.cpp
+
+## TODO: 使用 std::to_chars 及回滚机制优化浮点数序列化
+
+参考 doing_plan.tmp/to_chars_fallback.hpp
+
+当前开发环境 gcc 版本支持 C++17 但支持 `std::to_chars` 不完整，不支持浮点数。
+
+## TODO: 优化 wwjson.hpp 英文注释
+
+## TODO: 完善项目文档
+
+新建两个文档：
+
+- README.md 中文说明
+- README-en.md 英文版翻译
+- docs/usage.md 用户指南
+
+README 只包含少量能展示项目特色的示例，usage 中需要详细、系统地介绍 wwjson 功
+能、用法及配套示例。
+
+## TODO: 同步文档示例与单元测试
