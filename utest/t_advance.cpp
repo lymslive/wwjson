@@ -243,3 +243,210 @@ DEF_TAST(advance_merge_complex, "test complex merge scenarios")
     COUT(arrBase.json, expectArr);
 }
 
+DEF_TAST(advance_putsub, "test PutSub method for adding JSON sub-strings")
+{
+    // Test PutSub with basic JSON strings
+    wwjson::RawBuilder builder1;
+    builder1.BeginObject();
+    builder1.PutKey("empty");
+    builder1.PutSub("{}");
+    builder1.EndObject();
+    
+    std::string expect1 = R"({"empty":{}})";
+    COUT(builder1.json, expect1);
+    COUT(test::IsJsonValid(builder1.json), true);
+    
+    // Test PutSub with array string
+    wwjson::RawBuilder builder2;
+    builder2.BeginArray();
+    builder2.PutSub(R"({"nested":true})");
+    builder2.SepItem();
+    builder2.PutSub(R"([1,2,3])");
+    builder2.EndArray();
+    
+    std::string expect2 = R"([{"nested":true},[1,2,3]])";
+    COUT(builder2.json, expect2);
+    COUT(test::IsJsonValid(builder2.json), true);
+    
+    // Test PutSub with different string types
+    wwjson::RawBuilder builder3;
+    builder3.BeginObject();
+    std::string subJson = R"([1,2])";
+    std::string_view subView = R"({"view":"test"})";
+    builder3.PutKey("array");
+    builder3.PutSub(subJson);
+    builder3.SepItem();
+    builder3.PutKey("test");
+    builder3.PutSub(subView);
+    builder3.EndObject();
+    
+    std::string expect3 = R"({"array":[1,2],"test":{"view":"test"}})";
+    COUT(builder3.json, expect3);
+    COUT(test::IsJsonValid(builder3.json), true);
+}
+
+DEF_TAST(advance_additemsub, "test AddItemSub method for adding JSON sub-strings as array items")
+{
+    // Test AddItemSub with basic JSON strings
+    wwjson::RawBuilder builder1;
+    builder1.BeginArray();
+    builder1.AddItemSub("{}");
+    builder1.AddItemSub(R"([1,2,3])");
+    builder1.AddItemSub(R"({"nested":true})");
+    builder1.EndArray();
+    
+    std::string expect1 = R"([{},[1,2,3],{"nested":true}])";
+    COUT(builder1.json, expect1);
+    COUT(test::IsJsonValid(builder1.json), true);
+    
+    // Test AddItemSub with different string types
+    wwjson::RawBuilder builder2;
+    builder2.BeginArray();
+    std::string subJson = R"({"array":[1,2]})";
+    std::string_view subView = R"({"view":"test"})";
+    builder2.AddItemSub(subJson);
+    builder2.AddItemSub(subView);
+    builder2.EndArray();
+    
+    std::string expect2 = R"([{"array":[1,2]},{"view":"test"}])";
+    COUT(builder2.json, expect2);
+    COUT(test::IsJsonValid(builder2.json), true);
+    
+    // Test AddItemSub with string literal
+    wwjson::RawBuilder builder3;
+    builder3.BeginArray();
+    const char* subCStr = R"({"cstring":"test"})";
+    builder3.AddItemSub(subCStr);
+    builder3.AddItemSub(R"({"number":42})");
+    builder3.EndArray();
+    
+    std::string expect3 = R"([{"cstring":"test"},{"number":42}])";
+    COUT(builder3.json, expect3);
+    COUT(test::IsJsonValid(builder3.json), true);
+}
+
+DEF_TAST(advance_addmembersub, "test AddMemberSub method for adding JSON sub-strings as member values")
+{
+    // Test AddMemberSub with basic JSON strings
+    wwjson::RawBuilder builder1;
+    builder1.BeginObject();
+    builder1.AddMemberSub("empty_obj", "{}");
+    builder1.AddMemberSub("numbers", R"([1,2,3])");
+    builder1.AddMemberSub("nested", R"({"nested":true})");
+    builder1.EndObject();
+    
+    std::string expect1 = R"({"empty_obj":{},"numbers":[1,2,3],"nested":{"nested":true}})";
+    COUT(builder1.json, expect1);
+    COUT(test::IsJsonValid(builder1.json), true);
+    
+    // Test AddMemberSub with different string types
+    wwjson::RawBuilder builder2;
+    builder2.BeginObject();
+    std::string subJson = R"({"array":[1,2]})";
+    std::string_view subView = R"({"view":"test"})";
+    builder2.AddMemberSub("json_obj", subJson);
+    builder2.AddMemberSub("view_obj", subView);
+    builder2.EndObject();
+    
+    std::string expect2 = R"({"json_obj":{"array":[1,2]},"view_obj":{"view":"test"}})";
+    COUT(builder2.json, expect2);
+    COUT(test::IsJsonValid(builder2.json), true);
+    
+    // Test AddMemberSub with string literal
+    wwjson::RawBuilder builder3;
+    builder3.BeginObject();
+    const char* subCStr = R"({"cstring":"test"})";
+    builder3.AddMemberSub("c_obj", subCStr);
+    builder3.AddMemberSub("number_obj", R"({"number":42})");
+    builder3.EndObject();
+    
+    std::string expect3 = R"({"c_obj":{"cstring":"test"},"number_obj":{"number":42}})";
+    COUT(builder3.json, expect3);
+    COUT(test::IsJsonValid(builder3.json), true);
+}
+
+DEF_TAST(advance_sub_with_scope, "test AddItemSub/AddMemberSub with scope objects")
+{
+    // Test AddItemSub with scope array
+    wwjson::RawBuilder builder1;
+    {
+        auto arr = builder1.ScopeArray();
+        arr.AddItemSub("{}");
+        arr.AddItemSub(R"([1,2])");
+    }
+    
+    std::string expect1 = R"([{},[1,2]])";
+    COUT(builder1.json, expect1);
+    COUT(test::IsJsonValid(builder1.json), true);
+    
+    // Test AddMemberSub with scope object
+    wwjson::RawBuilder builder2;
+    {
+        auto obj = builder2.ScopeObject();
+        obj.AddMemberSub("sub_obj", "{}");
+        obj.AddMemberSub("sub_arr", R"([1,2])");
+    }
+    
+    std::string expect2 = R"({"sub_obj":{},"sub_arr":[1,2]})";
+    COUT(builder2.json, expect2);
+    COUT(test::IsJsonValid(builder2.json), true);
+    
+    // Test nested scope with sub JSON
+    wwjson::RawBuilder builder3;
+    {
+        auto outer = builder3.ScopeObject();
+        outer.AddMember("normal", "value");
+        {
+            auto inner = outer.ScopeArray("nested");
+            inner.AddItemSub(R"({"inner":true})");
+            inner.AddItem(123);
+        }
+    }
+    
+    std::string expect3 = R"({"normal":"value","nested":[{"inner":true},123]})";
+    COUT(builder3.json, expect3);
+    COUT(test::IsJsonValid(builder3.json), true);
+}
+
+DEF_TAST(advance_sub_complex, "test complex scenarios with JSON sub-strings")
+{
+    // Test building complex nested structure using sub-strings
+    wwjson::RawBuilder builder1;
+    builder1.BeginObject();
+    builder1.AddMemberSub("config", R"({"debug":true,"version":"1.0"})");
+    builder1.AddMember("data", "test_data");
+    builder1.AddMemberSub("items", R"([{"id":1,"name":"item1"},{"id":2,"name":"item2"}])");
+    builder1.EndObject();
+    
+    std::string expect1 = R"({"config":{"debug":true,"version":"1.0"},"data":"test_data","items":[{"id":1,"name":"item1"},{"id":2,"name":"item2"}]})";
+    COUT(builder1.json, expect1);
+    COUT(test::IsJsonValid(builder1.json), true);
+    
+    // Test combining normal methods with sub methods
+    wwjson::RawBuilder builder2;
+    builder2.BeginArray();
+    builder2.AddItem("normal_string");
+    builder2.AddItemSub(R"({"sub_object":true})");
+    builder2.AddItem(42);
+    builder2.AddItemSub(R"([1,2,3])");
+    builder2.EndArray();
+    
+    std::string expect2 = R"(["normal_string",{"sub_object":true},42,[1,2,3]])";
+    COUT(builder2.json, expect2);
+    COUT(test::IsJsonValid(builder2.json), true);
+    
+    // Test with existing JSON strings from external sources
+    std::string externalJson1 = R"({"external":1})";
+    std::string externalJson2 = R"(["external","array"])";
+    
+    wwjson::RawBuilder builder3;
+    builder3.BeginObject();
+    builder3.AddMemberSub("external1", externalJson1);
+    builder3.AddMemberSub("external2", externalJson2);
+    builder3.EndObject();
+    
+    std::string expect3 = R"({"external1":{"external":1},"external2":["external","array"]})";
+    COUT(builder3.json, expect3);
+    COUT(test::IsJsonValid(builder3.json), true);
+}
+

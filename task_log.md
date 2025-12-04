@@ -1089,3 +1089,35 @@ if (m_builder.Back() != ':') {
 - 转义功能更完整，符合 C/C++ 标准
 - 代码结构更简洁，使用循环初始化控制字符
 
+## TASK:20251204-164424
+-----------------------
+
+### 任务概述
+实现 GenericBuilder 对 JSON 子串的支持功能，允许用户将已有的合法 JSON 串作为子结构直接插入到更大的 JSON 中。
+
+### 实现内容
+
+**M3 方法组新增底层方法**
+- `PutSub(const char* pszSub, size_t len)`: 底层方法，直接调用 Append 不加引号或转义
+- `PutSub(const char* pszSub)`: C 字符串重载
+- `PutSub(const std::string& strSub)`: std::string 重载
+- `PutSub(const std::string_view& strSub)`: std::string_view 重载
+
+**M8 方法组新增高级方法**
+- `AddItemSub(Args&&... args)`: 将 JSON 子串作为数组元素添加
+- `AddMemberSub(keyT&& key, Args&&... args)`: 将 JSON 子串作为对象成员值添加
+- 为 `GenericArray` 和 `GenericObject` 类添加对应的转发方法
+
+**测试用例完善**
+- `advance_putsub`: 测试 `PutSub` 方法基本功能
+- `advance_additemsub`: 测试 `AddItemSub` 方法
+- `advance_addmembersub`: 测试 `AddMemberSub` 方法  
+- `advance_sub_with_scope`: 测试与 RAII 作用域对象的结合使用
+- `advance_sub_complex`: 测试复杂嵌套结构和外部 JSON 字符串整合
+
+### 验证结果
+- 编译成功，无编译错误
+- 所有 51 个测试用例全部通过，包括 9 个新增测试用例
+- 支持将现有 JSON 串 `{}`, `[1,2,3]` 等作为子结构直接插入
+- 兼容 `const char*`, `std::string`, `std::string_view` 等字符串类型
+

@@ -443,6 +443,33 @@ struct GenericBuilder
         PutKey(strKey.data(), strKey.length());
     }
 
+    /// Append JSON sub-string (raw JSON content) without quotes or escaping.
+    /// User is responsible for ensuring the input is valid JSON.
+    void PutSub(const char* pszSub, size_t len)
+    {
+        if (pszSub == nullptr) { return; }
+        Append(pszSub, len);
+    }
+
+    /// Append JSON sub-string (raw JSON content) without quotes or escaping.
+    void PutSub(const char* pszSub)
+    {
+        if (pszSub == nullptr) { return; }
+        PutSub(pszSub, ::strlen(pszSub));
+    }
+
+    /// Append JSON sub-string (raw JSON content) without quotes or escaping.
+    void PutSub(const std::string& strSub)
+    {
+        PutSub(strSub.c_str(), strSub.length());
+    }
+
+    /// Append JSON sub-string (raw JSON content) without quotes or escaping.
+    void PutSub(const std::string_view& strSub)
+    {
+        PutSub(strSub.data(), strSub.length());
+    }
+
 
     /// M4: JSON Array and Object Element Methods
     /* ---------------------------------------------------------------------- */
@@ -670,6 +697,26 @@ struct GenericBuilder
         
         return false;
     }
+
+    /// Add JSON sub-string as array item without additional quotes or escaping.
+    /// User is responsible for ensuring the input is valid JSON.
+    template<typename... Args>
+    void AddItemSub(Args&&... args)
+    {
+        PutSub(std::forward<Args>(args)...);
+        SepItem();
+    }
+
+    /// Add member with JSON sub-string value without additional quotes or escaping.
+    /// User is responsible for ensuring the input is valid JSON.
+    template<typename keyT, typename... Args>
+    std::enable_if_t<is_key_v<keyT>, void>
+    AddMemberSub(keyT&& key, Args&&... args)
+    {
+        PutKey(std::forward<keyT>(key));
+        PutSub(std::forward<Args>(args)...);
+        SepItem();
+    }
 };
 
 /// Auto open and close array[].
@@ -719,6 +766,13 @@ public:
     void AddItemEscape(Args&&... args)
     {
         m_builder.AddItemEscape(std::forward<Args>(args)...);
+    }
+
+    /// Forward to builder AddItemSub method.
+    template <typename... Args>
+    void AddItemSub(Args&&... args)
+    {
+        m_builder.AddItemSub(std::forward<Args>(args)...);
     }
 
     /// Array element operator[] for integer indices.
@@ -799,6 +853,13 @@ public:
     void AddMemberEscape(Args&&... args)
     {
         m_builder.AddMemberEscape(std::forward<Args>(args)...);
+    }
+
+    /// Forward to builder AddMemberSub method.
+    template <typename... Args>
+    void AddMemberSub(Args&&... args)
+    {
+        m_builder.AddMemberSub(std::forward<Args>(args)...);
     }
 
     /// String key operator[] for key types.
