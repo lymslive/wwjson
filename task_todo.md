@@ -509,6 +509,20 @@ json 。函数参数应该支持两种签名类型：
 
 ### DONE: 20251204-181600
 
+## TODO:2025-12-04/4 重载 operator bool 支持 if 创建 Scope 变量
+
+ScopeArray/Object 需要在 {} 作用域中使析构生效关闭相应括号，但是裸写 {} 比较奇
+怪。可以写在 if 中，类似 `if (auto obj = builder.ScopeObject(); true) {}` 。为
+了进一步简化写法，为相关类重载 operator bool 可省去 if 括号中的第二条件语句。
+
+- GenericBuilder 的 bool 重载判断 !Empty()
+- GenericArray/Object 的 bool 重载可固定返回 true, 因为构造函数会写个左开括号
+  ，必定非空；可否标为 constexpr 函数
+
+然后在 `t_scope.cpp` 增加测试用例，展示在 if 中使用局部变量创建嵌套子结构。
+
+### DONE: 20251204-223557
+
 ## TODO: 建立性能测试框架
 
 也用自研测试库 couttast 构建性能测试。

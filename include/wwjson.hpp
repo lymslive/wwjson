@@ -230,6 +230,9 @@ struct GenericBuilder
     /// Check if JSON string is empty.
     bool Empty() const { return json.empty(); }
     
+    /// Boolean conversion operator for if statement usage.
+    operator bool() const { return !Empty(); }
+    
     /// Get JSON string size.
     size_t Size() const { return json.size(); }
     
@@ -824,6 +827,10 @@ public:
     {
         return m_builder.ScopeObject(std::forward<Args>(args)...);
     }
+    
+    /// Boolean conversion operator for if statement usage.
+    /// Always returns true since constructor adds '['.
+    constexpr operator bool() const { return true; }
 };
 
 /// Auto open and close object {}.
@@ -932,6 +939,10 @@ public:
     {
         return m_builder.ScopeObject(std::forward<Args>(args)...);
     }
+    
+    /// Boolean conversion operator for if statement usage.
+    /// Always returns true since constructor adds '{'.
+    constexpr operator bool() const { return true; }
 };
 
 /// Add scope methods to GenericBuilder.

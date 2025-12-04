@@ -1165,3 +1165,65 @@ builder.AddItem([](wwjson::RawBuilder& builder) {
 });
 ```
 
+## TASK:20251204-223557
+-----------------------
+
+### 任务概述
+为 GenericBuilder、GenericArray 和 GenericObject 重载 operator bool，支持在 if 语句中创建 scope 变量，简化 JSON 构建语法，提高代码可读性。
+
+### 实现内容
+
+**operator bool 重载实现**
+- **GenericBuilder**: 实现 `operator bool() const { return !Empty(); }`，判断 JSON 字符串是否非空
+- **GenericArray**: 实现 `constexpr operator bool() const { return true; }`，因为构造函数总是添加 `[` 
+- **GenericObject**: 实现 `constexpr operator bool() const { return true; }`，因为构造函数总是添加 `{`
+
+**实现位置**
+- GenericBuilder::Empty() 方法附近（line 231）
+- GenericArray 结构体末尾（line 825）  
+- GenericObject 结构体末尾（line 941）
+
+**测试用例设计**
+- `scope_if_bool_operator`: 测试基本的 if 语句语法
+  - 嵌套 if 语句：对象包含数组，数组包含对象
+  - 带 key 的 scope 变量：`ScopeObject("config")`
+  - 正确的逗号处理：非最后一项需传递 `hasNext=true`
+- `scope_if_bool_vs_constructor`: 对比 if 语法与传统构造器方法
+  - 验证两种方法生成相同 JSON 结果
+  - 展示语法简洁性优势
+
+### 验证结果
+- 编译成功，无警告错误
+- 所有 59 个测试用例全部通过（包括 2 个新增测试用例）
+- JSON 验证通过，生成格式正确
+- RAII 作用域管理正常工作
+
+### 使用示例
+```cpp
+// 新语法：简洁的 if 语句
+wwjson::RawBuilder builder;
+if (auto root = builder.ScopeObject()) {
+    root.AddMember("name", "value");
+    if (auto items = builder.ScopeArray("items", true)) {
+        items.AddItem(1);
+        items.AddItem(2);
+    }
+}
+
+// 对比传统语法
+{
+    wwjson::RawObject root(builder);
+    root.AddMember("name", "value");
+    {
+        wwjson::RawArray items(builder, "items");
+        items.AddItem(1);
+        items.AddItem(2);
+    }
+}
+```
+
+### 注意事项
+- 在 if 语句中，如果 scope 对象不是最后一项，需要传递 `hasNext=true` 参数
+- constexpr 修饰符确保 GenericArray/Object 的 operator bool 在编译期即可确定
+- 保持向后兼容，不影响现有代码功能
+

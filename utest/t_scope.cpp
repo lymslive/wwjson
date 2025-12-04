@@ -126,3 +126,64 @@ DEF_TAST(scope_vs_constructor, "test scope methods vs constructor approach")
     COUT(ctorBuilder.json, expect);
     COUT(scopeBuilder.json == ctorBuilder.json, true);
 }
+
+DEF_TAST(scope_if_bool_operator, "test operator bool in if statements for scope variables")
+{
+    wwjson::RawBuilder builder;
+    
+    // Test basic if statement with GenericBuilder
+    if (auto root = builder.ScopeObject()) {
+        root.AddMember("name", "test_if");
+        
+        // Test nested if with GenericArray
+        if (auto items = builder.ScopeArray("items", true)) {
+            items.AddItem(1);
+            items.AddItem(2);
+            
+            // Test deeply nested if with GenericObject
+            if (auto nested = builder.ScopeObject(true)) {
+                nested.AddMember("nested_key", "nested_value");
+            }
+        }
+        
+        // Test if statement with key in scope
+        if (auto config = builder.ScopeObject("config")) {
+            config.AddMember("debug", true);
+            config.AddMember("version", 1.0);
+        }
+    }
+    
+    std::string expect = R"({"name":"test_if","items":[1,2,{"nested_key":"nested_value"}],"config":{"debug":true,"version":1.000000}})";
+    COUT(builder.json, expect);
+    COUT(test::IsJsonValid(builder.json), true);
+}
+
+DEF_TAST(scope_if_bool_vs_constructor, "test if bool syntax with constructor approach")
+{
+    // Test if syntax with scope methods
+    wwjson::RawBuilder ifBuilder;
+    if (auto root = ifBuilder.ScopeObject()) {
+        root.AddMember("method", "if_syntax");
+        if (auto arr = ifBuilder.ScopeArray("data")) {
+            arr.AddItem("first");
+            arr.AddItem("second");
+        }
+    }
+    
+    // Test traditional constructor approach
+    wwjson::RawBuilder ctorBuilder;
+    {
+        wwjson::RawObject root(ctorBuilder);
+        root.AddMember("method", "if_syntax");
+        {
+            wwjson::RawArray arr(ctorBuilder, "data");
+            arr.AddItem("first");
+            arr.AddItem("second");
+        }
+    }
+    
+    std::string expect = R"({"method":"if_syntax","data":["first","second"]})";
+    COUT(ifBuilder.json, expect);
+    COUT(ctorBuilder.json, expect);
+    COUT(ifBuilder.json == ctorBuilder.json, true);
+}
