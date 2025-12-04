@@ -60,8 +60,6 @@ template<typename stringT, typename configT> struct GenericBuilder;
 template<typename stringT, typename configT> struct GenericObject;
 template<typename stringT, typename configT> struct GenericArray;
 
-/// Default escape characters constant.
-constexpr const char* DEFAULT_ESCAPE_CHARS = "\\\n\t\r\"\0";
 
 /// Basic configuration for JSON serialization.
 /// Provides static methods and compile-time constants for customization.
@@ -81,15 +79,31 @@ struct BasicConfig
     static constexpr bool kTailComma = false;
     
     /// Escape table for ASCII characters (0-127), 0 means no escape needed.
+    /// Uses C/C++ standard escape sequences where applicable, others use '.' for non-printable chars.
     static constexpr auto kEscapeTable = []() constexpr {
         std::array<uint8_t, 128> table{}; // Default 0 means not escape
         
-        table['\n'] = 'n';
-        table['\t'] = 't';
-        table['\r'] = 'r';
-        table['"'] = '"';
-        table['\\'] = '\\';
-        table['\0'] = '0';
+        // First set all non-printable control characters (0x01-0x1F) to '.'
+        for (int i = 0x01; i <= 0x1F; ++i) {
+            table[i] = '.';
+        }
+        
+        // Then set specific C/C++ standard escape sequences
+        table[0x00] = '0';  // \0 - null character
+        table[0x07] = 'a';  // \a - bell (alert)
+        table[0x08] = 'b';  // \b - backspace
+        table[0x09] = 't';  // \t - horizontal tab
+        table[0x0A] = 'n';  // \n - line feed (newline)
+        table[0x0B] = 'v';  // \v - vertical tab
+        table[0x0C] = 'f';  // \f - form feed
+        table[0x0D] = 'r';  // \r - carriage return
+        
+        // Printable characters that need escaping in JSON
+        table['"'] = '"';  // \" - double quote
+        table['\\'] = '\\';  // \\ - backslash
+        
+        // DEL character (0x7F) - also non-printable
+        table[0x7F] = '.';  // DEL - delete
         
         return table;
     }();

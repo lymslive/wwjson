@@ -76,16 +76,28 @@ DEF_TAST(escape_table_mapping, "test escape table map optimization")
     constexpr size_t table_size = wwjson::BasicConfig<std::string>::kEscapeTable.size();
     COUT(table_size, size_t{128});
     
-    // Verify some escape mappings
-    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\n'], uint8_t{'n'});
-    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\t'], uint8_t{'t'});
-    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\r'], uint8_t{'r'});
-    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['"'], uint8_t{'"'});
-    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\\'], uint8_t{'\\'});
-    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\0'], uint8_t{'0'});
+    // Test all standard C/C++ escape sequences
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\a'], uint8_t{'a'});  // bell
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\b'], uint8_t{'b'});  // backspace
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\t'], uint8_t{'t'});  // tab
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\n'], uint8_t{'n'});  // newline
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\v'], uint8_t{'v'});  // vertical tab
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\f'], uint8_t{'f'});  // form feed
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\r'], uint8_t{'r'});  // carriage return
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['"'], uint8_t{'"'});  // double quote
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\\'], uint8_t{'\\'}); // backslash
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['\0'], uint8_t{'0'});  // null
     
-    // Verify a non-escaped character returns 0
+    // Test non-printable characters map to '.'
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable[0x01], uint8_t{'.'});  // SOH
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable[0x02], uint8_t{'.'});  // STX
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable[0x03], uint8_t{'.'});  // ETX
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable[0x7F], uint8_t{'.'});  // DEL
+    
+    // Test some printable characters return 0 (no escape)
     COUT(wwjson::BasicConfig<std::string>::kEscapeTable['A'], uint8_t{0});
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable[' '], uint8_t{0});
+    COUT(wwjson::BasicConfig<std::string>::kEscapeTable['9'], uint8_t{0});
 }
 
 DEF_TAST(escape_builder_api, "test escape methods in builder")
@@ -224,6 +236,58 @@ DEF_TAST(escape_scope_objects, "test escape functionality with scope objects")
     }
     expect = R"("data":{"text":"quote\"here","path":"C:\\path"})";
     COUT(json.json, expect);
+}
+
+DEF_TAST(escape_std_ascii, "test standard ASCII escape characters")
+{
+    // Test C/C++ standard escape sequences
+    std::string dst;
+    
+    // Test bell character (\a)
+    dst.clear();
+    wwjson::BasicConfig<std::string>::EscapeString(dst, "Bell\aRing", 9);
+    std::string expect = "Bell\\aRing";
+    COUT(dst, expect);
+    
+    // Test backspace (\b)
+    dst.clear();
+    wwjson::BasicConfig<std::string>::EscapeString(dst, "Back\bSpace", 10);
+    expect = "Back\\bSpace";
+    COUT(dst, expect);
+    
+    // Test form feed (\f)
+    dst.clear();
+    wwjson::BasicConfig<std::string>::EscapeString(dst, "Form\fFeed", 9);
+    expect = "Form\\fFeed";
+    COUT(dst, expect);
+    
+    // Test vertical tab (\v)
+    dst.clear();
+    wwjson::BasicConfig<std::string>::EscapeString(dst, "Vertical\vTab", 12);
+    expect = "Vertical\\vTab";
+    COUT(dst, expect);
+    
+    // Test non-printable characters replaced with '\.'
+    dst.clear();
+    const char non_printable[] = {0x01, 0x02, 0x03, 0x04, 0}; // SOH, STX, ETX, EOT
+    wwjson::BasicConfig<std::string>::EscapeString(dst, non_printable, 4);
+    expect = "\\.\\.\\.\\.";
+    COUT(dst, expect);
+    
+    // Test DEL character (0x7F)
+    dst.clear();
+    char with_del[] = "Test  "; // Space for DEL and null terminator
+    with_del[4] = 0x7F; with_del[5] = 0;
+    wwjson::BasicConfig<std::string>::EscapeString(dst, with_del, 5);
+    expect = "Test\\.";
+    COUT(dst, expect);
+    
+    // Test mixed printable and non-printable
+    dst.clear();
+    const char mixed[] = {0x01, 'A', 0x02, 'B', 0x03, 0};
+    wwjson::BasicConfig<std::string>::EscapeString(dst, mixed, 5);
+    expect = "\\.A\\.B\\.";
+    COUT(dst, expect);
 }
 
 DEF_TAST(escape_edge_cases, "test edge cases for escape functionality")

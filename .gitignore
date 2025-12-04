@@ -15,6 +15,7 @@ backup-*
 
 # agent files
 AGENTS.md
+CODEBUDDY.md
 .codebuddy/
 .tool/
 .iflow/
