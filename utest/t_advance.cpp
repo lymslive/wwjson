@@ -2,6 +2,7 @@
 #include "wwjson.hpp"
 #include "test_util.h"
 #include <string>
+#include <functional>
 
 DEF_TAST(advance_reopen, "test Reopen method for objects and arrays")
 {
@@ -448,5 +449,322 @@ DEF_TAST(advance_sub_complex, "test complex scenarios with JSON sub-strings")
     std::string expect3 = R"({"external1":{"external":1},"external2":["external","array"]})";
     COUT(builder3.json, expect3);
     COUT(test::IsJsonValid(builder3.json), true);
+}
+
+DEF_TAST(advance_function_lambda, "test AddItem with lambda functions")
+{
+    // Test lambda with no parameters, capturing builder by reference
+    wwjson::RawBuilder builder1;
+    builder1.BeginArray();
+    
+    // Lambda that captures builder by reference
+    builder1.AddItem([&builder1]() {
+        builder1.BeginObject();
+        builder1.AddMember("lambda_type", "no_params");
+        builder1.AddMember("value", 42);
+        builder1.EndObject();
+    });
+    
+    // Lambda with no parameters, different structure
+    builder1.AddItem([&builder1]() {
+        builder1.BeginArray();
+        builder1.AddItem("lambda");
+        builder1.AddItem(123);
+        builder1.EndArray();
+    });
+    
+    builder1.EndArray();
+    
+    std::string expect1 = R"([{"lambda_type":"no_params","value":42},["lambda",123]])";
+    COUT(builder1.json, expect1);
+    COUT(test::IsJsonValid(builder1.json), true);
+    
+    // Test lambda with GenericBuilder reference parameter - proper usage
+    wwjson::RawBuilder builder2;
+    builder2.BeginArray();
+    
+    // Lambda with builder parameter - correctly uses the builder reference
+    builder2.AddItem([](wwjson::RawBuilder& builder) {
+        builder.BeginObject();
+        builder.AddMember("lambda_type", "with_param");
+        builder.AddMember("nested", [&builder]() {
+            // Use a nested scope to create an array
+            auto scope = builder.ScopeArray();
+            scope.AddItem("nested_lambda");
+        });
+        builder.EndObject();
+    });
+    
+    // Another lambda with builder parameter - simple usage
+    builder2.AddItem([](wwjson::RawBuilder& builder) {
+        builder.AddItem("simple_lambda_param");
+        //^ would add extra comma
+    });
+    
+    builder2.EndArray();
+
+    // Extra comma due to last lambda use simple AddItem
+    std::string expect2 = R"([{"lambda_type":"with_param","nested":["nested_lambda"]},"simple_lambda_param",])";
+    COUT(builder2.json, expect2);
+    COUT(test::IsJsonValid(builder2.json), false);  // Invalid JSON due to trailing comma
+}
+
+// Free function with no parameters for testing
+wwjson::RawBuilder createNestedObject()
+{
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+    builder.AddMember("func_type", "free_function");
+    builder.AddMember("number", 3.14);
+    builder.EndObject();
+    return builder;
+}
+
+// Free function with GenericBuilder reference parameter
+void buildArrayWithBuilder(wwjson::RawBuilder& builder)
+{
+    builder.BeginArray();
+    builder.AddItem("free");
+    builder.AddItem("function");
+    builder.AddItem("param");
+    builder.EndArray();
+}
+
+// Another free function for testing different signatures
+void buildComplexObject(wwjson::RawBuilder& builder)
+{
+    builder.BeginObject();
+    builder.AddMember("complex", true);
+    builder.AddMemberSub("nested_sub", R"({"from":"func"})");
+    builder.EndObject();
+}
+
+DEF_TAST(advance_function_free, "test AddItem with free functions")
+{
+    // Test free function that returns a builder (no parameter version)
+    wwjson::RawBuilder builder1;
+    builder1.BeginArray();
+    
+    // This won't compile as expected - free functions without builder param need to be adapted
+    // We'll test with lambda wrapper instead
+    builder1.AddItem([&builder1]() {
+        auto temp = createNestedObject();
+        builder1.PutSub(temp.GetResult());
+    });
+    
+    builder1.EndArray();
+    
+    std::string expect1 = R"([{"func_type":"free_function","number":3.140000}])";  // Double precision formatting
+    COUT(builder1.json, expect1);
+    COUT(test::IsJsonValid(builder1.json), true);
+    
+    // Test free function with GenericBuilder reference parameter
+    wwjson::RawBuilder builder2;
+    builder2.BeginArray();
+    
+    builder2.AddItem(buildArrayWithBuilder);
+    builder2.AddItem(buildComplexObject);
+    
+    builder2.EndArray();
+    
+    std::string expect2 = R"([["free","function","param"],{"complex":true,"nested_sub":{"from":"func"}}])";
+    COUT(builder2.json, expect2);
+    COUT(test::IsJsonValid(builder2.json), true);
+}
+
+// Test class with static method for callable objects
+class JsonBuilder
+{
+public:
+    static void buildSimpleObject(wwjson::RawBuilder& builder)
+    {
+        builder.BeginObject();
+        builder.AddMember("method", "static");
+        builder.AddMember("value", 100);
+        builder.EndObject();
+    }
+    
+    void buildMemberObject(wwjson::RawBuilder& builder)
+    {
+        builder.BeginObject();
+        builder.AddMember("method", "member");
+        builder.AddMember("id", id_);
+        builder.EndObject();
+    }
+    
+    JsonBuilder() : id_(0) {}
+    explicit JsonBuilder(int id) : id_(id) {}
+    
+private:
+    int id_;
+};
+
+DEF_TAST(advance_function_class, "test AddItem with class methods")
+{
+    // Test static method
+    wwjson::RawBuilder builder1;
+    builder1.BeginArray();
+    
+    builder1.AddItem(JsonBuilder::buildSimpleObject);
+    
+    builder1.EndArray();
+    
+    std::string expect1 = R"([{"method":"static","value":100}])";
+    COUT(builder1.json, expect1);
+    COUT(test::IsJsonValid(builder1.json), true);
+    
+    // Test member function with std::bind
+    wwjson::RawBuilder builder2;
+    builder2.BeginArray();
+    
+    JsonBuilder obj(42);
+    auto boundMethod = std::bind(&JsonBuilder::buildMemberObject, &obj, std::placeholders::_1);
+    builder2.AddItem(boundMethod);
+    
+    builder2.EndArray();
+    
+    std::string expect2 = R"([{"method":"member","id":42}])";
+    COUT(builder2.json, expect2);
+    COUT(test::IsJsonValid(builder2.json), true);
+}
+
+DEF_TAST(advance_function_with_addmember, "test AddMember with callable functions")
+{
+    // Test AddMember with lambda (no parameters)
+    wwjson::RawBuilder builder1;
+    builder1.BeginObject();
+    
+    builder1.AddMember("lambda_no_param", [&builder1]() {
+        builder1.BeginArray();
+        builder1.AddItem("lambda");
+        builder1.AddItem("capture");
+        builder1.EndArray();
+    });
+    
+    builder1.EndObject();
+    
+    std::string expect1 = R"({"lambda_no_param":["lambda","capture"]})";
+    COUT(builder1.json, expect1);
+    COUT(test::IsJsonValid(builder1.json), true);
+    
+    // Test AddMember with lambda (with parameter)
+    wwjson::RawBuilder builder2;
+    builder2.BeginObject();
+    
+    builder2.AddMember("lambda_param", [](wwjson::RawBuilder& builder) {
+        builder.BeginObject();
+        builder.AddMember("param", "true");
+        builder.AddMember("type", "lambda");
+        builder.EndObject();
+    });
+    
+    builder2.EndObject();
+    
+    std::string expect2 = R"({"lambda_param":{"param":"true","type":"lambda"}})";
+    COUT(builder2.json, expect2);
+    COUT(test::IsJsonValid(builder2.json), true);
+    
+    // Test AddMember with free function
+    wwjson::RawBuilder builder3;
+    builder3.BeginObject();
+    
+    builder3.AddMember("free_func", buildComplexObject);
+    
+    builder3.EndObject();
+    
+    std::string expect3 = R"({"free_func":{"complex":true,"nested_sub":{"from":"func"}}})";
+    COUT(builder3.json, expect3);
+    COUT(test::IsJsonValid(builder3.json), true);
+}
+
+DEF_TAST(advance_function_nested, "test nested callable functions")
+{
+    // Test deeply nested callable functions
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+    
+    builder.AddMember("nested", [](wwjson::RawBuilder& builder) {
+        builder.BeginArray();
+        
+        // First level nested lambda
+        builder.AddItem([](wwjson::RawBuilder& builder) {
+            builder.BeginObject();
+            builder.AddMember("level", 1);
+            builder.AddMember("data", "first");
+            builder.EndObject();
+        });
+        
+        // Second level nested lambda with capture
+        builder.AddItem([&builder](wwjson::RawBuilder& innerBuilder) {
+            innerBuilder.BeginObject();
+            innerBuilder.AddMember("level", 2);
+            
+            // Third level nested function call
+            innerBuilder.AddMember("deep", [&innerBuilder]() {
+                innerBuilder.BeginArray();
+                innerBuilder.AddItem("deeply");
+                innerBuilder.AddItem("nested");
+                innerBuilder.EndArray();
+            });
+            
+            innerBuilder.EndObject();
+        });
+        
+        builder.EndArray();
+    });
+    
+    builder.EndObject();
+    
+    std::string expect = R"({"nested":[{"level":1,"data":"first"},{"level":2,"deep":["deeply","nested"]}]})";
+    COUT(builder.json, expect);
+    COUT(test::IsJsonValid(builder.json), true);
+}
+
+DEF_TAST(advance_function_scope_with_callable, "test scope objects with callable functions")
+{
+    // Test ScopeArray with callable functions
+    wwjson::RawBuilder builder1;
+    {
+        auto arr = builder1.ScopeArray();
+        
+        arr.AddItem([](wwjson::RawBuilder& builder) {
+            builder.BeginObject();
+            builder.AddMember("scope_array", true);
+            builder.EndObject();
+        });
+        
+        arr.AddItem([&arr]() {
+            arr.AddItem("lambda");
+            arr.AddItem("scope");
+        });
+    }
+    
+    // Extra comma due to last lambda use simple AddItem
+    std::string expect1 = R"([{"scope_array":true},"lambda","scope",])";
+    COUT(builder1.json, expect1);
+    COUT(test::IsJsonValid(builder1.json), false);  // Invalid JSON due to trailing comma
+    
+    // Test ScopeObject with callable functions
+    wwjson::RawBuilder builder2;
+    {
+        auto obj = builder2.ScopeObject();
+        
+        obj.AddMember("callable", [](wwjson::RawBuilder& builder) {
+            builder.BeginArray();
+            builder.AddItem("scope");
+            builder.AddItem("object");
+            builder.EndArray();
+        });
+        
+        obj.AddMember("capture", [&obj]() {
+            auto scope = obj.ScopeObject();
+            scope.AddMember("type", "lambda");
+            scope.AddMember("scope", "object");
+        });
+    }
+    
+    std::string expect2 = R"({"callable":["scope","object"],"capture":{"type":"lambda","scope":"object"}})";
+    COUT(builder2.json, expect2);
+    COUT(test::IsJsonValid(builder2.json), true);
 }
 

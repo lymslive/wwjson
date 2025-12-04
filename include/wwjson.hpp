@@ -26,6 +26,12 @@
 namespace wwjson
 {
 
+/// Forward declarations for template classes.
+template<typename stringT> struct BasicConfig;
+template<typename stringT, typename configT> struct GenericBuilder;
+template<typename stringT, typename configT> struct GenericObject;
+template<typename stringT, typename configT> struct GenericArray;
+
 /// Type trait to detect supported key types (const char*, std::string, std::string_view).
 template<typename T> struct is_key : std::false_type {};
 template<> struct is_key<const char*> : std::true_type {};
@@ -53,13 +59,6 @@ struct StringConcept
     // - Constructor that takes capacity or default constructor
     // Note: Custom string types should provide these same interfaces as std::string
 };
-
-/// Forward declarations for template classes.
-template<typename stringT> struct BasicConfig;
-template<typename stringT, typename configT> struct GenericBuilder;
-template<typename stringT, typename configT> struct GenericObject;
-template<typename stringT, typename configT> struct GenericArray;
-
 
 /// Basic configuration for JSON serialization.
 /// Provides static methods and compile-time constants for customization.
@@ -158,6 +157,9 @@ struct GenericBuilder
 {
     /// The JSON string being built.
     stringT json;
+
+    /// Type alias for self, useful in template metaprogramming
+    using builder_type = GenericBuilder<stringT, configT>;
 
     /// M0: Basic Methods
     /* ---------------------------------------------------------------------- */
@@ -508,6 +510,26 @@ struct GenericBuilder
     void AddItem(Args&&... args)
     {
         PutValue(std::forward<Args>(args)...);
+        SepItem();
+    }
+
+    /// Add item to array using callable function with GenericBuilder reference parameter.
+    /// Would pass current builder to the provided function to produce a sub json.
+    template<typename Func>
+    std::enable_if_t<std::is_invocable_v<Func, builder_type&>, void>
+    AddItem(Func&& func)
+    {
+        func(*this);
+        SepItem();
+    }
+
+    /// Add item to array using callable function with no parameters.
+    /// Usually use lambda captures current builder to produce sub json.
+    template<typename Func>
+    std::enable_if_t<std::is_invocable_v<Func> && !std::is_invocable_v<Func, builder_type&>, void>
+    AddItem(Func&& func)
+    {
+        func();
         SepItem();
     }
 

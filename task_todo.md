@@ -471,7 +471,7 @@ json 转义标准的，用尾注释备注说明。无标准转义的控制字符
 
 ### DONE: 20251204-164424
 
-## TODO: 支持调用函数就地生成 json 子结构
+## TODO:2025-12-04/3 支持调用函数就地生成 json 子结构
 
 GenericBuilder 组装嵌套 json ，目前支持的几种方法：
 - 手动 BeginArray/Object 与 EndArray/Object 配对，End 方法一般还要传 true 参数
@@ -491,7 +491,7 @@ json 。函数参数应该支持两种签名类型：
 - 空参数，适合于 lambda 捕获当前 builder 引用
 - 要求一个 GenericBuilder 引用参数，传入当前 builder 引用，适合独立函数
 
-函数返回值可为 void ，直接操作当前 builder 。
+函数返回值可为 void ，一般在函数内直接操作当前 builder 。
 
 实现要求：
 - 原则上只要增加 AddItem 重载，AddMember 由通用模板方法转发自动支持函数
@@ -506,6 +506,8 @@ json 。函数参数应该支持两种签名类型：
 再仔细思考该如何支持类方法更适合：
 - 能为 AddItem 增加重载表达调用类方法吗？
 - 让用户借用 lambda 封装，或 bind 适配后再传给 AddItem/AddMember
+
+### DONE: 20251204-181600
 
 ## TODO: 建立性能测试框架
 

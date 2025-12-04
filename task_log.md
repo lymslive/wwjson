@@ -1121,3 +1121,47 @@ if (m_builder.Back() != ':') {
 - 支持将现有 JSON 串 `{}`, `[1,2,3]` 等作为子结构直接插入
 - 兼容 `const char*`, `std::string`, `std::string_view` 等字符串类型
 
+## TASK:20251204-181600
+-----------------------
+
+### 任务概述
+为 GenericBuilder 的 AddItem/AddMember 方法增加对函数参数的支持，允许调用函数就地生成 JSON 子结构，提高代码的结构化和可读性。
+
+### 实现内容
+
+**优化 AddItem 重载函数**
+- 移除复杂的 is_callable 辅助 trait，使用更简洁的 SFINAE 方法
+- 在 GenericBuilder 类中添加 builder_type 类型别名，方便模板元编程
+- 实现两个重载：
+  - 接受 GenericBuilder& 参数的函数：`std::enable_if_t<std::is_invocable_v<Func, builder_type&>, void>`
+  - 无参数函数：`std::enable_if_t<std::is_invocable_v<Func> && !std::is_invocable_v<Func, builder_type&>, void>`
+
+**测试用例设计**
+- `advance_function_lambda`: 测试 lambda 函数两种调用方式（无参数和带builder参数）
+- `advance_function_free`: 测试自由函数与 std::bind 绑定的成员函数
+- `advance_function_class`: 测试静态方法、成员函数与绑定
+- `advance_function_with_addmember`: 测试 AddMember 与函数参数的组合
+- `advance_function_nested`: 测试深度嵌套的函数调用场景
+- `advance_function_scope_with_callable`: 测试与 RAII 作用域对象的结合
+
+### 验证结果
+- 编译成功，解决模板参数依赖顺序问题
+- 所有 57 个测试用例全部通过，包括 6 个新增函数测试用例
+- 支持两种函数签名：无参数捕获 builder 引用，和接受 builder 引用参数
+- 注意边界情况：在函数中使用 SepItem() 可能产生无效的 JSON（尾逗号）
+
+### 使用示例
+```cpp
+// 方式1：无参数 lambda，捕获 builder 引用
+builder.AddItem([&builder]() {
+    builder.BeginObject();
+    builder.AddMember("key", "value");
+    builder.EndObject();
+});
+
+// 方式2：lambda 接受 builder 参数
+builder.AddItem([](wwjson::RawBuilder& builder) {
+    builder.AddItem("simple_value");
+});
+```
+
