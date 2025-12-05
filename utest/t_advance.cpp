@@ -13,7 +13,7 @@ DEF_TAST(advance_reopen, "test Reopen method for objects and arrays")
     builder1.EndObject();
     
     std::string expect1 = R"({"a":1})";
-    COUT(builder1.json, expect1);
+    COUT(builder1.GetResult(), expect1);
     COUT(test::IsJsonValid(builder1.json), true);
     
     bool result1 = builder1.Reopen();
@@ -22,7 +22,7 @@ DEF_TAST(advance_reopen, "test Reopen method for objects and arrays")
     builder1.AddMember("b", 2);
     builder1.EndObject();
     std::string expect1_reopened = R"({"a":1,"b":2})";
-    COUT(builder1.json, expect1_reopened);
+    COUT(builder1.GetResult(), expect1_reopened);
     COUT(test::IsJsonValid(builder1.json), true);
     
     // Test Reopen for array
@@ -32,7 +32,7 @@ DEF_TAST(advance_reopen, "test Reopen method for objects and arrays")
     builder2.EndArray();
     
     std::string expect2 = R"([1])";
-    COUT(builder2.json, expect2);
+    COUT(builder2.GetResult(), expect2);
     COUT(test::IsJsonValid(builder2.json), true);
     
     bool result2 = builder2.Reopen();
@@ -41,7 +41,7 @@ DEF_TAST(advance_reopen, "test Reopen method for objects and arrays")
     builder2.AddItem(2);
     builder2.EndArray();
     std::string expect2_reopened = R"([1,2])";
-    COUT(builder2.json, expect2_reopened);
+    COUT(builder2.GetResult(), expect2_reopened);
     COUT(test::IsJsonValid(builder2.json), true);
     
     // Test Reopen failure cases
@@ -58,14 +58,14 @@ DEF_TAST(advance_merge_instance, "test Merge instance method for objects and arr
 {
     // Test object merge
     wwjson::RawBuilder obj1;
-    obj1.BeginObject();
+    obj1.BeginRoot();
     obj1.AddMember("a", 1);
-    obj1.EndObject();
+    obj1.EndRoot();
     
     wwjson::RawBuilder obj2;
-    obj2.BeginObject();
+    obj2.BeginRoot();
     obj2.AddMember("b", 2);
-    obj2.EndObject();
+    obj2.EndRoot();
     
     bool result1 = obj1.Merge(obj2);
     COUT(result1, true);
@@ -75,14 +75,14 @@ DEF_TAST(advance_merge_instance, "test Merge instance method for objects and arr
     
     // Test array merge
     wwjson::RawBuilder arr1;
-    arr1.BeginArray();
+    arr1.BeginRoot('[');
     arr1.AddItem(1);
-    arr1.EndArray();
+    arr1.EndRoot(']');
     
     wwjson::RawBuilder arr2;
-    arr2.BeginArray();
+    arr2.BeginRoot('[');
     arr2.AddItem(2);
-    arr2.EndArray();
+    arr2.EndRoot(']');
     
     bool result2 = arr1.Merge(arr2);
     COUT(result2, true);
@@ -92,9 +92,9 @@ DEF_TAST(advance_merge_instance, "test Merge instance method for objects and arr
     
     // Test type mismatch
     wwjson::RawBuilder obj3;
-    obj3.BeginObject();
+    obj3.BeginRoot();
     obj3.AddMember("c", 3);
-    obj3.EndObject();
+    obj3.EndRoot();
     
     bool result3 = obj3.Merge(arr2); // Object merge with array
     COUT(result3, false);
@@ -105,9 +105,9 @@ DEF_TAST(advance_merge_instance, "test Merge instance method for objects and arr
     // Test empty builder merge
     wwjson::RawBuilder empty;
     wwjson::RawBuilder nonEmpty;
-    nonEmpty.BeginObject();
+    nonEmpty.BeginRoot();
     nonEmpty.AddMember("x", 10);
-    nonEmpty.EndObject();
+    nonEmpty.EndRoot();
     
     bool result5 = empty.Merge(nonEmpty);
     COUT(result5, true);
@@ -116,22 +116,6 @@ DEF_TAST(advance_merge_instance, "test Merge instance method for objects and arr
     bool result6 = nonEmpty.Merge(empty); // Merge empty into non-empty
     COUT(result6, true);
     COUT(nonEmpty.json, nonEmpty.json); // Should remain unchanged
-    
-    // Test nested structure merge
-    wwjson::RawBuilder nested1;
-    nested1.BeginObject();
-    nested1.AddMember("nested", 1);
-    nested1.EndObject();
-    
-    wwjson::RawBuilder nested2;
-    nested2.BeginObject();
-    nested2.AddMember("another", 2);
-    nested2.EndObject();
-    
-    bool result7 = nested1.Merge(nested2);
-    COUT(result7, true);
-    std::string expect_nested = R"({"nested":1,"another":2})";
-    COUT(nested1.json, expect_nested);
 }
 
 DEF_TAST(advance_merge_static, "test Merge static method for objects and arrays")
@@ -194,19 +178,19 @@ DEF_TAST(advance_merge_complex, "test complex merge scenarios")
 {
     // Test multiple merges
     wwjson::RawBuilder base;
-    base.BeginObject();
+    base.BeginRoot();
     base.AddMember("base", 0);
-    base.EndObject();
+    base.EndRoot();
     
     wwjson::RawBuilder add1;
-    add1.BeginObject();
+    add1.BeginRoot();
     add1.AddMember("add1", 1);
-    add1.EndObject();
+    add1.EndRoot();
     
     wwjson::RawBuilder add2;
-    add2.BeginObject();
+    add2.BeginRoot();
     add2.AddMember("add2", 2);
-    add2.EndObject();
+    add2.EndRoot();
     
     bool result1 = base.Merge(add1);
     COUT(result1, true);
@@ -222,17 +206,20 @@ DEF_TAST(advance_merge_complex, "test complex merge scenarios")
     arrBase.BeginArray();
     arrBase.AddItem(0);
     arrBase.EndArray();
+    arrBase.GetResult();
     
     wwjson::RawBuilder arrAdd1;
     arrAdd1.BeginArray();
     arrAdd1.AddItem(1);
     arrAdd1.AddItem(2);
     arrAdd1.EndArray();
+    arrAdd1.GetResult();
     
     wwjson::RawBuilder arrAdd2;
     arrAdd2.BeginArray();
     arrAdd2.AddItem(3);
     arrAdd2.EndArray();
+    arrAdd2.GetResult();
     
     bool result3 = arrBase.Merge(arrAdd1);
     COUT(result3, true);
@@ -254,7 +241,7 @@ DEF_TAST(advance_putsub, "test PutSub method for adding JSON sub-strings")
     builder1.EndObject();
     
     std::string expect1 = R"({"empty":{}})";
-    COUT(builder1.json, expect1);
+    COUT(builder1.GetResult(), expect1);
     COUT(test::IsJsonValid(builder1.json), true);
     
     // Test PutSub with array string
@@ -266,7 +253,7 @@ DEF_TAST(advance_putsub, "test PutSub method for adding JSON sub-strings")
     builder2.EndArray();
     
     std::string expect2 = R"([{"nested":true},[1,2,3]])";
-    COUT(builder2.json, expect2);
+    COUT(builder2.GetResult(), expect2);
     COUT(test::IsJsonValid(builder2.json), true);
     
     // Test PutSub with different string types
@@ -282,7 +269,7 @@ DEF_TAST(advance_putsub, "test PutSub method for adding JSON sub-strings")
     builder3.EndObject();
     
     std::string expect3 = R"({"array":[1,2],"test":{"view":"test"}})";
-    COUT(builder3.json, expect3);
+    COUT(builder3.GetResult(), expect3);
     COUT(test::IsJsonValid(builder3.json), true);
 }
 
@@ -297,7 +284,7 @@ DEF_TAST(advance_additemsub, "test AddItemSub method for adding JSON sub-strings
     builder1.EndArray();
     
     std::string expect1 = R"([{},[1,2,3],{"nested":true}])";
-    COUT(builder1.json, expect1);
+    COUT(builder1.GetResult(), expect1);
     COUT(test::IsJsonValid(builder1.json), true);
     
     // Test AddItemSub with different string types
@@ -310,7 +297,7 @@ DEF_TAST(advance_additemsub, "test AddItemSub method for adding JSON sub-strings
     builder2.EndArray();
     
     std::string expect2 = R"([{"array":[1,2]},{"view":"test"}])";
-    COUT(builder2.json, expect2);
+    COUT(builder2.GetResult(), expect2);
     COUT(test::IsJsonValid(builder2.json), true);
     
     // Test AddItemSub with string literal
@@ -322,7 +309,7 @@ DEF_TAST(advance_additemsub, "test AddItemSub method for adding JSON sub-strings
     builder3.EndArray();
     
     std::string expect3 = R"([{"cstring":"test"},{"number":42}])";
-    COUT(builder3.json, expect3);
+    COUT(builder3.GetResult(), expect3);
     COUT(test::IsJsonValid(builder3.json), true);
 }
 
@@ -337,7 +324,7 @@ DEF_TAST(advance_addmembersub, "test AddMemberSub method for adding JSON sub-str
     builder1.EndObject();
     
     std::string expect1 = R"({"empty_obj":{},"numbers":[1,2,3],"nested":{"nested":true}})";
-    COUT(builder1.json, expect1);
+    COUT(builder1.GetResult(), expect1);
     COUT(test::IsJsonValid(builder1.json), true);
     
     // Test AddMemberSub with different string types
@@ -350,7 +337,7 @@ DEF_TAST(advance_addmembersub, "test AddMemberSub method for adding JSON sub-str
     builder2.EndObject();
     
     std::string expect2 = R"({"json_obj":{"array":[1,2]},"view_obj":{"view":"test"}})";
-    COUT(builder2.json, expect2);
+    COUT(builder2.GetResult(), expect2);
     COUT(test::IsJsonValid(builder2.json), true);
     
     // Test AddMemberSub with string literal
@@ -362,7 +349,7 @@ DEF_TAST(advance_addmembersub, "test AddMemberSub method for adding JSON sub-str
     builder3.EndObject();
     
     std::string expect3 = R"({"c_obj":{"cstring":"test"},"number_obj":{"number":42}})";
-    COUT(builder3.json, expect3);
+    COUT(builder3.GetResult(), expect3);
     COUT(test::IsJsonValid(builder3.json), true);
 }
 
@@ -377,7 +364,7 @@ DEF_TAST(advance_sub_with_scope, "test AddItemSub/AddMemberSub with scope object
     }
     
     std::string expect1 = R"([{},[1,2]])";
-    COUT(builder1.json, expect1);
+    COUT(builder1.GetResult(), expect1);
     COUT(test::IsJsonValid(builder1.json), true);
     
     // Test AddMemberSub with scope object
@@ -389,7 +376,7 @@ DEF_TAST(advance_sub_with_scope, "test AddItemSub/AddMemberSub with scope object
     }
     
     std::string expect2 = R"({"sub_obj":{},"sub_arr":[1,2]})";
-    COUT(builder2.json, expect2);
+    COUT(builder2.GetResult(), expect2);
     COUT(test::IsJsonValid(builder2.json), true);
     
     // Test nested scope with sub JSON
@@ -405,7 +392,7 @@ DEF_TAST(advance_sub_with_scope, "test AddItemSub/AddMemberSub with scope object
     }
     
     std::string expect3 = R"({"normal":"value","nested":[{"inner":true},123]})";
-    COUT(builder3.json, expect3);
+    COUT(builder3.GetResult(), expect3);
     COUT(test::IsJsonValid(builder3.json), true);
 }
 
@@ -420,7 +407,7 @@ DEF_TAST(advance_sub_complex, "test complex scenarios with JSON sub-strings")
     builder1.EndObject();
     
     std::string expect1 = R"({"config":{"debug":true,"version":"1.0"},"data":"test_data","items":[{"id":1,"name":"item1"},{"id":2,"name":"item2"}]})";
-    COUT(builder1.json, expect1);
+    COUT(builder1.GetResult(), expect1);
     COUT(test::IsJsonValid(builder1.json), true);
     
     // Test combining normal methods with sub methods
@@ -433,7 +420,7 @@ DEF_TAST(advance_sub_complex, "test complex scenarios with JSON sub-strings")
     builder2.EndArray();
     
     std::string expect2 = R"(["normal_string",{"sub_object":true},42,[1,2,3]])";
-    COUT(builder2.json, expect2);
+    COUT(builder2.GetResult(), expect2);
     COUT(test::IsJsonValid(builder2.json), true);
     
     // Test with existing JSON strings from external sources
@@ -447,7 +434,7 @@ DEF_TAST(advance_sub_complex, "test complex scenarios with JSON sub-strings")
     builder3.EndObject();
     
     std::string expect3 = R"({"external1":{"external":1},"external2":["external","array"]})";
-    COUT(builder3.json, expect3);
+    COUT(builder3.GetResult(), expect3);
     COUT(test::IsJsonValid(builder3.json), true);
 }
 
@@ -476,7 +463,7 @@ DEF_TAST(advance_function_lambda, "test AddItem with lambda functions")
     builder1.EndArray();
     
     std::string expect1 = R"([{"lambda_type":"no_params","value":42},["lambda",123]])";
-    COUT(builder1.json, expect1);
+    COUT(builder1.GetResult(), expect1);
     COUT(test::IsJsonValid(builder1.json), true);
     
     // Test lambda with GenericBuilder reference parameter - proper usage
@@ -498,25 +485,23 @@ DEF_TAST(advance_function_lambda, "test AddItem with lambda functions")
     // Another lambda with builder parameter - simple usage
     builder2.AddItem([](wwjson::RawBuilder& builder) {
         builder.AddItem("simple_lambda_param");
-        //^ would add extra comma
     });
     
     builder2.EndArray();
 
-    // Extra comma due to last lambda use simple AddItem
-    std::string expect2 = R"([{"lambda_type":"with_param","nested":["nested_lambda"]},"simple_lambda_param",])";
-    COUT(builder2.json, expect2);
-    COUT(test::IsJsonValid(builder2.json), false);  // Invalid JSON due to trailing comma
+    std::string expect2 = R"([{"lambda_type":"with_param","nested":["nested_lambda"]},"simple_lambda_param"])";
+    COUT(builder2.GetResult(), expect2);
+    COUT(test::IsJsonValid(builder2.json), true);
 }
 
 // Free function with no parameters for testing
 wwjson::RawBuilder createNestedObject()
 {
     wwjson::RawBuilder builder;
-    builder.BeginObject();
+    builder.BeginRoot();
     builder.AddMember("func_type", "free_function");
     builder.AddMember("number", 3.14);
-    builder.EndObject();
+    builder.EndRoot();
     return builder;
 }
 
@@ -555,7 +540,7 @@ DEF_TAST(advance_function_free, "test AddItem with free functions")
     builder1.EndArray();
     
     std::string expect1 = R"([{"func_type":"free_function","number":3.140000}])";  // Double precision formatting
-    COUT(builder1.json, expect1);
+    COUT(builder1.GetResult(), expect1);
     COUT(test::IsJsonValid(builder1.json), true);
     
     // Test free function with GenericBuilder reference parameter
@@ -568,7 +553,7 @@ DEF_TAST(advance_function_free, "test AddItem with free functions")
     builder2.EndArray();
     
     std::string expect2 = R"([["free","function","param"],{"complex":true,"nested_sub":{"from":"func"}}])";
-    COUT(builder2.json, expect2);
+    COUT(builder2.GetResult(), expect2);
     COUT(test::IsJsonValid(builder2.json), true);
 }
 
@@ -610,7 +595,7 @@ DEF_TAST(advance_function_class, "test AddItem with class methods")
     builder1.EndArray();
     
     std::string expect1 = R"([{"method":"static","value":100}])";
-    COUT(builder1.json, expect1);
+    COUT(builder1.GetResult(), expect1);
     COUT(test::IsJsonValid(builder1.json), true);
     
     // Test member function with std::bind
@@ -624,7 +609,7 @@ DEF_TAST(advance_function_class, "test AddItem with class methods")
     builder2.EndArray();
     
     std::string expect2 = R"([{"method":"member","id":42}])";
-    COUT(builder2.json, expect2);
+    COUT(builder2.GetResult(), expect2);
     COUT(test::IsJsonValid(builder2.json), true);
 }
 
@@ -644,7 +629,7 @@ DEF_TAST(advance_function_with_addmember, "test AddMember with callable function
     builder1.EndObject();
     
     std::string expect1 = R"({"lambda_no_param":["lambda","capture"]})";
-    COUT(builder1.json, expect1);
+    COUT(builder1.GetResult(), expect1);
     COUT(test::IsJsonValid(builder1.json), true);
     
     // Test AddMember with lambda (with parameter)
@@ -661,7 +646,7 @@ DEF_TAST(advance_function_with_addmember, "test AddMember with callable function
     builder2.EndObject();
     
     std::string expect2 = R"({"lambda_param":{"param":"true","type":"lambda"}})";
-    COUT(builder2.json, expect2);
+    COUT(builder2.GetResult(), expect2);
     COUT(test::IsJsonValid(builder2.json), true);
     
     // Test AddMember with free function
@@ -673,7 +658,7 @@ DEF_TAST(advance_function_with_addmember, "test AddMember with callable function
     builder3.EndObject();
     
     std::string expect3 = R"({"free_func":{"complex":true,"nested_sub":{"from":"func"}}})";
-    COUT(builder3.json, expect3);
+    COUT(builder3.GetResult(), expect3);
     COUT(test::IsJsonValid(builder3.json), true);
 }
 
@@ -716,7 +701,7 @@ DEF_TAST(advance_function_nested, "test nested callable functions")
     builder.EndObject();
     
     std::string expect = R"({"nested":[{"level":1,"data":"first"},{"level":2,"deep":["deeply","nested"]}]})";
-    COUT(builder.json, expect);
+    COUT(builder.GetResult(), expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
 
@@ -739,10 +724,9 @@ DEF_TAST(advance_function_scope_with_callable, "test scope objects with callable
         });
     }
     
-    // Extra comma due to last lambda use simple AddItem
-    std::string expect1 = R"([{"scope_array":true},"lambda","scope",])";
-    COUT(builder1.json, expect1);
-    COUT(test::IsJsonValid(builder1.json), false);  // Invalid JSON due to trailing comma
+    std::string expect1 = R"([{"scope_array":true},"lambda","scope"])";
+    COUT(builder1.GetResult(), expect1);
+    COUT(test::IsJsonValid(builder1.json), true);
     
     // Test ScopeObject with callable functions
     wwjson::RawBuilder builder2;
@@ -764,7 +748,7 @@ DEF_TAST(advance_function_scope_with_callable, "test scope objects with callable
     }
     
     std::string expect2 = R"({"callable":["scope","object"],"capture":{"type":"lambda","scope":"object"}})";
-    COUT(builder2.json, expect2);
+    COUT(builder2.GetResult(), expect2);
     COUT(test::IsJsonValid(builder2.json), true);
 }
 

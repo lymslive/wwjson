@@ -11,7 +11,7 @@
 DEF_TAST(custom_builder, "test json builder with custom string")
 {
     wwjson::GenericBuilder<test::string> builder;
-    builder.BeginObject();
+    builder.BeginRoot();
 
     builder.AddMember("int", 123);
     builder.AddMember("string", "123");
@@ -33,7 +33,7 @@ DEF_TAST(custom_builder, "test json builder with custom string")
     builder.AddMember("ints", 124, true);
     builder.AddMember("intf", 125, false);
 
-    builder.EndObject();
+    builder.EndRoot();
 
     std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.500000,"double":0.333333,"ints":"124","intf":"125"})";
     COUT(builder.json.c_str(), expect);
@@ -96,7 +96,7 @@ DEF_TAST(custom_scope, "test build nest json with custom string using auto close
 
         // need scope for head, to auto close {}
         {
-            auto head = builder.ScopeObject("head", true);
+            auto head = builder.ScopeObject("head");
             head.AddMember("int", 123);
             head.AddMember("string", "123");
         }
@@ -104,14 +104,14 @@ DEF_TAST(custom_scope, "test build nest json with custom string using auto close
         {
             auto bodys = builder.ScopeArray("bodys");
             {
-                auto body = builder.ScopeObject(true);
+                auto body = builder.ScopeObject();
                 body.AddMember("char", '1');
                 unsigned char c = '2';
                 body.AddMember("uchar", c);
             }
             bodys.AddItem("simple");
             {
-                auto body = builder.ScopeObject(true);
+                auto body = builder.ScopeObject();
                 short sh = 280;
                 body.AddMember("short", sh);
                 double half = 0.5;
@@ -122,6 +122,7 @@ DEF_TAST(custom_scope, "test build nest json with custom string using auto close
         }
     } // auto add right brace when destruct root beyond scope
 
+    builder.GetResult();
     std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.500000,"double":0.333333}]})";
     COUT(builder.json.c_str(), expect);
 }
@@ -140,7 +141,7 @@ DEF_TAST(custom_number_quoted, "test number quoting behavior with AddItem/AddMem
     builder1.AddItem(45.67);
     builder1.EndArray();
     std::string expect1 = "[123,45.670000]";
-    COUT(builder1.json.c_str(), expect1);
+    COUT(builder1.GetResult().c_str(), expect1);
     
     builder1.Clear();
     builder1.BeginObject();
@@ -148,7 +149,7 @@ DEF_TAST(custom_number_quoted, "test number quoting behavior with AddItem/AddMem
     builder1.AddMember("float", 7.89);
     builder1.EndObject();
     std::string expect2 = R"({"int":456,"float":7.890000})";
-    COUT(builder1.json.c_str(), expect2);
+    COUT(builder1.GetResult().c_str(), expect2);
     
     // Test manual quoting with second parameter true
     wwjson::GenericBuilder<test::string> builder2;
@@ -157,7 +158,7 @@ DEF_TAST(custom_number_quoted, "test number quoting behavior with AddItem/AddMem
     builder2.AddItem(45.67, true);
     builder2.EndArray();
     std::string expect3 = "[\"123\",\"45.670000\"]";
-    COUT(builder2.json.c_str(), expect3);
+    COUT(builder2.GetResult().c_str(), expect3);
     
     builder2.Clear();
     builder2.BeginObject();
@@ -165,7 +166,7 @@ DEF_TAST(custom_number_quoted, "test number quoting behavior with AddItem/AddMem
     builder2.AddMember("float", 7.89, true);
     builder2.EndObject();
     std::string expect4 = R"({"int":"456","float":"7.890000"})";
-    COUT(builder2.json.c_str(), expect4);
+    COUT(builder2.GetResult().c_str(), expect4);
     
     // Test custom config with kQuoteNumber = true
     wwjson::GenericBuilder<test::string, QuoteNumberConfig> builder3;
@@ -174,7 +175,7 @@ DEF_TAST(custom_number_quoted, "test number quoting behavior with AddItem/AddMem
     builder3.AddItem(3.14);
     builder3.EndArray();
     std::string expect5 = "[\"999\",\"3.140000\"]";
-    COUT(builder3.json.c_str(), expect5);
+    COUT(builder3.GetResult().c_str(), expect5);
     
     builder3.Clear();
     builder3.BeginObject();
@@ -182,5 +183,5 @@ DEF_TAST(custom_number_quoted, "test number quoting behavior with AddItem/AddMem
     builder3.AddMember("float", 7.89);
     builder3.EndObject();
     std::string expect6 = R"({"int":"456","float":"7.890000"})";
-    COUT(builder3.json.c_str(), expect6);
+    COUT(builder3.GetResult().c_str(), expect6);
 }

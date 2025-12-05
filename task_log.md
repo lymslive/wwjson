@@ -1227,3 +1227,64 @@ if (auto root = builder.ScopeObject()) {
 - constexpr 修饰符确保 GenericArray/Object 的 operator bool 在编译期即可确定
 - 保持向后兼容，不影响现有代码功能
 
+## TASK:20251205-111355
+-----------------------
+
+### 任务概述
+修改 EndArray/Object 默认行为自动加逗号，实现与 AddItem 方法一致的行为，避免嵌套 JSON 构建时忘记加逗号导致生成非法 JSON。
+
+### 实现内容
+
+**核心修改**
+- 删除 EndArray/Object(bool) 重载方法，统一为单一版本
+- 修改 EndArray/Object() 方法在结束时自动调用 SepItem() 添加逗号
+- 移除 GenericArray/Object 类的 `m_next` 成员变量
+- 更新 GenericArray/Object 构造函数，移除 `hasNext` 参数
+- 添加 BeginRoot/EndRoot(char) 方法用于根级别的 JSON 构建
+
+**具体修改文件**
+- `include/wwjson.hpp:280-330` - 修改 EndArray/EndObject 方法
+- `include/wwjson.hpp:748-947` - 更新 GenericArray/GenericObject 类
+- `include/wwjson.hpp:951-976` - 更新 ScopeArray/ScopeObject 方法
+- `include/wwjson.hpp:335-351` - 添加 BeginRoot/EndRoot 方法
+
+**测试修复**
+- 修复所有单元测试中的 End/ArrayObject(true) 调用，移除 true 参数
+- 修复所有单元测试中的构造函数调用，移除 bool 参数
+- COUT 断言最终构建 json 时补充调用 GetResult
+- 修复 MoveResult 先调用 GetResult 以得到正确结果
+- AddItem/Member 传函数参数时，自动优化函数可能添加的尾逗号
+
+### 验证结果
+- 编译成功，无警告错误  
+- 所有测试用例通过，JSON 格式正确
+- 自动逗号添加功能正常工作
+- BeginRoot/EndRoot 方法可用于根级别构建
+
+### 使用示例
+```cpp
+// 新的默认行为：EndObject 自动加逗号
+wwjson::RawBuilder builder;
+builder.BeginObject();
+builder.AddMember("key1", "value1");
+builder.EndObject(); // 自动加逗号
+
+// 根级别构建
+builder.BeginRoot('{');
+builder.AddMember("name", "value");
+builder.EndRoot('}'); // 不加逗号
+
+// 嵌套构建（现在更安全）
+{
+    wwjson::RawObject obj(builder);
+    obj.AddMember("key1", "value1");
+    // obj 析构时自动调用 EndObject()，会自动加逗号
+}
+```
+
+### 注意事项
+- 这是破坏性 API 变更，现有代码需要移除 bool 参数
+- 根级别构建使用 EndRoot() 避免添加逗号
+- 嵌套构建时 EndArray/Object() 会自动添加逗号，更符合直觉
+- kTailComma 配置继续控制内部逗号处理，不影响外部逗号添加
+

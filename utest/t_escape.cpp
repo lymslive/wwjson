@@ -150,7 +150,7 @@ DEF_TAST(escape_always_config, "test custom config with always escape")
     json.AddItem("another\"test");
     json.EndArray();
     expect = R"(["test","another\"test"])";
-    COUT(json.json, expect);
+    COUT(json.GetResult(), expect);
     
     // Test that even regular PutValue uses escaping when kAlwaysEscape=true
     json.Clear();
@@ -226,7 +226,7 @@ DEF_TAST(escape_scope_objects, "test escape functionality with scope objects")
         arr.AddItemEscape("second\nitem");
     }
     std::string expect = R"("items":["first\"item","second\nitem"])";
-    COUT(json.json, expect);
+    COUT(json.GetResult(), expect);
     
     json.Clear();
     {
@@ -235,7 +235,7 @@ DEF_TAST(escape_scope_objects, "test escape functionality with scope objects")
         obj.AddMemberEscape("path", "C:\\path");
     }
     expect = R"("data":{"text":"quote\"here","path":"C:\\path"})";
-    COUT(json.json, expect);
+    COUT(json.GetResult(), expect);
 }
 
 DEF_TAST(escape_std_ascii, "test standard ASCII escape characters")

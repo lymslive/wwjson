@@ -189,7 +189,7 @@ struct GenericBuilder
     }
 
     /// Move result string (transfer ownership).
-    stringT&& MoveResult() { return std::move(json); }
+    stringT&& MoveResult() { return std::move(GetResult()); }
 
     /// M1: String Interface Wrapper Methods
     /* ---------------------------------------------------------------------- */
@@ -257,13 +257,17 @@ struct GenericBuilder
     /// M2: JSON Character-level Methods
     /* ---------------------------------------------------------------------- */
     
-    /// Append comma separator.
+    /// Append comma to separate the possible next item.
     void PutNext() { PutChar(','); }
 
     /// Alias for PutNext().
     void SepItem() { PutNext(); }
 
-    /// Begin array with key.
+    /// Append a single char '[' as begin an array.
+    /// Can used to begin root array, or nest array as item in parent array.
+    void BeginArray() { PutChar('['); }
+
+    /// Append string `"key":[`, to add a child array in it's parent object.
     template<typename keyT>
     std::enable_if_t<is_key_v<keyT>, void>
     BeginArray(keyT&& key)
@@ -272,10 +276,8 @@ struct GenericBuilder
         BeginArray();
     }
 
-    /// Begin array without key.
-    void BeginArray() { PutChar('['); }
-
     /// End array, handling trailing comma based on config.
+    // Always add comma after closing for consistency with AddItem.
     void EndArray()
     {
         if constexpr (configT::kTailComma)
@@ -286,17 +288,14 @@ struct GenericBuilder
         {
             FixTail(',', ']');
         }
-    }
-
-    /// End array with additional separator. Suggest pass `true` but not used.
-    void EndArray(bool /*hasNext*/)
-    {
-        EndArray();
         SepItem();
     }
 
-    /// Append empty array.
+    /// Append empty array `[]`.
     void EmptyArray() { Append("[]"); }
+
+    /// Begin object without key.
+    void BeginObject() { PutChar('{'); }
 
     /// Begin object with key.
     template<typename keyT>
@@ -307,10 +306,8 @@ struct GenericBuilder
         BeginObject();
     }
 
-    /// Begin object without key.
-    void BeginObject() { PutChar('{'); }
-
     /// End object, handling trailing comma based on config.
+    /// Always add comma after closing for consistency with AddItem.
     void EndObject()
     {
         if constexpr (configT::kTailComma)
@@ -321,17 +318,29 @@ struct GenericBuilder
         {
             FixTail(',', '}');
         }
-    }
-
-    /// End object with additional separator. Suggest pass `true` but not used.
-    void EndObject(bool /*hasNext*/)
-    {
-        EndObject();
         SepItem();
     }
 
     /// Append empty object.
     void EmptyObject() { Append("{}"); }
+
+    /// Begin json root which default object, can pass `[` for array root.
+    /// Note NOT check the open bracket, accpet any char.
+    void BeginRoot(char bracket = '{') { PutChar(bracket); }
+
+    /// End json root which default object without adding comma.
+    /// Note NOT check the close bracket, accpet any char.
+    void EndRoot(char bracket = '}')
+    {
+        if constexpr (configT::kTailComma)
+        {
+            PutChar(bracket);
+        }
+        else
+        {
+            FixTail(',', bracket);
+        }
+    }
 
     /// Append newline character.
     void EndLine() { PutChar('\n'); }
@@ -523,7 +532,10 @@ struct GenericBuilder
     AddItem(Func&& func)
     {
         func(*this);
-        SepItem();
+        if (Back() != ',')
+        {
+            SepItem();
+        }
     }
 
     /// Add item to array using callable function with no parameters.
@@ -533,7 +545,10 @@ struct GenericBuilder
     AddItem(Func&& func)
     {
         func();
-        SepItem();
+        if (Back() != ',')
+        {
+            SepItem();
+        }
     }
 
     /// Add member to object with key and value (template key type).
@@ -628,20 +643,20 @@ struct GenericBuilder
     /* ---------------------------------------------------------------------- */
     
     /// Create a scoped GenericArray that auto-closes when destroyed.
-    GenericArray<stringT, configT> ScopeArray(bool hasNext = false);
+    GenericArray<stringT, configT> ScopeArray();
     
     /// Create a scoped GenericArray with key that auto-closes when destroyed.
     template<typename keyT>
     std::enable_if_t<is_key_v<keyT>, GenericArray<stringT, configT>>
-    ScopeArray(keyT&& key, bool hasNext = false);
+    ScopeArray(keyT&& key);
     
     /// Create a scoped GenericObject that auto-closes when destroyed.
-    GenericObject<stringT, configT> ScopeObject(bool hasNext = false);
+    GenericObject<stringT, configT> ScopeObject();
     
     /// Create a scoped GenericObject with key that auto-closes when destroyed.
     template<typename keyT>
     std::enable_if_t<is_key_v<keyT>, GenericObject<stringT, configT>>
-    ScopeObject(keyT&& key, bool hasNext = false);
+    ScopeObject(keyT&& key);
 
     /// M8: Advanced Methods
     /* ---------------------------------------------------------------------- */
@@ -749,33 +764,24 @@ struct GenericArray
 private:
     /// Reference to the builder.
     GenericBuilder<stringT, configT>& m_builder;
-    /// Whether to add separator after closing.
-    bool m_next;
 
 public:
     /// Constructor without key.
-    GenericArray(GenericBuilder<stringT, configT>& build, bool hasNext = false) : m_builder(build), m_next(hasNext)
+    GenericArray(GenericBuilder<stringT, configT>& build) : m_builder(build)
     {
         m_builder.BeginArray();
     }
 
     /// Constructor with key.
     template<typename keyT>
-    GenericArray(GenericBuilder<stringT, configT>& build, keyT&& key, bool hasNext = false) : m_builder(build), m_next(hasNext)
+    GenericArray(GenericBuilder<stringT, configT>& build, keyT&& key) : m_builder(build)
     {
         m_builder.PutKey(std::forward<keyT>(key));
         m_builder.BeginArray();
     }
 
     /// Destructor auto-closes array.
-    ~GenericArray()
-    {
-        m_builder.EndArray();
-        if (m_next)
-        {
-            m_builder.SepItem();
-        }
-    }
+    ~GenericArray() { m_builder.EndArray(); }
 
     /// Forward to builder method.
     template <typename... Args>
@@ -840,33 +846,24 @@ struct GenericObject
 private:
     /// Reference to the builder.
     GenericBuilder<stringT, configT>& m_builder;
-    /// Whether to add separator after closing.
-    bool m_next;
 
 public:
     /// Constructor without key.
-    GenericObject(GenericBuilder<stringT, configT>& build, bool hasNext = false) : m_builder(build), m_next(hasNext)
+    GenericObject(GenericBuilder<stringT, configT>& build) : m_builder(build)
     {
         m_builder.BeginObject();
     }
 
     /// Constructor with key.
     template<typename keyT>
-    GenericObject(GenericBuilder<stringT, configT>& build, keyT&& key, bool hasNext = false) : m_builder(build), m_next(hasNext)
+    GenericObject(GenericBuilder<stringT, configT>& build, keyT&& key) : m_builder(build)
     {
         m_builder.PutKey(std::forward<keyT>(key));
         m_builder.BeginObject();
     }
 
     /// Destructor auto-closes object.
-    ~GenericObject()
-    {
-        m_builder.EndObject();
-        if (m_next)
-        {
-            m_builder.SepItem();
-        }
-    }
+    ~GenericObject() { m_builder.EndObject(); }
 
     /// Forward to builder method.
     template <typename... Args>
@@ -947,31 +944,31 @@ public:
 
 /// Add scope methods to GenericBuilder.
 template<typename stringT, typename configT>
-inline GenericArray<stringT, configT> GenericBuilder<stringT, configT>::ScopeArray(bool hasNext)
+inline GenericArray<stringT, configT> GenericBuilder<stringT, configT>::ScopeArray()
 {
-    return GenericArray<stringT, configT>(*this, hasNext);
+    return GenericArray<stringT, configT>(*this);
 }
 
 template<typename stringT, typename configT>
 template<typename keyT>
 inline std::enable_if_t<is_key_v<keyT>, GenericArray<stringT, configT>>
-GenericBuilder<stringT, configT>::ScopeArray(keyT&& key, bool hasNext)
+GenericBuilder<stringT, configT>::ScopeArray(keyT&& key)
 {
-    return GenericArray<stringT, configT>(*this, std::forward<keyT>(key), hasNext);
+    return GenericArray<stringT, configT>(*this, std::forward<keyT>(key));
 }
 
 template<typename stringT, typename configT>
-inline GenericObject<stringT, configT> GenericBuilder<stringT, configT>::ScopeObject(bool hasNext)
+inline GenericObject<stringT, configT> GenericBuilder<stringT, configT>::ScopeObject()
 {
-    return GenericObject<stringT, configT>(*this, hasNext);
+    return GenericObject<stringT, configT>(*this);
 }
 
 template<typename stringT, typename configT>
 template<typename keyT>
 inline std::enable_if_t<is_key_v<keyT>, GenericObject<stringT, configT>>
-GenericBuilder<stringT, configT>::ScopeObject(keyT&& key, bool hasNext)
+GenericBuilder<stringT, configT>::ScopeObject(keyT&& key)
 {
-    return GenericObject<stringT, configT>(*this, std::forward<keyT>(key), hasNext);
+    return GenericObject<stringT, configT>(*this, std::forward<keyT>(key));
 }
 
 /// Type aliases for backward compatibility and common usage.

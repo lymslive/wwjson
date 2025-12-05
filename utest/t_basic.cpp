@@ -29,8 +29,34 @@ DEF_TAST(basic_builder, "test json builder with raw string")
     builder.AddMember("intf", 125, false);
 
     builder.EndObject();
+    builder.GetResult();
 
     std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.500000,"double":0.333333,"ints":"124","intf":"125"})";
+    COUT(builder.json, expect);
+    COUT(test::IsJsonValid(builder.json), true);
+}
+
+DEF_TAST(basic_builder_root, "test json builder using BeginRoot")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginRoot();
+    builder.AddMember("int", 123);
+    builder.AddMember("string", "123");
+    builder.AddMember("char", '1');
+    builder.EndRoot();
+
+    std::string expect = R"({"int":123,"string":"123","char":49})";
+    COUT(builder.json, expect);
+    COUT(test::IsJsonValid(builder.json), true);
+
+    builder.Clear();
+    builder.BeginRoot('[');
+    builder.AddItem(123);
+    builder.AddItem("123");
+    builder.AddItem('1');
+    builder.EndRoot(']');
+
+    expect = R"([123,"123",49])";
     COUT(builder.json, expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
@@ -38,7 +64,7 @@ DEF_TAST(basic_builder, "test json builder with raw string")
 DEF_TAST(basic_builder_nest, "test build nest json with array of object")
 {
     wwjson::RawBuilder builder;
-    builder.BeginObject();
+    builder.BeginRoot();
 
     std::string title = "Title";
     builder.AddMember("title", title);
@@ -49,8 +75,6 @@ DEF_TAST(basic_builder_nest, "test build nest json with array of object")
     builder.AddMember("string", "123");
     builder.EndObject();
 
-    builder.SepItem();
-
     builder.PutKey("bodys");
     builder.BeginArray();
 
@@ -59,8 +83,6 @@ DEF_TAST(basic_builder_nest, "test build nest json with array of object")
     unsigned char c = '2';
     builder.AddMember("uchar", c);
     builder.EndObject();
-
-    builder.SepItem();
 
     builder.BeginObject();
     short sh = 280;
@@ -73,13 +95,14 @@ DEF_TAST(basic_builder_nest, "test build nest json with array of object")
 
     builder.EndArray();
 
-    builder.EndObject();
+    builder.EndRoot();
+    // Not neccessay after EndRoot(), but needed after EndObject
+//  builder.GetResult();
 
     std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},{"short":280,"double":0.500000,"double":0.333333}]})";
     COUT(builder.json, expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
-
 
 DEF_TAST(basic_wrapper, "test M1 string interface wrapper methods")
 {
@@ -171,7 +194,6 @@ DEF_TAST(basic_null_bool_empty, "test null, bool, empty array and empty object")
     builder.AddItem(false);
     builder.AddItem("string");  // For comparison
     builder.EndArray();
-    builder.SepItem();
 
     // Test object with null and bool values
     builder.PutKey("object_with_null_bool");
@@ -182,6 +204,7 @@ DEF_TAST(basic_null_bool_empty, "test null, bool, empty array and empty object")
     builder.EndObject();
 
     builder.EndObject();
+    builder.GetResult();
 
     std::string expect = R"({"null_value":null,"null_direct":null,"bool_true":true,"bool_false":false,"bool_direct_true":true,"bool_direct_false":false,"empty_array_direct":[],"empty_object_direct":{},"array_with_null_bool":[null,true,false,"string"],"object_with_null_bool":{"null_field":null,"true_field":true,"false_field":false}})";
     COUT(builder.json, expect);
@@ -255,7 +278,7 @@ DEF_TAST(basic_low_level, "test using low-level methods PutKey/PutValue/PutNext"
     builder.EndObject();
 
     std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.500000,"double":0.333333,"ints":"124","intf":"125","numbers":[1,2,3]})";
-    COUT(builder.json, expect);
+    COUT(builder.GetResult(), expect);
 }
 
 DEF_TAST(basic_addmember_overloads, "test new AddMember overloads with different key parameter types")
@@ -280,7 +303,7 @@ DEF_TAST(basic_addmember_overloads, "test new AddMember overloads with different
     builder.EndObject();
 
     std::string expect = R"({"str_key":"string_value","int_key":42,"std_key":"std_value","std_key":123})";
-    COUT(builder.json, expect);
+    COUT(builder.GetResult(), expect);
 }
 
 DEF_TAST(basic_string_view_support, "test std::string_view support for keys and values")
@@ -314,6 +337,7 @@ DEF_TAST(basic_string_view_support, "test std::string_view support for keys and 
     builder.AddMemberEscape("escape_sv_value", sv_escape_value);
 
     builder.EndObject();
+    builder.GetResult();
 
     std::string expect = R"({"sv_key1":"string_value","sv_key1":42,"sv_value_key":"sv_value","sv_key2":"assigned_value","sv_key3":3.140000,"sv_key4":"escaped\nvalue","escape_sv_value":"value\twith\ttabs"})";
     COUT(builder.json, expect);
@@ -326,8 +350,7 @@ DEF_TAST(basic_getresult, "test GetResult removes trailing comma")
     builder.BeginObject();
     builder.AddMember("key1", "value1");
     builder.AddMember("key2", "value2");
-    // Simulate case where trailing comma might exist
-    builder.EndObject(true);
+    builder.EndObject();
 
     // const GetResult keep trailing comma
     {
@@ -439,14 +462,14 @@ DEF_TAST(basic_null_string, "test null pointer safety in string edge cases")
     
     // Result should contain only the valid member, null calls should be ignored
     std::string expect = R"({"valid_key":"valid_value"})";
-    COUT(builder.json, expect);
+    COUT(builder.GetResult(), expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
 
 DEF_TAST(basic_empty_string, "test not null but empty string edge cases")
 {
     wwjson::RawBuilder builder;
-    builder.BeginObject();
+    builder.BeginRoot();
     
     // Test zero-length strings - should work properly
     builder.PutKey("", 0);
@@ -466,7 +489,7 @@ DEF_TAST(basic_empty_string, "test not null but empty string edge cases")
     // Add a valid member to separate from empty key-value pairs
     builder.AddMember("valid_key", "valid_value");
     
-    builder.EndObject();
+    builder.EndRoot();
     
     // Empty strings should be processed and added as empty JSON strings with quotes
     std::string expect = R"({"":"""","":"""",,"valid_key":"valid_value"})";
@@ -477,10 +500,10 @@ DEF_TAST(basic_empty_string, "test not null but empty string edge cases")
     
     // Test a cleaner version with just one empty string
     wwjson::RawBuilder builder2;
-    builder2.BeginObject();
+    builder2.BeginRoot();
     builder2.PutKey("empty_key");
     builder2.PutValue("");
-    builder2.EndObject();
+    builder2.EndRoot();
     
     std::string expect2 = R"({"empty_key":""})";
     COUT(builder2.json, expect2);
@@ -488,10 +511,10 @@ DEF_TAST(basic_empty_string, "test not null but empty string edge cases")
     
     // Test empty key with empty value
     wwjson::RawBuilder builder3;
-    builder3.BeginObject();
+    builder3.BeginRoot();
     builder3.PutKey("");
     builder3.PutValue("empty_val");
-    builder3.EndObject();
+    builder3.EndRoot();
     
     std::string expect3 = R"({"":"empty_val"})";
     COUT(builder3.json, expect3);

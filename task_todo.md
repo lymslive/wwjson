@@ -523,6 +523,52 @@ ScopeArray/Object 需要在 {} 作用域中使析构生效关闭相应括号，�
 
 ### DONE: 20251204-223557
 
+## TODO:2025-12-05/1 修改 EndArray/Object 默认行为自动加逗号
+
+当前实现：GenericBuilder End 方法允许接收一个可选 bool 参数，其实为了性能原因
+减少判断是个重载版本，EndObject(true) 会多加一个逗号，而 EndObject() 不加逗号
+，只加 `}'。
+
+遭遇问题：在拼装嵌套 Json 时，经常忘记加 true 参数，使 EndArray 方法不能像
+AddItem 方法一样自动加逗号，导致生成非法 json ，除非是父容器的最后一个元素，
+两种 End 方法可不必加逗号。
+
+一个可能的智能解决办法是每次 AddItem 或 BeginArray/Object 子结构时判断前面有没
+逗号，但这会影响性能，每次在后面加逗号更快，只需在 EndArray/Object 时判断一次
+尾逗号。
+
+所以决定改变 EndArray/Object 默认行为，始终加上逗号，与 AddItem 逻辑保持一致。
+唯一会导致的新问题时，在根数组或根对象结束时，也会加上逗号。需要使用 GetResult
+方法处理最终的尾逗号，但也只需调用一次。
+
+另一个原因是，在 json 最后多一个逗号的错误，比在中间少一个逗号更容易发现并纠正
+。
+
+具体修改方案：
+- 删除 EndArray/Object(bool) 重载；在剩下的版本中加上 PutNext() 自动补逗号。
+- GenericArray/Object 类删除 `m_next` 成员，相关构造函数与创建方法移除最后一个
+  可选 bool 参数。析构函数简单调用 EndArray/Object.
+- 增加 Begin/EndRoot(char) 方法，参数有默认值 `{` 或 `}` ，可传 `[` 或 `]'，但
+  不必检查传入参数。EndRoot 不要加逗号。
+
+这个默认行为的变动，会破坏原来的单元测试，修复方案：
+- 先检查编译错误，删除调用 EndArray 等方法时额外传的 bool 参数；
+- 再检查测试错误，如果是生成的 json 尾部多一个逗号，在 End 方法后多加一条
+  GetResult 调用语句，或直接用 GetResult() 代替 builder.json 访问，这两种解决
+  方法都要有体现。
+- 注意不是所有测试用例都意图生成合法 json ，未报错的可不改。
+
+然后在 `t_basic.cpp` 增加测试用例使用 BeginRoot 与 EndRoot:
+- 在 `basic_builder` 第一个用例后面加一个 `basic_builder_root` 用例
+- 在后面 `basic_builder_nest` 等一些用例中，将最外层的 BeginObject 改为
+  BeginRoot ，但不必所有用例都改。
+
+其他相关修改点：
+- MoveResult 要调用 GetResult 保证正确处理了尾逗号
+- AddItem 函数时，要判断函数本身没有加尾逗号时才加逗号
+
+### DONE: 20251205-111355
+
 ## TODO: 建立性能测试框架
 
 也用自研测试库 couttast 构建性能测试。

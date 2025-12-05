@@ -14,7 +14,7 @@ DEF_TAST(scope_ctor_nest, "test build nest json with RAII auto close")
 
         // need scope for head, to auto close {}
         {
-            wwjson::RawObject head(builder, "head", true);
+            wwjson::RawObject head(builder, "head");
             head.AddMember("int", 123);
             head.AddMember("string", "123");
         }
@@ -22,14 +22,14 @@ DEF_TAST(scope_ctor_nest, "test build nest json with RAII auto close")
         {
             wwjson::RawArray bodys(builder, "bodys");
             {
-                wwjson::RawObject body(builder, true);
+                wwjson::RawObject body(builder);
                 body.AddMember("char", '1');
                 unsigned char c = '2';
                 body.AddMember("uchar", c);
             }
             bodys.AddItem("simple");
             {
-                wwjson::RawObject body(builder, true);
+                wwjson::RawObject body(builder);
                 short sh = 280;
                 body.AddMember("short", sh);
                 double half = 0.5;
@@ -41,7 +41,7 @@ DEF_TAST(scope_ctor_nest, "test build nest json with RAII auto close")
     } // auto add right brace when destruct root beyond scope
 
     std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.500000,"double":0.333333}]})";
-    COUT(builder.json, expect);
+    COUT(builder.GetResult(), expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
 
@@ -56,7 +56,7 @@ DEF_TAST(scope_auto_nest, "test build nest json with auto close using scope meth
 
         // need scope for head, to auto close {}
         {
-            auto head = builder.ScopeObject("head", true);
+            auto head = builder.ScopeObject("head");
             head.AddMember("int", 123);
             head.AddMember("string", "123");
         }
@@ -64,14 +64,14 @@ DEF_TAST(scope_auto_nest, "test build nest json with auto close using scope meth
         {
             auto bodys = builder.ScopeArray("bodys");
             {
-                auto body = builder.ScopeObject(true);
+                auto body = builder.ScopeObject();
                 body.AddMember("char", '1');
                 unsigned char c = '2';
                 body.AddMember("uchar", c);
             }
             bodys.AddItem("simple");
             {
-                auto body = builder.ScopeObject(true);
+                auto body = builder.ScopeObject();
                 short sh = 280;
                 body.AddMember("short", sh);
                 double half = 0.5;
@@ -83,7 +83,7 @@ DEF_TAST(scope_auto_nest, "test build nest json with auto close using scope meth
     } // auto add right brace when destruct root beyond scope
 
     std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.500000,"double":0.333333}]})";
-    COUT(builder.json, expect);
+    COUT(builder.GetResult(), expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
 
@@ -99,11 +99,12 @@ DEF_TAST(scope_vs_constructor, "test scope methods vs constructor approach")
             items.AddItem(1);
             items.AddItem(2);
             {
-                auto nested = scopeBuilder.ScopeObject(true);
+                auto nested = scopeBuilder.ScopeObject();
                 nested.AddMember("key", "value");
             }
         }
     }
+    scopeBuilder.GetResult();
     
     // Test using constructors (old approach)
     wwjson::RawBuilder ctorBuilder;
@@ -115,11 +116,12 @@ DEF_TAST(scope_vs_constructor, "test scope methods vs constructor approach")
             items.AddItem(1);
             items.AddItem(2);
             {
-                wwjson::RawObject nested(ctorBuilder, true);
+                wwjson::RawObject nested(ctorBuilder);
                 nested.AddMember("key", "value");
             }
         }
     }
+    ctorBuilder.GetResult();
     
     std::string expect = R"({"name":"test","items":[1,2,{"key":"value"}]})";
     COUT(scopeBuilder.json, expect);
@@ -136,12 +138,12 @@ DEF_TAST(scope_if_bool_operator, "test operator bool in if statements for scope 
         root.AddMember("name", "test_if");
         
         // Test nested if with GenericArray
-        if (auto items = builder.ScopeArray("items", true)) {
+        if (auto items = builder.ScopeArray("items")) {
             items.AddItem(1);
             items.AddItem(2);
             
             // Test deeply nested if with GenericObject
-            if (auto nested = builder.ScopeObject(true)) {
+            if (auto nested = builder.ScopeObject()) {
                 nested.AddMember("nested_key", "nested_value");
             }
         }
@@ -154,7 +156,7 @@ DEF_TAST(scope_if_bool_operator, "test operator bool in if statements for scope 
     }
     
     std::string expect = R"({"name":"test_if","items":[1,2,{"nested_key":"nested_value"}],"config":{"debug":true,"version":1.000000}})";
-    COUT(builder.json, expect);
+    COUT(builder.GetResult(), expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
 
@@ -169,6 +171,7 @@ DEF_TAST(scope_if_bool_vs_constructor, "test if bool syntax with constructor app
             arr.AddItem("second");
         }
     }
+    ifBuilder.GetResult();
     
     // Test traditional constructor approach
     wwjson::RawBuilder ctorBuilder;
@@ -181,6 +184,7 @@ DEF_TAST(scope_if_bool_vs_constructor, "test if bool syntax with constructor app
             arr.AddItem("second");
         }
     }
+    ctorBuilder.GetResult();
     
     std::string expect = R"({"method":"if_syntax","data":["first","second"]})";
     COUT(ifBuilder.json, expect);

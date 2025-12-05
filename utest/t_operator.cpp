@@ -24,7 +24,7 @@ DEF_TAST(operator_string_key, "test operator[] with string keys and assignment")
     builder.EndObject();
 
     std::string expect = R"({"name":"John","city":"New York","age":25,"salary":50000.500000,"active":true,"middle_name":null})";
-    COUT(builder.json, expect);
+    COUT(builder.GetResult(), expect);
 }
 
 DEF_TAST(operator_array_index, "test operator[] with array indices and assignment")
@@ -69,7 +69,7 @@ DEF_TAST(operator_mixed_usage, "test operator[] mixed with traditional methods")
     builder[0] = "item1";
     builder.AddItem("item2");  // Traditional array method
     builder[2] = "item3";
-    builder.EndArray(true);
+    builder.EndArray();
 
     // Mix in object
     builder.BeginObject("nested");
@@ -166,7 +166,7 @@ DEF_TAST(operator_nested_structures, "test operator[] with nested objects and ar
     builder["zipcode"] = "12345";
     builder.EndObject();
 
-    builder.EndObject(true);
+    builder.EndObject();
 
     // Nested array using operator[]
     builder.BeginArray("matrix");
@@ -174,7 +174,7 @@ DEF_TAST(operator_nested_structures, "test operator[] with nested objects and ar
     builder[0] = 1;
     builder[1] = 2;
     builder[2] = 3;
-    builder.EndArray(true);
+    builder.EndArray();
 
     builder.BeginArray();
     builder[0] = 4;
@@ -197,7 +197,7 @@ DEF_TAST(operator_raii_compatibility, "test operator[] compatibility with RAII s
 
     {
         // Test with RawObject scope
-        wwjson::RawObject obj = builder.ScopeObject("scoped", true);
+        wwjson::RawObject obj = builder.ScopeObject("scoped");
         obj["inner_key"] = "inner_value";
         obj["inner_number"] = 42;
 
@@ -330,19 +330,19 @@ DEF_TAST(operator_stream_mixed, "test operator<< mixed with traditional methods"
     builder.AddMember("traditional", "value");
     {
         // Operator<< with array scope
-        wwjson::RawArray arr = builder.ScopeArray("operators", true);
+        wwjson::RawArray arr = builder.ScopeArray("operators");
         arr << "stream1" << 123 << "stream2";
     }
 
     {
         // Mix in object scope
-        wwjson::RawObject obj = builder.ScopeObject("mixed", true);
+        wwjson::RawObject obj = builder.ScopeObject("mixed");
         obj << "key1" << "value1";
         obj.AddMember("key2", "value2");  // Mix with traditional
         obj << "key3" << "value3";
         {
             // More array mixing
-            wwjson::RawArray arr2 = obj.ScopeArray("nested_array", true);
+            wwjson::RawArray arr2 = obj.ScopeArray("nested_array");
             arr2 << "nested1";
             arr2.AddItem("nested2");
             arr2 << "nested3";
@@ -363,12 +363,12 @@ DEF_TAST(operator_stream_types, "test operator<< with various data types")
     builder.BeginObject();
     {
         // Array with different types via operator<<
-        wwjson::RawArray arr = builder.ScopeArray("data", true);
+        wwjson::RawArray arr = builder.ScopeArray("data");
         arr << "string" << 123 << 3.14 << true << false << nullptr;
     }
     {
         // Object with different types via operator<<
-        wwjson::RawObject obj = builder.ScopeObject("types", true);
+        wwjson::RawObject obj = builder.ScopeObject("types");
         obj << "str" << "hello" << "int" << 42 << "float" << 2.5 << "bool" << true << "null_val" << nullptr;
 
     }
@@ -386,15 +386,15 @@ DEF_TAST(operator_stream_complex, "test operator<< with complex nested structure
 
     {
         // Complex nested structure using operator<<
-        wwjson::RawObject config = builder.ScopeObject("config", true);
+        wwjson::RawObject config = builder.ScopeObject("config");
         config << "database" << "postgresql" << "port" << 5432;
         {
             // Nested object with arrays
-            wwjson::RawObject database = config.ScopeObject("settings", true);
+            wwjson::RawObject database = config.ScopeObject("settings");
             database << "timeout" << 30 << "retries" << 3;
             {
                 // Array in nested object
-                wwjson::RawArray hosts = database.ScopeArray("hosts", true);
+                wwjson::RawArray hosts = database.ScopeArray("hosts");
                 hosts << "localhost" << "127.0.0.1" << "remote-server";
             }
         }
