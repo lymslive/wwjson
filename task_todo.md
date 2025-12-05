@@ -569,7 +569,7 @@ AddItem 方法一样自动加逗号，导致生成非法 json ，除非是父容
 
 ### DONE: 20251205-111355
 
-## TODO: 建立性能测试框架
+## TODO:2025-12-05/2 建立性能测试框架
 
 也用自研测试库 couttast 构建性能测试。
 
@@ -602,6 +602,8 @@ perf/test_data.cpp 要求：
 - COUT 断言语句，对于 double 参数，可传入第三参数表示允许误差，如
   `COUT(size*1.0, expect_size*1024.0, 10.0)`
 - 将生成示例 json 写入 `perf/test_data.tmp/*.json` 文件。
+
+### DONE: 20251205-143741
 
 ## TODO: 初始观察比较 wwjson 与 yyjson 构造 json 的性能
 

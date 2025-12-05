@@ -1,18 +1,19 @@
 # Makefile for wwjson project
 # Common commands integration for development workflow
 
-.PHONY: build test build/perf install clean help release perf
+.PHONY: build test build/perf install clean clean/perf help release perf
 
 # Default target
 help:
 	@echo "Available targets:"
-	@echo "  build      - Build the project using cmake and make"
-	@echo "  test       - Build and test"
+	@echo "  build      - Build the project in debug mode (build/ directory)"
+	@echo "  test       - Build and run unit tests"
 	@echo "  install    - Install the library"
-	@echo "  clean      - Clean build directory"
-	@echo "  release    - Build in release mode with performance tests"
-	@echo "  build/perf - Build perf_test target"
-	@echo "  perf       - Run performance tests (requires BUILD_PERF)"
+	@echo "  clean      - Clean debug build directory"
+	@echo "  clean/perf - Clean release build directory"
+	@echo "  release    - Build in release mode (build-release/ directory)"
+	@echo "  build/perf - Build performance test in release mode"
+	@echo "  perf       - Run performance tests (requires BUILD_PERF_TESTS)"
 	@echo "  help       - Show this help message"
 	@echo ""
 	@echo "make <target> -n  Show the command to execute only"
@@ -43,20 +44,24 @@ install: build
 clean:
 	rm -rf build
 
-# Ge# Build in Release mode with performance tests enabled
-release: clean
+# Build in Release mode with performance tests enabled
+release: clean/perf
 	@echo "Building in Release mode with performance tests enabled..."
-	mkdir -p build
-	cd build && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -DBUILD_PERF=ON ..
-	cd build && make -j4
+	mkdir -p build-release
+	cd build-release && cmake -DCMAKE_BUILD_TYPE=Release  -DBUILD_PERF_TESTS=ON ..
+	cd build-release && make -j4
 
 build/perf:
-	cd build/perf && make
+	cd build-release/perf && make
+
+# Clean release build directory
+clean/perf:
+	rm -rf build-release
 
 # Run performance tests
 perf: build/perf
 	@echo "Running performance tests..."
-	./build/perf/pfwwjson
+	./build-release/perf/pfwwjson
 
 # Alias for help target
 .DEFAULT_GOAL := help

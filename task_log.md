@@ -1288,3 +1288,38 @@ builder.EndRoot('}'); // 不加逗号
 - 嵌套构建时 EndArray/Object() 会自动添加逗号，更符合直觉
 - kTailComma 配置继续控制内部逗号处理，不影响外部逗号添加
 
+## TASK:20251205-143741
+-----------------------
+
+### 任务概述
+建立性能测试框架，使用自研测试库 couttast 构建性能测试，为后续性能基准测试提供基础设施。
+
+### 实现内容
+
+**CMake 配置更新**
+- 根目录 CMakeLists.txt 添加 WWJSON_LIB_ONLY 选项（默认 OFF）
+- 添加 BUILD_PERF_TESTS 选项（默认 OFF）
+- 将 couttast 和 yyjson 依赖逻辑上移到根目录
+- 在 if(NOT WWJSON_LIB_ONLY) 条件下添加 utest 和 perf 子目录
+
+**Makefile 优化**
+- release 编译放在 build-release 目录，与 debug 编译分离
+- 更新 BUILD_PERF 为 BUILD_PERF_TESTS
+- 添加 clean/perf 目标清理 release 构建
+
+**性能测试框架结构**
+- 创建 perf/ 目录结构，参考 utest/ 模式
+- perf/CMakeLists.txt 配置性能测试可执行文件
+- perf/README.md 中文文档说明
+
+**测试数据生成**
+- perf/test_data.h/.cpp 实现 JSON 测试数据生成
+- test::BuildJson 函数生成 [0.5k, 1k, 10k, 100k, 500k, 1M] 不同规模 JSON
+- data_sample 工具测试用例（使用 DEF_TOOL 宏）
+- 生成的文件保存在 perf/test_data.tmp/ 目录
+
+### 验证结果
+- CMake 配置成功，无编译错误
+- 性能测试可执行文件 pfwwjson 构建成功
+- data_sample 工具正常运行，成功生成测试 JSON 文件
+- 文件大小验证在允许误差范围内（±10字节）
