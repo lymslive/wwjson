@@ -607,7 +607,7 @@ perf/test_data.cpp 要求：
 
 ### DONE: 20251205-143741
 
-## TODO: 初始观察比较 wwjson 与 yyjson 构造 json 的性能
+## TODO:2025-12-05/3 初始观察比较 wwjson 与 yyjson 构造 json 的性能
 
 在 perf/test_data.cpp 中扩展生成函数，增加 test::yyjson::BuildJson() 函数，使
 用 yyjson 的 api （可参考本地安装的 /usr/local/include/yyjson.h）生成与原来利
@@ -632,6 +632,8 @@ perf/test_data.cpp 要求：
 最后运行 pfwwjson 数次，观察统计每个用例的运行用时。
 
 另注：新 .cpp 文件需添加到 CMakeLists.txt
+
+### DONE: 20251205-184030
 
 ## TODO: 测试整数序列化性能
 

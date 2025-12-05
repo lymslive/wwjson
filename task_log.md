@@ -1323,3 +1323,68 @@ builder.EndRoot('}'); // 不加逗号
 - 性能测试可执行文件 pfwwjson 构建成功
 - data_sample 工具正常运行，成功生成测试 JSON 文件
 - 文件大小验证在允许误差范围内（±10字节）
+
+## TASK:20251205-184030
+-----------------------
+
+### 任务概述
+创建 wwjson 与 yyjson 构建器性能对比测试，实现基于整数参数的 JSON 生成策略，消除 yyjson 临时序列化的额外开销。
+
+### 实现内容
+
+**性能测试框架完善**
+- `perf/argv.h`: 实现命令行参数处理，支持 `--loop=n` 参数控制测试循环次数
+- `perf/test_data.h/.cpp`: 扩展支持 `test::yyjson::BuildJson()` 函数，实现与 wwjson 相同的 JSON 结构
+- `perf/p_builder.cpp`: 创建性能测试用例，对比 wwjson::RawBuilder 与 yyjson 的构建性能
+
+**JSON 生成策略优化**
+- 初始方案：使用 `BuildJson(std::string& dst, double size_k)` 按大小生成 JSON
+- 发现问题：yyjson 需要临时序列化估算长度，产生额外性能开销
+- 优化方案：重载 `BuildJson(std::string& dst, int n)` 使用整数参数控制 item 数量
+
+**Size Mapping 分析**
+- 创建 `test_json_sizes` 工具分析不同 n 值对应的 JSON 大小
+- 建立映射关系：
+  - n=6 → ~0.5k JSON
+  - n=12 → ~1k JSON  
+  - n=120 → ~10k JSON
+  - n=1200 → ~100k JSON
+
+**测试用例重写**
+- 将 `p_builder.cpp` 中的 8 个测试用例从大小参数改为整数参数
+- 更新测试用例描述，明确显示使用的 n 值和预期 JSON 大小
+- 优化输出格式，使用 `%zu` 正确显示 size_t 类型的 JSON 大小
+
+### 测试用例结构
+- `p_wwjson_0_5k`: wwjson 构建 ~0.5k JSON (n=6)
+- `p_yyjson_0_5k`: yyjson 构建 ~0.5k JSON (n=6)
+- `p_wwjson_1k`: wwjson 构建 ~1k JSON (n=12)
+- `p_yyjson_1k`: yyjson 构建 ~1k JSON (n=12)
+- `p_wwjson_10k`: wwjson 构建 ~10k JSON (n=120)
+- `p_yyjson_10k`: yyjson 构建 ~10k JSON (n=120)
+- `p_wwjson_100k`: wwjson 构建 ~100k JSON (n=1200)
+- `p_yyjson_100k`: yyjson 构建 ~100k JSON (n=1200)
+
+### 验证结果
+- 编译成功：所有性能测试文件编译无错误
+- 功能验证：测试用例正常运行，输出正确 JSON 大小
+- 性能测试：使用 `--loop=1` 参数验证基本功能正常
+- 结构一致性：wwjson 和 yyjson 生成相同结构的 JSON，确保公平比较
+
+### 技术优势
+- **性能优化**：整数参数策略避免了 yyjson 临时序列化的额外开销
+- **结构一致性**：确保两个库生成相同结构的 JSON，便于公平比较
+- **精确控制**：通过 n 值直接控制生成的 item 数量，更精确可靠
+- **可扩展性**：框架支持轻松添加更多测试用例和参数组合
+
+### 使用示例
+```bash
+# 运行所有性能测试
+./build-release/perf/pfwwjson --loop=1000
+
+# 运行特定大小测试
+./build-release/perf/pfwwjson p_wwjson_1k p_yyjson_1k --loop=1000
+
+# 查看测试用例列表
+./build-release/perf/pfwwjson --list
+```

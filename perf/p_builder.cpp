@@ -1,0 +1,145 @@
+#include "couttast/tinytast.hpp"
+#include "test_data.h"
+#include "argv.h"
+#include <string>
+
+/**
+ * @brief Performance test suite for comparing wwjson and yyjson builders
+ * 
+ * This test suite creates multiple test cases that measure the performance
+ * of wwjson::RawBuilder versus yyjson's mutable document API for generating
+ * JSON data of various sizes. The test cases use integer parameters (n) to
+ * control the complexity of generated JSON, based on size mapping:
+ * - ~0.5k JSON: n=6
+ * - ~1k JSON: n=12
+ * - ~10k JSON: n=120
+ * - ~100k JSON: n=1200
+ */
+
+// Performance test for wwjson builder with ~0.5k JSON (n=6)
+DEF_TAST(p_wwjson_0_5k, "Performance test for wwjson builder (~0.5k JSON, n=6)")
+{
+    test::CArgv argv;
+    std::string json_data;
+    
+    TIME_TIC;
+    for (int i = 0; i < argv.loop; i++) {
+        test::BuildJson(json_data, 6);
+    }
+    TIME_TOC;
+    
+    DESC("Loop count: %d", argv.loop);
+    DESC("Generated JSON size: %zu bytes", json_data.size());
+}
+
+// Performance test for yyjson builder with ~0.5k JSON (n=6)
+DEF_TAST(p_yyjson_0_5k, "Performance test for yyjson builder (~0.5k JSON, n=6)")
+{
+    test::CArgv argv;
+    std::string json_data;
+    
+    TIME_TIC;
+    for (int i = 0; i < argv.loop; i++) {
+        test::yyjson::BuildJson(json_data, 6);
+    }
+    TIME_TOC;
+    
+    DESC("Loop count: %d", argv.loop);
+    DESC("Generated JSON size: %zu bytes", json_data.size());
+}
+
+// Performance test for wwjson builder with ~1k JSON (n=12)
+DEF_TAST(p_wwjson_1k, "Performance test for wwjson builder (~1k JSON, n=12)")
+{
+    test::CArgv argv;
+    std::string json_data;
+    
+    TIME_TIC;
+    for (int i = 0; i < argv.loop; i++) {
+        test::BuildJson(json_data, 12);
+    }
+    TIME_TOC;
+    
+    DESC("Loop count: %d", argv.loop);
+    DESC("Generated JSON size: %zu bytes", json_data.size());
+}
+
+// Performance test for yyjson builder with ~1k JSON (n=12)
+DEF_TAST(p_yyjson_1k, "Performance test for yyjson builder (~1k JSON, n=12)")
+{
+    test::CArgv argv;
+    std::string json_data;
+    
+    TIME_TIC;
+    for (int i = 0; i < argv.loop; i++) {
+        test::yyjson::BuildJson(json_data, 12);
+    }
+    TIME_TOC;
+    
+    DESC("Loop count: %d", argv.loop);
+    DESC("Generated JSON size: %zu bytes", json_data.size());
+}
+
+// Performance test for wwjson builder with ~10k JSON (n=120)
+DEF_TAST(p_wwjson_10k, "Performance test for wwjson builder (~10k JSON, n=120)")
+{
+    test::CArgv argv;
+    std::string json_data;
+    
+    TIME_TIC;
+    for (int i = 0; i < argv.loop; i++) {
+        test::BuildJson(json_data, 120);
+    }
+    TIME_TOC;
+    
+    DESC("Loop count: %d", argv.loop);
+    DESC("Generated JSON size: %zu bytes", json_data.size());
+}
+
+// Performance test for yyjson builder with ~10k JSON (n=120)
+DEF_TAST(p_yyjson_10k, "Performance test for yyjson builder (~10k JSON, n=120)")
+{
+    test::CArgv argv;
+    std::string json_data;
+    
+    TIME_TIC;
+    for (int i = 0; i < argv.loop; i++) {
+        test::yyjson::BuildJson(json_data, 120);
+    }
+    TIME_TOC;
+    
+    DESC("Loop count: %d", argv.loop);
+    DESC("Generated JSON size: %zu bytes", json_data.size());
+}
+
+// Performance test for wwjson builder with ~100k JSON (n=1200)
+DEF_TAST(p_wwjson_100k, "Performance test for wwjson builder (~100k JSON, n=1200)")
+{
+    test::CArgv argv;
+    std::string json_data;
+    
+    TIME_TIC;
+    for (int i = 0; i < argv.loop; i++) {
+        test::BuildJson(json_data, 1200);
+    }
+    TIME_TOC;
+    
+    DESC("Loop count: %d", argv.loop);
+    DESC("Generated JSON size: %zu bytes", json_data.size());
+}
+
+// Performance test for yyjson builder with ~100k JSON (n=1200)
+DEF_TAST(p_yyjson_100k, "Performance test for yyjson builder (~100k JSON, n=1200)")
+{
+    test::CArgv argv;
+    std::string json_data;
+    
+    TIME_TIC;
+    for (int i = 0; i < argv.loop; i++) {
+        test::yyjson::BuildJson(json_data, 1200);
+    }
+    TIME_TOC;
+    
+    DESC("Loop count: %d", argv.loop);
+    DESC("Generated JSON size: %zu bytes", json_data.size());
+}

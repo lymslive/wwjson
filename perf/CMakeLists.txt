@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.15)
 # Create performance test executable
 add_executable(pfwwjson
     test_data.cpp
+    p_builder.cpp
 )
 
 # Link with wwjson library
