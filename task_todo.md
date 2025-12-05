@@ -412,6 +412,8 @@ json 的用例，断言其是合法有效的 json 。
 请全面分析是否还有其他安全隐患的代码，也一并修正。
 
 ### DONE: 20251203-171352
+### DONE: 20251205~165145
+补充 `wwjson_likely` / `wwjson_unlikely` 优化。
 
 ## TODO:2025-12-03/3 GenericBuilder 代码组织优化
 

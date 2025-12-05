@@ -14,6 +14,17 @@
 #ifndef WWJSON_HPP__
 #define WWJSON_HPP__
 
+// Branch prediction macros for performance optimization
+#ifndef wwjson_likely
+    #if defined(__GNUC__) || defined(__clang__)
+        #define wwjson_likely(x)     __builtin_expect(!!(x), 1)
+        #define wwjson_unlikely(x)   __builtin_expect(!!(x), 0)
+    #else
+        #define wwjson_likely(x)     (x)
+        #define wwjson_unlikely(x)   (x)
+    #endif
+#endif
+
 #include <type_traits>
 #include <string>
 #include <string_view>
@@ -110,14 +121,14 @@ struct BasicConfig
     /// Escape object key (usually no escaping needed for keys).
     static void EscapeKey(stringT& dst, const char* key, size_t len)
     {
-        if (key == nullptr) { return; }
+        if (wwjson_unlikely(key == nullptr)) { return; }
         dst.append(key, len);
     }
     
     /// Escape string using the compile-time escape table.
     static void EscapeString(stringT& dst, const char* src, size_t len)
     {
-        if (src == nullptr) { return; }
+        if (wwjson_unlikely(src == nullptr)) { return; }
         
         // Pre-allocate memory to reduce reallocations
         dst.reserve(dst.size() + len + len / 4);
@@ -126,7 +137,7 @@ struct BasicConfig
         {
             unsigned char c = static_cast<unsigned char>(src[i]);
             
-            if (c >= 128)
+            if (wwjson_unlikely(c >= 128))
             {
                 // May UTF-8 byte stream, append directly
                 dst.push_back(c);
@@ -135,7 +146,7 @@ struct BasicConfig
             {
                 // ASCII character, check escape table once
                 uint8_t escape_char = kEscapeTable[c];
-                if (escape_char != 0)
+                if (wwjson_unlikely(escape_char != 0))
                 {
                     dst.push_back('\\');
                     dst.push_back(escape_char);
@@ -181,7 +192,8 @@ struct GenericBuilder
     /// consult configT::kTailComma.
     stringT& GetResult()
     {
-        if (!json.empty() && json.back() == ',')
+        if (wwjson_unlikely(json.empty())) { return json; }
+        if (json.back() == ',')
         {
             json.pop_back();
         }
@@ -200,7 +212,7 @@ struct GenericBuilder
     /// Fix trailing character if it matches expected, replace with replacement.
     void FixTail(char expected, char replacement)
     {
-        if (!json.empty() && json.back() == expected)
+        if (wwjson_likely(!json.empty() && json.back() == expected))
         {
             json.back() = replacement;
         }
@@ -213,14 +225,14 @@ struct GenericBuilder
     /// Append C-string to JSON string.
     void Append(const char* str)
     {
-        if (str == nullptr) { return; }
+        if (wwjson_unlikely(str == nullptr)) { return; }
         json.append(str);
     }
     
     /// Append C-string with length to JSON string.
     void Append(const char* str, size_t len)
     {
-        if (str == nullptr) { return; }
+        if (wwjson_unlikely(str == nullptr)) { return; }
         json.append(str, len);
     }
     
@@ -357,7 +369,7 @@ struct GenericBuilder
     /// Append boolean value to JSON.
     void PutValue(bool tf)
     {
-        if (tf)
+        if (wwjson_likely(tf))
         {
             Append("true");
         }
@@ -370,7 +382,7 @@ struct GenericBuilder
     /// Append C-string value with length to JSON with quotes.
     void PutValue(const char* pszVal, size_t len)
     {
-        if (pszVal == nullptr) { return; }
+        if (wwjson_unlikely(pszVal == nullptr)) { return; }
         PutChar('"');
         if constexpr (configT::kEscapeValue)
         {
@@ -386,7 +398,7 @@ struct GenericBuilder
     /// Append C-string value to JSON with quotes.
     void PutValue(const char* pszVal)
     {
-        if (pszVal == nullptr) { return; }
+        if (wwjson_unlikely(pszVal == nullptr)) { return; }
         PutValue(pszVal, ::strlen(pszVal));
     }
 
@@ -424,7 +436,7 @@ struct GenericBuilder
     /// Append object key with quotes and colon.
     void PutKey(const char* pszKey, size_t len)
     {
-        if (pszKey == nullptr) { return; }
+        if (wwjson_unlikely(pszKey == nullptr)) { return; }
         PutChar('"');
         if constexpr (configT::kEscapeKey)
         {
@@ -441,7 +453,7 @@ struct GenericBuilder
     /// Append object key with quotes and colon.
     void PutKey(const char* pszKey)
     {
-        if (pszKey == nullptr) { return; }
+        if (wwjson_unlikely(pszKey == nullptr)) { return; }
         PutKey(pszKey, ::strlen(pszKey));
     }
 
@@ -461,14 +473,14 @@ struct GenericBuilder
     /// User is responsible for ensuring the input is valid JSON.
     void PutSub(const char* pszSub, size_t len)
     {
-        if (pszSub == nullptr) { return; }
+        if (wwjson_unlikely(pszSub == nullptr)) { return; }
         Append(pszSub, len);
     }
 
     /// Append JSON sub-string (raw JSON content) without quotes or escaping.
     void PutSub(const char* pszSub)
     {
-        if (pszSub == nullptr) { return; }
+        if (wwjson_unlikely(pszSub == nullptr)) { return; }
         PutSub(pszSub, ::strlen(pszSub));
     }
 
@@ -532,7 +544,7 @@ struct GenericBuilder
     AddItem(Func&& func)
     {
         func(*this);
-        if (Back() != ',')
+        if (wwjson_likely(!Empty()) && wwjson_unlikely(Back() != ','))
         {
             SepItem();
         }
@@ -545,7 +557,7 @@ struct GenericBuilder
     AddItem(Func&& func)
     {
         func();
-        if (Back() != ',')
+        if (wwjson_likely(!Empty()) && wwjson_unlikely(Back() != ','))
         {
             SepItem();
         }
@@ -568,7 +580,7 @@ struct GenericBuilder
     /// Use configed escape method.
     void AddItemEscape(const char* value, size_t len)
     {
-        if (value == nullptr) { return; }
+        if (wwjson_unlikely(value == nullptr)) { return; }
         PutChar('"');
         configT::EscapeString(json, value, len);
         PutChar('"');
@@ -578,7 +590,7 @@ struct GenericBuilder
     /// Add C-string item after escaping.
     void AddItemEscape(const char* value)
     {
-        if (value == nullptr) { return; }
+        if (wwjson_unlikely(value == nullptr)) { return; }
         AddItemEscape(value, ::strlen(value));
     }
 
@@ -664,13 +676,13 @@ struct GenericBuilder
     /// Reopen object {} or array [] to add more fields.
     bool Reopen()
     {
-        if (Empty())
+        if (wwjson_unlikely(Empty()))
         {
             return false;
         }
         
         char lastChar = Back();
-        if (lastChar == '}' || lastChar == ']')
+        if (wwjson_likely(lastChar == '}' || lastChar == ']'))
         {
             Back() = ',';
             return true;
@@ -684,13 +696,13 @@ struct GenericBuilder
     /// change `*self}{that*` or `*self][that*` to `*self,that*` .
     bool Merge(const GenericBuilder<stringT, configT>& that)
     {
-        if (Empty())
+        if (wwjson_unlikely(Empty()))
         {
             json = that.json;
             return true;
         }
         
-        if (that.Empty())
+        if (wwjson_unlikely(that.Empty()))
         {
             return true;
         }
@@ -698,7 +710,7 @@ struct GenericBuilder
         char selfLast = Back();
         char thatFirst = that.Front();
         
-        if ((selfLast == '}' && thatFirst == '{') || (selfLast == ']' && thatFirst == '['))
+        if (wwjson_likely((selfLast == '}' && thatFirst == '{') || (selfLast == ']' && thatFirst == '[')))
         {
             Back() = ',';
             Append(that.json.c_str() + 1, that.Size() - 1);
@@ -713,13 +725,13 @@ struct GenericBuilder
     /// change `*self}{that*` or `*self][that*` to `*self,that*` .
     static bool Merge(stringT& self, const stringT& that)
     {
-        if (self.empty())
+        if (wwjson_unlikely(self.empty()))
         {
             self = that;
             return true;
         }
         
-        if (that.empty())
+        if (wwjson_unlikely(that.empty()))
         {
             return true;
         }
@@ -727,7 +739,7 @@ struct GenericBuilder
         char selfLast = self.back();
         char thatFirst = that.front();
         
-        if ((selfLast == '}' && thatFirst == '{') || (selfLast == ']' && thatFirst == '['))
+        if (wwjson_likely((selfLast == '}' && thatFirst == '{') || (selfLast == ']' && thatFirst == '[')))
         {
             self.back() = ',';
             self.append(that.c_str() + 1, that.size() - 1);
