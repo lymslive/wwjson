@@ -635,9 +635,12 @@ perf/test_data.cpp 要求：
 
 ### DONE: 20251205-184030
 
-## TODO: 测试整数序列化性能
+补充通用用例 `builder_ex_wwjson` 与 `builder_ex_yyjson` ，由命令行参数控制构建
+多大的 json ，循环几次，默认 `--loop=1000 --items=1000`
 
-在 perf/test_data.cpp 文件中 `test::` 命令空间增加函数：
+## TODO:2025-12-06/1 测试整数序列化性能
+
+在 perf/test_data.cpp 文件中 `test::` 命名空间增加函数：
 
 - BuildTinyIntArray(std::string& dst, uint8_t start, int count)
 - BuildShortIntArray(std::string& dst, uint16_t start, int count)
@@ -648,7 +651,19 @@ perf/test_data.cpp 要求：
 [1,-1,2,-2,3-,3] ，共 `2*count` 个元素。在小整数数组中，如果 count 比较大，从
 整数溢界时返回 0 重新循环。
 
-新增 perf/p_int.cpp 写几个测试用例，调用以上方法。
+在 `test::yyjson::` 命名空间增加一组同名函数，用 yyjson api 构建相同的 json 数
+组。
+
+然后新增 perf/p_number.cpp 写几个测试用例，调用以上方法：
+- array_int8_wwjson   array_int8_yyjson
+- array_int16_wwjson  array_int16_yyjson
+- array_int32_wwjson  array_int32_yyjson
+- array_int64_wwjson  array_int64_yyjson
+
+可参考 perf/p_builder.cpp 中 builder_ex_wwjson 与 builder_ex_yyjson 的写法。
+读取 --start= 与 --items= 命令行参数分别传给 BuildIntArray 函数的 start 与 count 的参数。
+
+### DONE: 20251206-103708
 
 ## TODO: 使用小整数缓存策略优化整数序列化
 

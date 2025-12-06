@@ -1388,3 +1388,43 @@ builder.EndRoot('}'); // 不加逗号
 # 查看测试用例列表
 ./build-release/perf/pfwwjson --list
 ```
+
+## 20251206-103708
+
+**需求ID**: 2025-12-06/1
+**任务描述**: 测试整数序列化性能
+
+**实施内容**:
+1. 在 `perf/test_data.cpp` 的 `test::` 命名空间中添加了4个整数数组构建函数：
+   - `BuildTinyIntArray(std::string& dst, uint8_t start, int count)`
+   - `BuildShortIntArray(std::string& dst, uint16_t start, int count)`
+   - `BuildIntArray(std::string& dst, uint32_t start, int count)`
+   - `BuildBigIntArray(std::string& dst, uint64_t start, int count)`
+
+2. 在 `test::yyjson::` 命名空间中添加了对应的4个函数，使用yyjson API实现相同功能。
+
+3. 更新了 `perf/test_data.h` 头文件，添加了新函数的声明。
+
+4. 创建了 `perf/p_number.cpp` 文件，包含8个性能测试用例：
+   - array_int8_wwjson, array_int8_yyjson
+   - array_int16_wwjson, array_int16_yyjson
+   - array_int32_wwjson, array_int32_yyjson
+   - array_int64_wwjson, array_int64_yyjson
+
+5. 更新了 `perf/CMakeLists.txt` 以包含新的性能测试文件。
+
+6. 在性能测试中添加了单次循环时打印JSON内容的功能，便于验证输出正确性。
+
+**实现细节**:
+- 生成的JSON数组格式：交替写入正整数与负整数，如 `[1,-1,2,-2,3,-3]`
+- 使用 `current++` 递增，利用无符号整型的自动溢出特性
+- 当检测到 `current == 0` 时，表示溢出，重新从1开始继续循环
+- 支持 `--start=` 和 `--items=` 命令行参数
+- 使用 `test::CArgv` 类处理命令行参数
+
+**测试结果**:
+- 所有函数编译成功
+- 功能验证通过，输出格式符合要求
+- 溢出处理测试通过（uint8_t从250开始的溢出测试正确循环）
+- wwjson和yyjson版本生成相同的JSON输出
+- 支持从0开始的start参数

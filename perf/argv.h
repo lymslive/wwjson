@@ -13,10 +13,14 @@ namespace test {
  */
 struct CArgv {
     int loop = 1000; // Default loop count
+    int items = 1000; // count of json items, effect it's size
+    uint64_t start = 0;   // the start index for json generation
     
     CArgv() {
         // Bind the --loop command line argument
         BIND_ARGV(loop);
+        BIND_ARGV(items);
+        BIND_ARGV(start);
     }
 };
 

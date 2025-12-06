@@ -22,6 +22,12 @@ void BuildJson(std::string& dst, double size);
  */
 void BuildJson(std::string& dst, int n);
 
+// Integer array building functions for performance testing
+void BuildTinyIntArray(std::string& dst, uint8_t start, int count);
+void BuildShortIntArray(std::string& dst, uint16_t start, int count);
+void BuildIntArray(std::string& dst, uint32_t start, int count);
+void BuildBigIntArray(std::string& dst, uint64_t start, int count);
+
 // yyjson implementation namespace
 namespace yyjson {
 
@@ -41,6 +47,12 @@ void BuildJson(std::string& dst, double size);
  * @param n Number of items to generate (each item = array + nested object)
  */
 void BuildJson(std::string& dst, int n);
+
+// Integer array building functions for performance testing using yyjson
+void BuildTinyIntArray(std::string& dst, uint8_t start, int count);
+void BuildShortIntArray(std::string& dst, uint16_t start, int count);
+void BuildIntArray(std::string& dst, uint32_t start, int count);
+void BuildBigIntArray(std::string& dst, uint64_t start, int count);
 
 } // namespace yyjson
 

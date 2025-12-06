@@ -6,7 +6,8 @@
 #include <filesystem>
 #include "yyjson.h"
 
-namespace test {
+namespace test
+{
 
 /**
  * @brief Generate JSON data of specified size using RawBuilder
@@ -75,7 +76,7 @@ void BuildJson(std::string& dst, double size)
     // End the root object
     builder.EndObject();
     
-    dst = builder.GetResult();
+    dst = builder.MoveResult();
 }
 
 /**
@@ -125,10 +126,95 @@ void BuildJson(std::string& dst, int n)
     // End the root object
     builder.EndObject();
     
-    dst = builder.GetResult();
+    dst = builder.MoveResult();
 }
 
-} // namespace test
+// Integer array building functions for performance testing
+void BuildTinyIntArray(std::string& dst, uint8_t start, int count)
+{
+    wwjson::RawBuilder builder;
+    builder.BeginArray();
+    
+    uint8_t current = start;
+    
+    for (int i = 0; i < count; i++) {
+        uint8_t positive = current;
+        int8_t negative = -static_cast<int8_t>(positive);
+        
+        builder.AddItem(positive);
+        builder.AddItem(negative);
+        
+        current++;
+    }
+    
+    builder.EndArray();
+    dst = builder.MoveResult();
+}
+
+void BuildShortIntArray(std::string& dst, uint16_t start, int count)
+{
+    wwjson::RawBuilder builder;
+    builder.BeginArray();
+    
+    uint16_t current = start;
+    
+    for (int i = 0; i < count; i++) {
+        uint16_t positive = current;
+        int16_t negative = -static_cast<int16_t>(positive);
+        
+        builder.AddItem(positive);
+        builder.AddItem(negative);
+        
+        current++;
+    }
+    
+    builder.EndArray();
+    dst = builder.MoveResult();
+}
+
+void BuildIntArray(std::string& dst, uint32_t start, int count)
+{
+    wwjson::RawBuilder builder;
+    builder.BeginArray();
+    
+    uint32_t current = start;
+    
+    for (int i = 0; i < count; i++) {
+        uint32_t positive = current;
+        int32_t negative = -static_cast<int32_t>(positive);
+        
+        builder.AddItem(positive);
+        builder.AddItem(negative);
+        
+        current++;
+    }
+    
+    builder.EndArray();
+    dst = builder.MoveResult();
+}
+
+void BuildBigIntArray(std::string& dst, uint64_t start, int count)
+{
+    wwjson::RawBuilder builder;
+    builder.BeginArray();
+    
+    uint64_t current = start;
+    
+    for (int i = 0; i < count; i++) {
+        uint64_t positive = current;
+        int64_t negative = -static_cast<int64_t>(positive);
+        
+        builder.AddItem(positive);
+        builder.AddItem(negative);
+        
+        current++;
+    }
+    
+    builder.EndArray();
+    dst = builder.MoveResult();
+}
+
+} // end of namespace test::
 
 // yyjson implementation namespace
 namespace test::yyjson
@@ -202,6 +288,143 @@ void BuildJson(std::string& dst, int n)
     }
     
     // Free the document
+    yyjson_mut_doc_free(doc);
+}
+
+// Integer array building functions for performance testing using yyjson
+void BuildTinyIntArray(std::string& dst, uint8_t start, int count)
+{
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    if (!doc) {
+        dst = "[]";
+        return;
+    }
+    
+    yyjson_mut_val *root = yyjson_mut_arr(doc);
+    yyjson_mut_doc_set_root(doc, root);
+    
+    uint8_t current = start;
+    
+    for (int i = 0; i < count; i++) {
+        uint8_t positive = current;
+        int8_t negative = -static_cast<int8_t>(positive);
+        
+        yyjson_mut_arr_add_int(doc, root, positive);
+        yyjson_mut_arr_add_int(doc, root, negative);
+        
+        current++;
+    }
+    
+    char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
+    if (json_str) {
+        dst = json_str;
+        free(json_str);
+    } else {
+        dst = "[]";
+    }
+    
+    yyjson_mut_doc_free(doc);
+}
+
+void BuildShortIntArray(std::string& dst, uint16_t start, int count)
+{
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    if (!doc) {
+        dst = "[]";
+        return;
+    }
+    
+    yyjson_mut_val *root = yyjson_mut_arr(doc);
+    yyjson_mut_doc_set_root(doc, root);
+    
+    uint16_t current = start;
+    
+    for (int i = 0; i < count; i++) {
+        uint16_t positive = current;
+        int16_t negative = -static_cast<int16_t>(positive);
+        
+        yyjson_mut_arr_add_int(doc, root, positive);
+        yyjson_mut_arr_add_int(doc, root, negative);
+        
+        current++;
+    }
+    
+    char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
+    if (json_str) {
+        dst = json_str;
+        free(json_str);
+    } else {
+        dst = "[]";
+    }
+    
+    yyjson_mut_doc_free(doc);
+}
+
+void BuildIntArray(std::string& dst, uint32_t start, int count)
+{
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    if (!doc) {
+        dst = "[]";
+        return;
+    }
+    
+    yyjson_mut_val *root = yyjson_mut_arr(doc);
+    yyjson_mut_doc_set_root(doc, root);
+    
+    uint32_t current = start;
+    
+    for (int i = 0; i < count; i++) {
+        uint32_t positive = current;
+        int32_t negative = -static_cast<int32_t>(positive);
+        
+        yyjson_mut_arr_add_int(doc, root, positive);
+        yyjson_mut_arr_add_int(doc, root, negative);
+        
+        current++;
+    }
+    
+    char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
+    if (json_str) {
+        dst = json_str;
+        free(json_str);
+    } else {
+        dst = "[]";
+    }
+    
+    yyjson_mut_doc_free(doc);
+}
+
+void BuildBigIntArray(std::string& dst, uint64_t start, int count)
+{
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    if (!doc) {
+        dst = "[]";
+        return;
+    }
+    
+    yyjson_mut_val *root = yyjson_mut_arr(doc);
+    yyjson_mut_doc_set_root(doc, root);
+    
+    uint64_t current = start;
+    
+    for (int i = 0; i < count; i++) {
+        uint64_t positive = current;
+        int64_t negative = -static_cast<int64_t>(positive);
+        
+        yyjson_mut_arr_add_int(doc, root, positive);
+        yyjson_mut_arr_add_int(doc, root, negative);
+        
+        current++;
+    }
+    
+    char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
+    if (json_str) {
+        dst = json_str;
+        free(json_str);
+    } else {
+        dst = "[]";
+    }
+    
     yyjson_mut_doc_free(doc);
 }
 

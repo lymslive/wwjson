@@ -143,3 +143,35 @@ DEF_TAST(p_yyjson_100k, "Performance test for yyjson builder (~100k JSON, n=1200
     DESC("Loop count: %d", argv.loop);
     DESC("Generated JSON size: %zu bytes", json_data.size());
 }
+
+// default args: --loop=1000 --items=1000
+DEF_TAST(builder_ex_wwjson, "Performance test for wwjson builder(custom size)")
+{
+    test::CArgv argv;
+    std::string json_data;
+
+    TIME_TIC;
+    for (int i = 0; i < argv.loop; i++) {
+        test::BuildJson(json_data, argv.items);
+    }
+    TIME_TOC;
+
+    DESC("Args: --loop=%d --items=%d", argv.loop, argv.items);
+    DESC("Generated JSON size: %zu bytes", json_data.size());
+}
+
+DEF_TAST(builder_ex_yyjson, "Performance test for yyjson builder(custom size)")
+{
+    test::CArgv argv;
+    std::string json_data;
+
+    TIME_TIC;
+    for (int i = 0; i < argv.loop; i++) {
+        test::yyjson::BuildJson(json_data, argv.items);
+    }
+    TIME_TOC;
+
+    DESC("Loop count: %d", argv.loop);
+    DESC("Args: --loop=%d --items=%d", argv.loop, argv.items);
+    DESC("Generated JSON size: %zu bytes", json_data.size());
+}
