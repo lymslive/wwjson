@@ -1428,3 +1428,53 @@ builder.EndRoot('}'); // 不加逗号
 - 溢出处理测试通过（uint8_t从250开始的溢出测试正确循环）
 - wwjson和yyjson版本生成相同的JSON输出
 - 支持从0开始的start参数
+## 20251206-234109
+
+**需求ID**: 2025-12-06/2
+**任务描述**: perf 子目录性能测试相关方法优化
+
+**实施内容**:
+1. **模板化BuildIntArray函数**:
+   - 将4个独立的BuildIntArray函数合并为模板函数
+   - 支持uint8_t, uint16_t, uint32_t, uint64_t四种类型
+   - 使用std::make_signed_t获取对应有符号类型
+   - 移至p_number.cpp中的test::wwjson和test::yyjson命名空间
+
+2. **优化yyjson API使用**:
+   - 使用yyjson_mut_arr_add_uint添加正整数
+   - 使用yyjson_mut_arr_add_sint添加负整数
+   - 避免统一使用yyjson_mut_arr_add_int
+
+3. **添加内存预分配**:
+   - wwjson版BuildIntArray增加可选size_k参数(默认1)
+   - 传给RawBuilder构造函数：size_k * 1024字节预分配
+   - CArgv类添加size成员(int类型，默认1)
+   - 绑定--size命令行参数
+
+4. **重组test::BuildJson函数**:
+   - 移至test::wwjson命名空间
+   - double size版本改为int size版本，支持size*1024预分配
+   - int n版本增加可选size参数(默认1)
+   - 更新p_builder.cpp调用点
+
+5. **更新测试用例**:
+   - 修改p_number.cpp中8个DEF_TAST用例调用模板函数
+   - 新增DEF_TOOL compare_array_output测试用例
+   - 验证wwjson与yyjson输出完全一致
+
+6. **清理旧代码**:
+   - 从test_data.h/.cpp删除旧BuildIntArray函数
+   - 保留注释说明迁移位置
+
+**实现细节**:
+- 模板函数自动类型推导，减少代码重复
+- 内存预分配提升性能测试准确性
+- 作用域隔离验证不同类型的模板实例化
+
+**测试结果**:
+- 编译成功，无错误
+- compare_array_output所有4种类型测试通过
+- --size参数正确传递和使用
+- 功能完全保持，性能测试可正常运行
+
+EOF;

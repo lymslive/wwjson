@@ -665,6 +665,33 @@ perf/test_data.cpp 要求：
 
 ### DONE: 20251206-103708
 
+## TODO:2025-12-06/2 perf 子目录性能测试相关方法优化
+
+- 将 BuildIntArray 等四个类似的用 wwjson builder 的创建方法改为用一个模板函数
+，模板参数用 uintT ，代表原来支持的四个无符号整数。思考有没办法获取对应的有
+符号整数类型。
+- 再将通过的 BuildIntArray 函数放到 test::wwjson:: 命名空间，与 test::yyjson::
+命名空间保持对称。
+- 将 test:: 下面两个子空间的 BuildIntArray 函数都移到 `p_number.cpp` 文件中，
+原来写在 test_data.h/.cpp 的那些同名函数都删除。
+- test::yyjson::BuildIntArray 四个函数也应该能类似化简为一个模板函数，再修改一
+下 api 调用，添加正整数时应该用 yyjson_mut_arr_add_uint，添加负整数时用
+yyjson_mut_arr_add_sint ，不要都用 yyjson_mut_arr_add_int .
+- test::wwjson::BuildIntArray 函数再增加一个可选参数，表示预估 json 大小，单位
+k ，默认 1 。该参数乘 1024 后可传给 RawBuilder 的构造函数，预留 string 大小。
+- p_number.cpp 中原来的 8 个 DEF_TAST 测试用例保持功能不变，但需要调整调用方法
+，要保证调到对应的模板参数实例化函数。
+- p_number.cpp 再增加一个 DEF_TOOL 定义的工具用例，用较小的 count 参数调用两个
+被测的 BuildIntArray ，验证用 wwjson 与 yyjson 生成的 json 串完成一样。
+- test_data.h/.cpp 中剩下的 test::BuildJson 也移到 test::wwjson 子空间中，带
+double size 参数的版本，将 size*1024 传给 RawBuilder 构造函数，预留大小；带
+int n (items) 参数的，也再增加可选一个预估的 size 参数，默认 1k ，传给
+RawBuilder 构造函数。
+- argv.h CArgv 增加 int size 成员，默认 1 ，绑定 --size 命令行参数；然后在
+p_number.cpp 与 p_builder.cpp 中传给调用的 test::wwjson:: 相应 Build 函数。
+
+### DONE: 20251206-234109
+
 ## TODO: 使用小整数缓存策略优化整数序列化
 
 参考 doing_plan.tmp/small_int_optimization.cpp

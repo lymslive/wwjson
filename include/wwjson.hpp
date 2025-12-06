@@ -176,7 +176,7 @@ struct GenericBuilder
     /* ---------------------------------------------------------------------- */
     
     /// Constructor with optional initial capacity.
-    GenericBuilder(int capacity = 1024) { json.reserve(capacity); }
+    GenericBuilder(size_t capacity = 1024) { json.reserve(capacity); }
 
     /// Copy constructor.
     GenericBuilder(const GenericBuilder& other) = default;

@@ -6,8 +6,11 @@
 namespace test
 {
 
+// wwjson implementation namespace
+namespace wwjson {
+
 /**
- * @brief Generate JSON data of specified size using RawBuilder
+ * @brief Generate JSON data of specified approximate size using RawBuilder
  * 
  * @param dst Output string to store generated JSON
  * @param size Target size in kilobytes (k)
@@ -17,16 +20,22 @@ void BuildJson(std::string& dst, double size);
 /**
  * @brief Generate JSON data with specified number of items
  * 
+ * The generated JSON structure is as follows:
+ * {
+ *   "item_0": [1, 1.5, "1"],
+ *   "nested_0": {"id": 0, "name": "Test Item", "value": 0.0},
+ *   "item_1": [2, 3.0, "2"],
+ *   "nested_1": {"id": 1, "name": "Test Item", "value": 2.5},
+ *   ...
+ * }
+ * 
  * @param dst Output string to store generated JSON
  * @param n Number of items to generate (each item = array + nested object)
+ * @param size Estimated size in kilobytes (default 1)
  */
-void BuildJson(std::string& dst, int n);
+void BuildJson(std::string& dst, int n, int size = 1);
 
-// Integer array building functions for performance testing
-void BuildTinyIntArray(std::string& dst, uint8_t start, int count);
-void BuildShortIntArray(std::string& dst, uint16_t start, int count);
-void BuildIntArray(std::string& dst, uint32_t start, int count);
-void BuildBigIntArray(std::string& dst, uint64_t start, int count);
+} // namespace wwjson
 
 // yyjson implementation namespace
 namespace yyjson {
@@ -41,18 +50,14 @@ namespace yyjson {
 void BuildJson(std::string& dst, double size);
 
 /**
- * @brief Generate JSON data with specified number of items using yyjson
+ * @brief Generate JSON data with specified number of items using yyjson.
+ *
+ * The generated JSON structure is like above test::wwjson::BuildJson .
  * 
  * @param dst Output string to store generated JSON
  * @param n Number of items to generate (each item = array + nested object)
  */
 void BuildJson(std::string& dst, int n);
-
-// Integer array building functions for performance testing using yyjson
-void BuildTinyIntArray(std::string& dst, uint8_t start, int count);
-void BuildShortIntArray(std::string& dst, uint16_t start, int count);
-void BuildIntArray(std::string& dst, uint32_t start, int count);
-void BuildBigIntArray(std::string& dst, uint64_t start, int count);
 
 } // namespace yyjson
 

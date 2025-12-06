@@ -24,7 +24,7 @@ DEF_TAST(p_wwjson_0_5k, "Performance test for wwjson builder (~0.5k JSON, n=6)")
     
     TIME_TIC;
     for (int i = 0; i < argv.loop; i++) {
-        test::BuildJson(json_data, 6);
+        test::wwjson::BuildJson(json_data, 6, argv.size);
     }
     TIME_TOC;
     
@@ -56,7 +56,7 @@ DEF_TAST(p_wwjson_1k, "Performance test for wwjson builder (~1k JSON, n=12)")
     
     TIME_TIC;
     for (int i = 0; i < argv.loop; i++) {
-        test::BuildJson(json_data, 12);
+        test::wwjson::BuildJson(json_data, 12, argv.size);
     }
     TIME_TOC;
     
@@ -88,7 +88,7 @@ DEF_TAST(p_wwjson_10k, "Performance test for wwjson builder (~10k JSON, n=120)")
     
     TIME_TIC;
     for (int i = 0; i < argv.loop; i++) {
-        test::BuildJson(json_data, 120);
+        test::wwjson::BuildJson(json_data, 120, argv.size);
     }
     TIME_TOC;
     
@@ -120,7 +120,7 @@ DEF_TAST(p_wwjson_100k, "Performance test for wwjson builder (~100k JSON, n=1200
     
     TIME_TIC;
     for (int i = 0; i < argv.loop; i++) {
-        test::BuildJson(json_data, 1200);
+        test::wwjson::BuildJson(json_data, 1200, argv.size);
     }
     TIME_TOC;
     
@@ -152,7 +152,7 @@ DEF_TAST(builder_ex_wwjson, "Performance test for wwjson builder(custom size)")
 
     TIME_TIC;
     for (int i = 0; i < argv.loop; i++) {
-        test::BuildJson(json_data, argv.items);
+        test::wwjson::BuildJson(json_data, argv.items, argv.size);
     }
     TIME_TOC;
 

@@ -1,40 +1,26 @@
 #include "couttast/tinytast.hpp"
-#include "wwjson.hpp"
+
 #include "test_data.h"
+
+#include "wwjson.hpp"
+#include "yyjson.h"
+
 #include <string>
 #include <fstream>
 #include <filesystem>
-#include "yyjson.h"
 
-namespace test
+namespace test::wwjson
 {
 
-/**
- * @brief Generate JSON data of specified size using RawBuilder
- * 
- * The generated JSON structure is as follows:
- * {
- *   "item_0": [1, 1.5, "1", 2, 3.0, "2", ...],
- *   "nested_0": {"id": 0, "name": "Test Item", "value": 0.0},
- *   "item_1": [2, 3.0, "2", 3, 4.5, "3", ...],
- *   "nested_1": {"id": 1, "name": "Test Item", "value": 2.5},
- *   ...
- * }
- * 
- * @param dst Output string to store generated JSON
- * @param size Target size in kilobytes (k)
- */
 void BuildJson(std::string& dst, double size)
 {
-    // Calculate target size in bytes
     size_t target_size = static_cast<size_t>(size * 1024);
-    
-    wwjson::RawBuilder builder;
+    ::wwjson::RawBuilder builder(target_size);
     
     // Start with an object
     builder.BeginObject();
     
-    // Add a base object to reach the target size
+    // Add a base object to reach target size
     // We'll create an array of objects with increasing complexity
     size_t current_size = 0;
     int item_count = 0;
@@ -46,7 +32,7 @@ void BuildJson(std::string& dst, double size)
         // Begin an array for this item
         builder.BeginArray(key.c_str());
         
-        // Add multiple values to the array to increase size
+        // Add multiple values to array to increase size
         for (int i = 0; i < 10 && current_size < target_size; i++) {
             builder.AddItem(item_count + i);
             builder.AddItem((item_count + i) * 1.5);
@@ -79,24 +65,9 @@ void BuildJson(std::string& dst, double size)
     dst = builder.MoveResult();
 }
 
-/**
- * @brief Generate JSON data with specified number of items
- * 
- * The generated JSON structure is as follows:
- * {
- *   "item_0": [1, 1.5, "1"],
- *   "nested_0": {"id": 0, "name": "Test Item", "value": 0.0},
- *   "item_1": [2, 3.0, "2"],
- *   "nested_1": {"id": 1, "name": "Test Item", "value": 2.5},
- *   ...
- * }
- * 
- * @param dst Output string to store generated JSON
- * @param n Number of items to generate (each item = array + nested object)
- */
-void BuildJson(std::string& dst, int n)
+void BuildJson(std::string& dst, int n, int size)
 {
-    wwjson::RawBuilder builder;
+    ::wwjson::RawBuilder builder(size * 1024);
     
     // Start with an object
     builder.BeginObject();
@@ -129,112 +100,11 @@ void BuildJson(std::string& dst, int n)
     dst = builder.MoveResult();
 }
 
-// Integer array building functions for performance testing
-void BuildTinyIntArray(std::string& dst, uint8_t start, int count)
-{
-    wwjson::RawBuilder builder;
-    builder.BeginArray();
-    
-    uint8_t current = start;
-    
-    for (int i = 0; i < count; i++) {
-        uint8_t positive = current;
-        int8_t negative = -static_cast<int8_t>(positive);
-        
-        builder.AddItem(positive);
-        builder.AddItem(negative);
-        
-        current++;
-    }
-    
-    builder.EndArray();
-    dst = builder.MoveResult();
-}
+} // namespace test::wwjson
 
-void BuildShortIntArray(std::string& dst, uint16_t start, int count)
-{
-    wwjson::RawBuilder builder;
-    builder.BeginArray();
-    
-    uint16_t current = start;
-    
-    for (int i = 0; i < count; i++) {
-        uint16_t positive = current;
-        int16_t negative = -static_cast<int16_t>(positive);
-        
-        builder.AddItem(positive);
-        builder.AddItem(negative);
-        
-        current++;
-    }
-    
-    builder.EndArray();
-    dst = builder.MoveResult();
-}
-
-void BuildIntArray(std::string& dst, uint32_t start, int count)
-{
-    wwjson::RawBuilder builder;
-    builder.BeginArray();
-    
-    uint32_t current = start;
-    
-    for (int i = 0; i < count; i++) {
-        uint32_t positive = current;
-        int32_t negative = -static_cast<int32_t>(positive);
-        
-        builder.AddItem(positive);
-        builder.AddItem(negative);
-        
-        current++;
-    }
-    
-    builder.EndArray();
-    dst = builder.MoveResult();
-}
-
-void BuildBigIntArray(std::string& dst, uint64_t start, int count)
-{
-    wwjson::RawBuilder builder;
-    builder.BeginArray();
-    
-    uint64_t current = start;
-    
-    for (int i = 0; i < count; i++) {
-        uint64_t positive = current;
-        int64_t negative = -static_cast<int64_t>(positive);
-        
-        builder.AddItem(positive);
-        builder.AddItem(negative);
-        
-        current++;
-    }
-    
-    builder.EndArray();
-    dst = builder.MoveResult();
-}
-
-} // end of namespace test::
-
-// yyjson implementation namespace
 namespace test::yyjson
 {
 
-/**
- * @brief Generate JSON data with specified number of items using yyjson
- * 
- * The generated JSON structure is as follows:
- * {
- *   "item_0": [1, 1.5, "1"],
- *   "nested_0": {"id": 0, "name": "Test Item", "value": 0.0},
- *   "item_1": [2, 3.0, "2"],
- *   "nested_1": {"id": 1, "name": "Test Item", "value": 2.5},
- *   ...
- * }
- * 
- * @param dst Output string to store generated JSON
- * @param n Number of items to generate (each item = array + nested object)
- */
 void BuildJson(std::string& dst, int n)
 {
     // Create a new mutable document
@@ -291,143 +161,6 @@ void BuildJson(std::string& dst, int n)
     yyjson_mut_doc_free(doc);
 }
 
-// Integer array building functions for performance testing using yyjson
-void BuildTinyIntArray(std::string& dst, uint8_t start, int count)
-{
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-    if (!doc) {
-        dst = "[]";
-        return;
-    }
-    
-    yyjson_mut_val *root = yyjson_mut_arr(doc);
-    yyjson_mut_doc_set_root(doc, root);
-    
-    uint8_t current = start;
-    
-    for (int i = 0; i < count; i++) {
-        uint8_t positive = current;
-        int8_t negative = -static_cast<int8_t>(positive);
-        
-        yyjson_mut_arr_add_int(doc, root, positive);
-        yyjson_mut_arr_add_int(doc, root, negative);
-        
-        current++;
-    }
-    
-    char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
-    if (json_str) {
-        dst = json_str;
-        free(json_str);
-    } else {
-        dst = "[]";
-    }
-    
-    yyjson_mut_doc_free(doc);
-}
-
-void BuildShortIntArray(std::string& dst, uint16_t start, int count)
-{
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-    if (!doc) {
-        dst = "[]";
-        return;
-    }
-    
-    yyjson_mut_val *root = yyjson_mut_arr(doc);
-    yyjson_mut_doc_set_root(doc, root);
-    
-    uint16_t current = start;
-    
-    for (int i = 0; i < count; i++) {
-        uint16_t positive = current;
-        int16_t negative = -static_cast<int16_t>(positive);
-        
-        yyjson_mut_arr_add_int(doc, root, positive);
-        yyjson_mut_arr_add_int(doc, root, negative);
-        
-        current++;
-    }
-    
-    char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
-    if (json_str) {
-        dst = json_str;
-        free(json_str);
-    } else {
-        dst = "[]";
-    }
-    
-    yyjson_mut_doc_free(doc);
-}
-
-void BuildIntArray(std::string& dst, uint32_t start, int count)
-{
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-    if (!doc) {
-        dst = "[]";
-        return;
-    }
-    
-    yyjson_mut_val *root = yyjson_mut_arr(doc);
-    yyjson_mut_doc_set_root(doc, root);
-    
-    uint32_t current = start;
-    
-    for (int i = 0; i < count; i++) {
-        uint32_t positive = current;
-        int32_t negative = -static_cast<int32_t>(positive);
-        
-        yyjson_mut_arr_add_int(doc, root, positive);
-        yyjson_mut_arr_add_int(doc, root, negative);
-        
-        current++;
-    }
-    
-    char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
-    if (json_str) {
-        dst = json_str;
-        free(json_str);
-    } else {
-        dst = "[]";
-    }
-    
-    yyjson_mut_doc_free(doc);
-}
-
-void BuildBigIntArray(std::string& dst, uint64_t start, int count)
-{
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-    if (!doc) {
-        dst = "[]";
-        return;
-    }
-    
-    yyjson_mut_val *root = yyjson_mut_arr(doc);
-    yyjson_mut_doc_set_root(doc, root);
-    
-    uint64_t current = start;
-    
-    for (int i = 0; i < count; i++) {
-        uint64_t positive = current;
-        int64_t negative = -static_cast<int64_t>(positive);
-        
-        yyjson_mut_arr_add_int(doc, root, positive);
-        yyjson_mut_arr_add_int(doc, root, negative);
-        
-        current++;
-    }
-    
-    char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
-    if (json_str) {
-        dst = json_str;
-        free(json_str);
-    } else {
-        dst = "[]";
-    }
-    
-    yyjson_mut_doc_free(doc);
-}
-
 } // namespace test::yyjson
 
 DEF_TOOL(data_sample, "Generate JSON samples of different sizes for performance testing")
@@ -440,7 +173,7 @@ DEF_TOOL(data_sample, "Generate JSON samples of different sizes for performance 
     
     for (double size : sizes) {
         std::string json_data;
-        test::BuildJson(json_data, size);
+        test::wwjson::BuildJson(json_data, size);
         
         // Calculate expected size in bytes
         double expect_size_bytes = size * 1024.0;
@@ -483,7 +216,7 @@ DEF_TOOL(verify_json_builders, "Verify wwjson and yyjson generate identical JSON
     std::string yyjson_result;
     
     // Generate JSON using wwjson
-    test::BuildJson(wwjson_result, n);
+    test::wwjson::BuildJson(wwjson_result, n);
     COUT(wwjson_result);
     DESC("wwjson generated JSON for %d items", n);
     DESC("wwjson result length: %zu bytes", wwjson_result.size());
@@ -494,14 +227,7 @@ DEF_TOOL(verify_json_builders, "Verify wwjson and yyjson generate identical JSON
     DESC("yyjson generated JSON for %d items", n);
     DESC("yyjson result length: %zu bytes", yyjson_result.size());
     
-    // Compare the two results
-    if (wwjson_result == yyjson_result) {
-        DESC("✓ Both libraries generated identical JSON");
-    } else {
-        DESC("✗ JSON outputs differ between libraries");
-        DESC("wwjson size: %zu", wwjson_result.size());
-        DESC("yyjson size: %zu", yyjson_result.size());
-    }
+    COUT(wwjson_result == yyjson_result, true);
 }
 
 // Tool to test different n values and their corresponding JSON sizes
@@ -516,7 +242,7 @@ DEF_TOOL(test_json_sizes, "Test JSON sizes for different n values")
         std::string wwjson_result;
         std::string yyjson_result;
         
-        test::BuildJson(wwjson_result, n);
+        test::wwjson::BuildJson(wwjson_result, n);
         test::yyjson::BuildJson(yyjson_result, n);
         
         DESC("n = %d:", n);
