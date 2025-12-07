@@ -1579,3 +1579,49 @@ builder.EndRoot('}'); // 不加逗号
 - 向后兼容：整数序列化性能保持不变
 - 灵活性：编译宏支持不同精度需求
 
+## TASK:20251207-213311
+-----------------------
+
+**需求ID**: 2025-12-07/3
+**任务描述**: 优化性能测试补充浮点测试
+
+**实施内容**:
+
+### 1. 性能测试用例重命名
+- 修改 `perf/p_builder.cpp` 中的测试用例名称
+- 将原有的 `p_wwjson_0_5k`、`p_yyjson_0_5k` 等命名方式改为 `build_0_5k_wwjson`、`build_0_5k_yyjson`
+- 统一使用 `build_` 前缀和 `_wwjson`/`_yyjson` 后缀，中间为预计大小
+
+### 2. 修复 yyjson BuildJson 键名 bug
+- 修复 `perf/test_data.cpp` 中 `test::yyjson::BuildJson` 函数的键名重复问题
+- 原因：`yyjson_mut_obj_add_arr` 和 `yyjson_mut_obj_add_obj` 的 key 参数是引用，未复制键名
+- 解决方案：使用 `yyjson_mut_strcpy` 创建键结点，再使用 `yyjson_mut_obj_add` 添加到根对象
+- 测试验证：使用 `--loop=1` 参数输出 JSON 内容，确认键名不再重复
+
+### 3. 添加浮点数数组性能测试
+- 在 `perf/p_number.cpp` 中新增 `BuildFloatArray` 和 `BuildDoubleArray` 函数
+- 对每个整数生成 4 个浮点数值：+0.0、+1/5、+1/3、+1/2
+- 实现 wwjson 和 yyjson 两个版本的函数：
+  - wwjson 版本：使用 `AddItem` 方法
+  - yyjson 版本：使用 `yyjson_mut_arr_add_float` 和 `yyjson_mut_arr_add_double`
+- 添加 4 个 DEF_TAST 测试用例：
+  - `array_float_wwjson`
+  - `array_float_yyjson`
+  - `array_double_wwjson`
+  - `array_double_yyjson`
+
+**技术细节**:
+- 使用 yyjson 的专用浮点数函数 `yyjson_mut_arr_add_float` 和 `yyjson_mut_arr_add_double`
+- 所有测试用例支持 `--start` 和 `--items` 参数控制起始值和元素数量
+- 保持与现有整数数组测试相同的风格和接口
+
+**测试结果**:
+- 所有性能测试编译成功，无错误
+- verify_json_builders 测试显示键名已修复，不再是相同的最后一个键
+- 新增的浮点数数组测试用例全部通过
+- 输出的 JSON 格式正确，包含预期的浮点数值
+
+**验证**:
+- 功能正确性：浮点数数组生成正确，包含 4 种不同的浮点数值
+- 性能对比：wwjson 和 yyjson 两种实现均可正常工作
+- 接口一致性：新测试用例的参数和输出格式与现有测试保持一致

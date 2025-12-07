@@ -745,6 +745,26 @@ utest/ 单元测试修改：
 
 ### DONE:20251207-184927
 
+## TODO:2025-12-07/3 优化性能测试补充浮点测试
+
+涉及修改的文件在 perf/ 子目录。
+
+perf/p_build.cpp 修改：
+- 构建不同大小 Json 的用例名风格改名，以 build_ 前缀，wwjson 或 yyjson 后缀，
+  中间是预计大小；
+- 在 loop==1 时打印 json 串内容（已纠正）
+
+perf/test_data.cpp 的 test::yyjson::BuildJson 有个 bug ，可提供命令行参数
+--loop=1 查看具体内容，输出的键名都是一样的，循环的最后一个键。请查阅 yyjson.h
+api 使用正确函数，yyjson_mut_obj_add_arr/add_obj 的 key 参数可能是按引用的没有
+复制各个键，可能要先以复制的方式创建键结点，再加入根对象。
+
+perf/p_number.cpp 增加 BuildFloatArray 与 BuildDoubleArray 函数与相应的
+DEF_TAST 测试用例。参考 BuildIntArray 的用例，也接收 --start --items 参数，对
+于每个 item 整数，产生四个浮点数 +0.0 +1/5 +1/3 +1/2。
+
+### DONE: 20251207-213311
+
 ## TODO: 优化 wwjson.hpp 英文注释
 
 ## TODO: 完善项目文档

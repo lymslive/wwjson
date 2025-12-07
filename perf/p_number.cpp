@@ -10,8 +10,10 @@
 #include <type_traits>
 
 // Template-based BuildIntArray functions for performance testing
-namespace test {
-namespace wwjson {
+namespace test
+{
+namespace wwjson
+{
 
 /**
  * @brief Template function to build JSON arrays of integer pairs
@@ -47,7 +49,8 @@ void BuildIntArray(std::string& dst, uintT start, int count, int size_k = 1) {
 
 } // namespace wwjson
 
-namespace yyjson {
+namespace yyjson
+{
 
 /**
  * @brief Template function to build JSON arrays of integer pairs using yyjson
@@ -80,6 +83,156 @@ void BuildIntArray(std::string& dst, uintT start, int count) {
         yyjson_mut_arr_add_sint(doc, root, negative);
         
         current++;
+    }
+    
+    char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
+    if (json_str) {
+        dst = json_str;
+        free(json_str);
+    } else {
+        dst = "[]";
+    }
+    
+    yyjson_mut_doc_free(doc);
+}
+
+} // namespace yyjson
+} // namespace test
+
+// Float array functions for performance testing
+namespace test
+{
+namespace wwjson
+{
+
+/**
+ * @brief Function to build JSON arrays of float values
+ * 
+ * For each integer, generates 4 floating point values: +0.0, +1/5, +1/3, +1/2
+ * 
+ * @param dst Output string to store generated JSON
+ * @param start Starting value for the sequence
+ * @param count Number of integers to generate
+ * @param size_k Estimated size in kilobytes (default 1)
+ */
+void BuildFloatArray(std::string& dst, int start, int count, int size_k = 1) {
+    ::wwjson::RawBuilder builder(size_k << 10); //  * 1024
+    builder.BeginArray();
+    
+    for (int i = 0; i < count; i++) {
+        int value = start + i;
+        
+        // Generate 4 floating point values for each integer
+        builder.AddItem(static_cast<float>(value + 0.0f));
+        builder.AddItem(static_cast<float>(value + 1.0f/5.0f));
+        builder.AddItem(static_cast<float>(value + 1.0f/3.0f));
+        builder.AddItem(static_cast<float>(value + 1.0f/2.0f));
+    }
+    
+    builder.EndArray();
+    dst = builder.MoveResult();
+}
+
+/**
+ * @brief Function to build JSON arrays of double values
+ * 
+ * For each integer, generates 4 floating point values: +0.0, +1/5, +1/3, +1/2
+ * 
+ * @param dst Output string to store generated JSON
+ * @param start Starting value for the sequence
+ * @param count Number of integers to generate
+ * @param size_k Estimated size in kilobytes (default 1)
+ */
+void BuildDoubleArray(std::string& dst, int start, int count, int size_k = 1) {
+    ::wwjson::RawBuilder builder(size_k << 10); //  * 1024
+    builder.BeginArray();
+    
+    for (int i = 0; i < count; i++) {
+        int value = start + i;
+        
+        // Generate 4 floating point values for each integer
+        builder.AddItem(static_cast<double>(value + 0.0));
+        builder.AddItem(static_cast<double>(value + 1.0/5.0));
+        builder.AddItem(static_cast<double>(value + 1.0/3.0));
+        builder.AddItem(static_cast<double>(value + 1.0/2.0));
+    }
+    
+    builder.EndArray();
+    dst = builder.MoveResult();
+}
+
+} // namespace wwjson
+
+namespace yyjson
+{
+
+/**
+ * @brief Function to build JSON arrays of float values using yyjson
+ * 
+ * For each integer, generates 4 floating point values: +0.0, +1/5, +1/3, +1/2
+ * 
+ * @param dst Output string to store generated JSON
+ * @param start Starting value for the sequence
+ * @param count Number of integers to generate
+ */
+void BuildFloatArray(std::string& dst, int start, int count) {
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    if (!doc) {
+        dst = "[]";
+        return;
+    }
+    
+    yyjson_mut_val *root = yyjson_mut_arr(doc);
+    yyjson_mut_doc_set_root(doc, root);
+    
+    for (int i = 0; i < count; i++) {
+        int value = start + i;
+        
+        // Generate 4 floating point values for each integer using yyjson_mut_arr_add_float
+        yyjson_mut_arr_add_float(doc, root, static_cast<float>(value + 0.0f));
+        yyjson_mut_arr_add_float(doc, root, static_cast<float>(value + 1.0f/5.0f));
+        yyjson_mut_arr_add_float(doc, root, static_cast<float>(value + 1.0f/3.0f));
+        yyjson_mut_arr_add_float(doc, root, static_cast<float>(value + 1.0f/2.0f));
+    }
+    
+    char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
+    if (json_str) {
+        dst = json_str;
+        free(json_str);
+    } else {
+        dst = "[]";
+    }
+    
+    yyjson_mut_doc_free(doc);
+}
+
+/**
+ * @brief Function to build JSON arrays of double values using yyjson
+ * 
+ * For each integer, generates 4 floating point values: +0.0, +1/5, +1/3, +1/2
+ * 
+ * @param dst Output string to store generated JSON
+ * @param start Starting value for the sequence
+ * @param count Number of integers to generate
+ */
+void BuildDoubleArray(std::string& dst, int start, int count) {
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    if (!doc) {
+        dst = "[]";
+        return;
+    }
+    
+    yyjson_mut_val *root = yyjson_mut_arr(doc);
+    yyjson_mut_doc_set_root(doc, root);
+    
+    for (int i = 0; i < count; i++) {
+        int value = start + i;
+        
+        // Generate 4 floating point values for each integer using yyjson_mut_arr_add_double
+        yyjson_mut_arr_add_double(doc, root, static_cast<double>(value + 0.0));
+        yyjson_mut_arr_add_double(doc, root, static_cast<double>(value + 1.0/5.0));
+        yyjson_mut_arr_add_double(doc, root, static_cast<double>(value + 1.0/3.0));
+        yyjson_mut_arr_add_double(doc, root, static_cast<double>(value + 1.0/2.0));
     }
     
     char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
@@ -319,5 +472,93 @@ DEF_TOOL(compare_array_output, "Compare wwjson and yyjson BuildIntArray output")
         test::wwjson::BuildIntArray(wwjson_output, static_cast<uint64_t>(argv.start), test_count);
         test::yyjson::BuildIntArray(yyjson_output, static_cast<uint64_t>(argv.start), test_count);
         COUT(wwjson_output, yyjson_output);
+    }
+}
+
+// Performance test for wwjson float array building
+DEF_TAST(array_float_wwjson, "Performance test for wwjson float array building")
+{
+    test::CArgv argv;
+    std::string json_data;
+    
+    TIME_TIC;
+    for (int i = 0; i < argv.loop; i++) {
+        test::wwjson::BuildFloatArray(json_data, argv.start, argv.items, argv.size);
+    }
+    TIME_TOC;
+    
+    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    DESC("Generated JSON size: %zu bytes", json_data.size());
+    DESC("Array elements: %d (4*items)", argv.items * 4);
+    
+    // Print JSON content for single iteration
+    if (argv.loop == 1) {
+        COUT(json_data);
+    }
+}
+
+// Performance test for yyjson float array building
+DEF_TAST(array_float_yyjson, "Performance test for yyjson float array building")
+{
+    test::CArgv argv;
+    std::string json_data;
+    
+    TIME_TIC;
+    for (int i = 0; i < argv.loop; i++) {
+        test::yyjson::BuildFloatArray(json_data, argv.start, argv.items);
+    }
+    TIME_TOC;
+    
+    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    DESC("Generated JSON size: %zu bytes", json_data.size());
+    DESC("Array elements: %d (4*items)", argv.items * 4);
+    
+    // Print JSON content for single iteration
+    if (argv.loop == 1) {
+        COUT(json_data);
+    }
+}
+
+// Performance test for wwjson double array building
+DEF_TAST(array_double_wwjson, "Performance test for wwjson double array building")
+{
+    test::CArgv argv;
+    std::string json_data;
+    
+    TIME_TIC;
+    for (int i = 0; i < argv.loop; i++) {
+        test::wwjson::BuildDoubleArray(json_data, argv.start, argv.items, argv.size);
+    }
+    TIME_TOC;
+    
+    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    DESC("Generated JSON size: %zu bytes", json_data.size());
+    DESC("Array elements: %d (4*items)", argv.items * 4);
+    
+    // Print JSON content for single iteration
+    if (argv.loop == 1) {
+        COUT(json_data);
+    }
+}
+
+// Performance test for yyjson double array building
+DEF_TAST(array_double_yyjson, "Performance test for yyjson double array building")
+{
+    test::CArgv argv;
+    std::string json_data;
+    
+    TIME_TIC;
+    for (int i = 0; i < argv.loop; i++) {
+        test::yyjson::BuildDoubleArray(json_data, argv.start, argv.items);
+    }
+    TIME_TOC;
+    
+    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    DESC("Generated JSON size: %zu bytes", json_data.size());
+    DESC("Array elements: %d (4*items)", argv.items * 4);
+    
+    // Print JSON content for single iteration
+    if (argv.loop == 1) {
+        COUT(json_data);
     }
 }

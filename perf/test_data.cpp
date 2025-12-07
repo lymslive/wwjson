@@ -122,8 +122,9 @@ void BuildJson(std::string& dst, int n)
     for (int i = 0; i < n; i++) {
         // Add array item
         std::string array_key = "item_" + std::to_string(i);
-        yyjson_mut_val *arr = yyjson_mut_obj_add_arr(doc, root, array_key.c_str());
-        if (!arr) {
+        yyjson_mut_val *key = yyjson_mut_strcpy(doc, array_key.c_str());
+        yyjson_mut_val *arr = yyjson_mut_arr(doc);
+        if (!key || !arr || !yyjson_mut_obj_add(root, key, arr)) {
             yyjson_mut_doc_free(doc);
             dst = "{}";
             return;
@@ -136,8 +137,9 @@ void BuildJson(std::string& dst, int n)
         
         // Add nested object
         std::string nested_key = "nested_" + std::to_string(i);
-        yyjson_mut_val *nested_obj = yyjson_mut_obj_add_obj(doc, root, nested_key.c_str());
-        if (!nested_obj) {
+        yyjson_mut_val *nested_key_val = yyjson_mut_strcpy(doc, nested_key.c_str());
+        yyjson_mut_val *nested_obj = yyjson_mut_obj(doc);
+        if (!nested_key_val || !nested_obj || !yyjson_mut_obj_add(root, nested_key_val, nested_obj)) {
             yyjson_mut_doc_free(doc);
             dst = "{}";
             return;
