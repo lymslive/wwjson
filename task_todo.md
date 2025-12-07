@@ -692,9 +692,37 @@ p_number.cpp 与 p_builder.cpp 中传给调用的 test::wwjson:: 相应 Build �
 
 ### DONE: 20251206-234109
 
-## TODO: 使用小整数缓存策略优化整数序列化
+## TODO:2025-12-07/1 使用小整数缓存策略优化整数序列化
 
-参考 doing_plan.tmp/small_int_optimization.cpp
+当前只用简单 std::to_string 实现整数序列化，需要改进性能。
+
+整数序列化性能测试命令：`./build-release/perf/pfwwjson p_number.cpp` ，当前看
+运行时间与 yyjson 相比有将近 10 倍的差距？
+
+先备份 pfwwjson 可执行文件为 pfwwjson-1206 ，再优化代码，以便能对比老版本。
+最终目标是希望接近或超过 yyjson 的序列化性能。
+
+可参考及分析评估 doing_plan.tmp/small_int_optimization.cpp 文件中示范的小整数
+优化方案。但要适配 wwjson.hpp 当前的编码风格。
+
+基本实现要求：
+- 在 StringConcet 后面 BasicConfig 之前增加一个模板类 NumberWriter<stringT>
+- 对外接口是 Output(stringT& dst, intT value)
+- BasicConfig 增加方法 NumberString 转发 NumberWriter::Output; 在
+  GenericBuilder 中的 PutValue 整数时转发 BasicConfig::NumberString
+- NumberWriter 的 0-99 整数表常量命名为 kDigitPairs，不要为显而易见的实现代码
+  加注释，可以类与方法大元素加英文注释
+- t_basic.cpp 增加一个单元测试全面测试序列化 8 种标准整数类型序列化结果正确，
+  也要覆盖边界值。
+
+小整数优化方案概要：
+- 缓存 0-99 两位数字表，共 200 字符；
+- 小于 10 的数字直接计算，10-99 的查表；
+- 小于 10000 的小数字提前处理，正向写入目标字符串；
+- 大于 10000 的大数字每次除 10000，反向写入临时栈缓存再一次性写入目标字符串；
+- 模板处理各种整数类型，负数写完 `-` 后转正数处理；
+
+### DONE: 20251207-114414
 
 ## TODO: 使用 std::to_chars 及回滚机制优化浮点数序列化
 

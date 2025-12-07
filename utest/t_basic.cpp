@@ -520,3 +520,102 @@ DEF_TAST(basic_empty_string, "test not null but empty string edge cases")
     COUT(builder3.json, expect3);
     COUT(test::IsJsonValid(builder3.json), true);  // JSON is actually valid even with empty key
 }
+
+DEF_TAST(integer_serialization, "test serialization of 8 standard integer types")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginRoot();
+
+    // Test all signed integer types
+    int8_t i8 = -128;
+    int16_t i16 = -32768;
+    int32_t i32 = -2147483648;
+    int64_t i64 = -9223372036854775807LL;
+
+    builder.AddMember("int8_t", i8);
+    builder.AddMember("int16_t", i16);
+    builder.AddMember("int32_t", i32);
+    builder.AddMember("int64_t", i64);
+
+    // Test all unsigned integer types
+    uint8_t u8 = 255;
+    uint16_t u16 = 65535;
+    uint32_t u32 = 4294967295U;
+    uint64_t u64 = 18446744073709551615ULL;
+
+    builder.AddMember("uint8_t", u8);
+    builder.AddMember("uint16_t", u16);
+    builder.AddMember("uint32_t", u32);
+    builder.AddMember("uint64_t", u64);
+
+    // Test special values: zero
+    builder.AddMember("zero", 0);
+
+    // Test small integers (0-99) which should use digit pair optimization
+    builder.AddMember("small_pos", 42);
+    builder.AddMember("small_neg", -42);
+
+    // Test boundary values around 100
+    builder.AddMember("border_99", 99);
+    builder.AddMember("border_100", 100);
+    builder.AddMember("border_101", 101);
+
+    // Test boundary values around 1000
+    builder.AddMember("border_999", 999);
+    builder.AddMember("border_1000", 1000);
+    builder.AddMember("border_1001", 1001);
+
+    // Test boundary values around 10000
+    builder.AddMember("border_9999", 9999);
+    builder.AddMember("border_10000", 10000);
+    builder.AddMember("border_10001", 10001);
+
+    builder.EndRoot();
+
+    // Expected JSON string
+    std::string expect = R"({"int8_t":-128,"int16_t":-32768,"int32_t":-2147483648,"int64_t":-9223372036854775807,"uint8_t":255,"uint16_t":65535,"uint32_t":4294967295,"uint64_t":18446744073709551615,"zero":0,"small_pos":42,"small_neg":-42,"border_99":99,"border_100":100,"border_101":101,"border_999":999,"border_1000":1000,"border_1001":1001,"border_9999":9999,"border_10000":10000,"border_10001":10001})";
+    
+    COUT(builder.json, expect);
+    COUT(test::IsJsonValid(builder.json), true);
+}
+
+DEF_TAST(integer_array_serialization, "test serialization of integers in arrays")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginRoot('[');
+
+    // Add various integer values to array
+    builder.AddItem(static_cast<int8_t>(-128));
+    builder.AddItem(static_cast<uint8_t>(255));
+    builder.AddItem(static_cast<int16_t>(-32768));
+    builder.AddItem(static_cast<uint16_t>(65535));
+    builder.AddItem(static_cast<int32_t>(-2147483648));
+    builder.AddItem(static_cast<uint32_t>(4294967295U));
+    builder.AddItem(static_cast<int64_t>(-9223372036854775807LL));
+    builder.AddItem(static_cast<uint64_t>(18446744073709551615ULL));
+
+    // Add small integers that should use optimization
+    builder.AddItem(0);
+    builder.AddItem(1);
+    builder.AddItem(42);
+    builder.AddItem(99);
+    builder.AddItem(-1);
+    builder.AddItem(-42);
+
+    // Add boundary values
+    builder.AddItem(100);
+    builder.AddItem(101);
+    builder.AddItem(999);
+    builder.AddItem(1000);
+    builder.AddItem(1001);
+    builder.AddItem(9999);
+    builder.AddItem(10000);
+    builder.AddItem(10001);
+
+    builder.EndRoot(']');
+
+    std::string expect = R"([-128,255,-32768,65535,-2147483648,4294967295,-9223372036854775807,18446744073709551615,0,1,42,99,-1,-42,100,101,999,1000,1001,9999,10000,10001])";
+    
+    COUT(builder.json, expect);
+    COUT(test::IsJsonValid(builder.json), true);
+}

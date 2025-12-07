@@ -71,6 +71,120 @@ struct StringConcept
     // Note: Custom string types should provide these same interfaces as std::string
 };
 
+/// High-performance number writer for integer types.
+/// Uses small integer caching strategy for fast serialization.
+template<typename stringT>
+struct NumberWriter
+{
+private:
+    /// 0-99 digit pairs for fast lookup.
+    alignas(64) static constexpr std::array<char, 200> kDigitPairs = []() {
+        std::array<char, 200> table{};
+        for (int i = 0; i < 100; ++i) {
+            table[i * 2] = '0' + (i / 10);
+            table[i * 2 + 1] = '0' + (i % 10);
+        }
+        return table;
+    }();
+    
+    /// Write small integers (0-9999) to output string.
+    template<typename intT>
+    static inline void WriteSmall(stringT& dst, intT value)
+    {
+        if (value < 100) {
+            if (value < 10) {
+                dst.push_back(static_cast<char>('0' + value));
+            } else {
+                const char* src = &kDigitPairs[static_cast<std::size_t>(value) * 2];
+                dst.push_back(src[0]);
+                dst.push_back(src[1]);
+            }
+            return;
+        }
+        
+        if (value < 1000) {
+            dst.push_back(static_cast<char>('0' + (value / 100)));
+            value %= 100;
+            const char* src = &kDigitPairs[static_cast<std::size_t>(value) * 2];
+            dst.push_back(src[0]);
+            dst.push_back(src[1]);
+            return;
+        }
+        
+        // 4 digits (1000-9999)
+        uint32_t q = static_cast<uint32_t>(value / 100);
+        uint32_t r = static_cast<uint32_t>(value % 100);
+        const char* src_q = &kDigitPairs[q * 2];
+        const char* src_r = &kDigitPairs[r * 2];
+        dst.push_back(src_q[0]);
+        dst.push_back(src_q[1]);
+        dst.push_back(src_r[0]);
+        dst.push_back(src_r[1]);
+    }
+    
+    /// Write unsigned integer to string.
+    template<typename intT>
+    static void WriteUnsigned(stringT& dst, intT value)
+    {
+        if (value < 10000) {
+            return WriteSmall(dst, value);
+        }
+        
+        constexpr int max_len = std::numeric_limits<intT>::digits10 + 1;
+        char buffer[max_len];
+        char* ptr = buffer;
+        
+        char* const buffer_end = buffer + max_len;
+        ptr = buffer_end;
+        
+        while (value >= 10000) {
+            uint32_t chunk = static_cast<uint32_t>(value % 10000);
+            value /= 10000;
+            
+            uint32_t high = chunk / 100;
+            uint32_t low = chunk % 100;
+            
+            const char* src_low = &kDigitPairs[low * 2];
+            const char* src_high = &kDigitPairs[high * 2];
+            
+            *(--ptr) = src_low[1];
+            *(--ptr) = src_low[0];
+            *(--ptr) = src_high[1];
+            *(--ptr) = src_high[0];
+        }
+        
+        WriteSmall(dst, value);
+        dst.append(ptr, buffer_end - ptr);
+    }
+    
+    /// Write signed integer to string.
+    template<typename intT>
+    static void WriteSigned(stringT& dst, intT value)
+    {
+        using UnsignedT = std::make_unsigned_t<intT>;
+        
+        if (value < 0) {
+            dst.push_back('-');
+            WriteUnsigned(dst, static_cast<UnsignedT>(-value));
+        } else {
+            WriteUnsigned(dst, static_cast<UnsignedT>(value));
+        }
+    }
+    
+public:
+    /// Main output interface for integer types.
+    template<typename intT>
+    static std::enable_if_t<std::is_integral_v<intT>, void> 
+    Output(stringT& dst, intT value)
+    {
+        if constexpr (std::is_signed_v<intT>) {
+            WriteSigned(dst, value);
+        } else {
+            WriteUnsigned(dst, value);
+        }
+    }
+};
+
 /// Basic configuration for JSON serialization.
 /// Provides static methods and compile-time constants for customization.
 template<typename stringT>
@@ -157,6 +271,13 @@ struct BasicConfig
                 }
             }
         }
+    }
+    
+    /// Convert integer to string using NumberWriter
+    template<typename intT>
+    static void NumberString(stringT& dst, intT value)
+    {
+        NumberWriter<stringT>::Output(dst, value);
     }
 
 };
@@ -419,10 +540,7 @@ struct GenericBuilder
     std::enable_if_t<std::is_integral_v<numberT>, void>
     /*void*/ PutValue(numberT nValue)
     {
-        // std::array<char, 32> buffer;
-        // auto [ptr, ec] = std::to_chars(buffer.data(), buffer.data() + buffer.size(), nValue);
-        // Append(buffer.data(), ptr - buffer.data());
-        Append(std::to_string(nValue));
+        configT::NumberString(json, nValue);
     }
 
     /// Append floating-point number value to JSON.
