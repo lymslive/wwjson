@@ -27,26 +27,22 @@ struct EscapeValueConfig : wwjson::BasicConfig<std::string> {
 
 DEF_TAST(escape_table_basic, "test escape table functionality")
 {
-    // Test basic escape characters
     std::string dst;
     wwjson::BasicConfig<std::string>::EscapeString(dst, "Hello\nWorld\tTest", ::strlen("Hello\nWorld\tTest"));
     std::string expect = "Hello\\nWorld\\tTest";
     COUT(dst, expect);
     
-    // Test quotes and backslash
     dst.clear();
     wwjson::BasicConfig<std::string>::EscapeString(dst, "Quote\"Here\\Back", ::strlen("Quote\"Here\\Back"));
     expect = "Quote\\\"Here\\\\Back";
     COUT(dst, expect);
     
-    // Test null character
     dst.clear();
     const char* src_with_null = "Test\0Null";
     wwjson::BasicConfig<std::string>::EscapeString(dst, src_with_null, 9);
     expect = "Test\\0Null";
     COUT(dst, expect);
     
-    // Test carriage return
     dst.clear();
     wwjson::BasicConfig<std::string>::EscapeString(dst, "Line1\r\nLine2", 12);
     expect = "Line1\\r\\nLine2";
