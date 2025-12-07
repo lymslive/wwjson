@@ -765,6 +765,18 @@ DEF_TAST 测试用例。参考 BuildIntArray 的用例，也接收 --start --ite
 
 ### DONE: 20251207-213311
 
+## TODO:2025-12-07/4 增加 github Actions 流水线
+
+- 在推送 tags 时触发
+- 也可以手动触发，允许输入参数 start itmes loop size cases
+- 编译 release 版
+- 运行单元测试 utwwjson --cout=silent
+- 运行性能测试 pfwwjson --start=? --items=? --loop=? --size=? cases
+  手动触发若没有输入相关参数时，不要向 pfwwjson 传那个参数，保持程序默认值
+  自动触发时不必传任何参数，按默认运行。
+
+### DONE: 20251207-215828
+
 ## TODO: 优化 wwjson.hpp 英文注释
 
 ## TODO: 完善项目文档

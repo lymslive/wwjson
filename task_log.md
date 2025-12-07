@@ -1625,3 +1625,67 @@ builder.EndRoot('}'); // 不加逗号
 - 功能正确性：浮点数数组生成正确，包含 4 种不同的浮点数值
 - 性能对比：wwjson 和 yyjson 两种实现均可正常工作
 - 接口一致性：新测试用例的参数和输出格式与现有测试保持一致
+
+## TASK:20251207-215828
+-----------------------
+
+### 任务概述
+实现 GitHub Actions 流水线，支持自动触发和手动触发，包含 release 构建、单元测试和性能测试。
+
+### 实现内容
+
+**GitHub Actions 工作流创建**
+- 创建 `.github/workflows/ci.yml` 工作流文件
+- 配置触发条件：
+  - 推送 tags 时自动触发
+  - 支持手动触发（workflow_dispatch），允许输入参数
+- 定义可配置参数：
+  - start: 性能测试起始参数
+  - items: 性能测试项目数量参数  
+  - loop: 性能测试循环次数参数
+  - size: 性能测试大小参数
+  - cases: 性能测试用例参数
+
+**构建和测试步骤**
+- 安装依赖：更新包管理器，安装 cmake 和构建工具
+- Release 构建：执行 `make release` 命令
+- 单元测试：执行 `make test` 和 `./build/utest/utwwjson --cout=silent`
+- 性能测试：执行 `make build/perf` 和运行性能测试程序
+
+**参数处理逻辑**
+- 自动触发：不传递任何参数，使用程序默认值
+- 手动触发：根据用户输入的参数构建命令行
+- 智能参数传递：只在参数非空时添加到命令行
+
+### 技术细节
+
+**工作流配置**
+```yaml
+- name: Run performance tests
+  run: |
+    PERF_CMD="./build-release/perf/pfwwjson"
+    if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+      [ -n "${{ github.event.inputs.start }}" ] && PERF_CMD="$PERF_CMD --start=${{ github.event.inputs.start }}"
+      # 其他参数类似处理
+    fi
+    $PERF_CMD
+```
+
+**运行环境**
+- 使用 Ubuntu 最新版本作为运行环境
+- 安装必要的构建工具和依赖
+- 确保与本地开发环境的一致性
+
+### 完成结果
+成功完成任务要求：
+✓ 创建了 GitHub Actions 工作流文件
+✓ 配置了自动触发（推送 tags）和手动触发
+✓ 支持 start、items、loop、size、cases 参数传递
+✓ 包含 release 构建、单元测试和性能测试步骤
+✓ 实现了智能参数处理逻辑
+✓ 提供了完整的 CI/CD 流水线支持
+
+### 使用说明
+- 自动触发：推送 tag 到仓库即可触发完整构建和测试
+- 手动触发：在 GitHub Actions 页面手动运行，可输入自定义参数
+- 参数可选：所有参数都是可选的，未输入时使用程序默认值

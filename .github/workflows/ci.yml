@@ -1,0 +1,66 @@
+name: Build and Test
+
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+    inputs:
+      start:
+        description: 'Start parameter for performance tests'
+        required: false
+        default: ''
+      items:
+        description: 'Items parameter for performance tests'
+        required: false
+        default: ''
+      loop:
+        description: 'Loop parameter for performance tests'
+        required: false
+        default: ''
+      size:
+        description: 'Size parameter for performance tests'
+        required: false
+        default: ''
+      cases:
+        description: 'Test cases parameter for performance tests'
+        required: false
+        default: ''
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential
+        
+    - name: Build release version
+      run: |
+        make release
+        
+    - name: Run unit tests
+      run: |
+        ./build-release/utest/utwwjson --cout=silent
+        
+    - name: Run performance tests
+      run: |
+        # Prepare performance test parameters
+        PERF_CMD="./build-release/perf/pfwwjson"
+        
+        # Add parameters if provided (manual trigger only)
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          [ -n "${{ github.event.inputs.start }}" ] && PERF_CMD="$PERF_CMD --start=${{ github.event.inputs.start }}"
+          [ -n "${{ github.event.inputs.items }}" ] && PERF_CMD="$PERF_CMD --items=${{ github.event.inputs.items }}"
+          [ -n "${{ github.event.inputs.loop }}" ] && PERF_CMD="$PERF_CMD --loop=${{ github.event.inputs.loop }}"
+          [ -n "${{ github.event.inputs.size }}" ] && PERF_CMD="$PERF_CMD --size=${{ github.event.inputs.size }}"
+          [ -n "${{ github.event.inputs.cases }}" ] && PERF_CMD="$PERF_CMD ${{ github.event.inputs.cases }}"
+        fi
+        
+        # Run performance tests
+        $PERF_CMD
