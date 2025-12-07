@@ -724,11 +724,26 @@ p_number.cpp 与 p_builder.cpp 中传给调用的 test::wwjson:: 相应 Build �
 
 ### DONE: 20251207-114414
 
-## TODO: 使用 std::to_chars 及回滚机制优化浮点数序列化
+## TODO:2025-12-07/2 使用 std::to_chars 及回滚机制优化浮点数序列化
 
 参考 doing_plan.tmp/to_chars_fallback.hpp
 
 当前开发环境 gcc 版本支持 C++17 但支持 `std::to_chars` 不完整，不支持浮点数。
+所以需要加个自动检测回滚降级机制。
+
+需要适配当前 wwjson.hpp 代码风格，一些实现要求：
+- 在 NumberWriter 类中增加 Output(stringT& dst, floatT value) 重载
+- BasicConfig::NumberString 的模板参数加 is_arithmetic 限定，自动转发
+  NumberWriter 的 Output 方法，
+- GenericBuilder::PutValue(numberT nValue) 两个重载统一为一个
+
+utest/ 单元测试修改：
+- 原来的测试用例需要重新检查，因为原来 std::to_string 是固定 6 位小数，新方法
+  是最短小数输出，用例中按字符串比较断言会失败，故需要调整期望值，移除多余的小
+  数。
+- t_basic.cpp 额外增加一个测试用例，专门测试浮点数各种情况下的序列化。
+
+### DONE:20251207-184927
 
 ## TODO: 优化 wwjson.hpp 英文注释
 

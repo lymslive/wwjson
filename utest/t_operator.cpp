@@ -23,7 +23,7 @@ DEF_TAST(operator_string_key, "test operator[] with string keys and assignment")
 
     builder.EndObject();
 
-    std::string expect = R"({"name":"John","city":"New York","age":25,"salary":50000.500000,"active":true,"middle_name":null})";
+    std::string expect = R"({"name":"John","city":"New York","age":25,"salary":50000.5,"active":true,"middle_name":null})";
     COUT(builder.GetResult(), expect);
 }
 
@@ -49,7 +49,7 @@ DEF_TAST(operator_array_index, "test operator[] with array indices and assignmen
     builder.EndArray();
 
     std::string result = builder.GetResult();
-    std::string expect = R"(["first","second","third","negative_test","large_index",42,3.140000,false])";
+    std::string expect = R"(["first","second","third","negative_test","large_index",42,3.14,false])";
     COUT(result, expect);
 }
 
@@ -145,7 +145,7 @@ DEF_TAST(operator_type_safety, "test operator[] with different data types")
     builder.EndObject();
 
     std::string result = builder.GetResult();
-    std::string expect = R"({"int":42,"short":10,"long":1000,"float":3.140000,"double":2.718280,"true_val":true,"false_val":false,"null_key":null,"char":65,"uchar":66})";
+    std::string expect = R"({"int":42,"short":10,"long":1000,"float":3.14,"double":2.71828,"true_val":true,"false_val":false,"null_key":null,"char":65,"uchar":66})";
     COUT(result, expect);
 }
 
@@ -300,7 +300,7 @@ DEF_TAST(operator_stream_array, "test operator<< with GenericArray for chained e
     builder.EndObject();
 
     std::string result = builder.GetResult();
-    std::string expect = R"({"items":["first_item",42,true,3.140000,false,"replaced_item"]})";
+    std::string expect = R"({"items":["first_item",42,true,3.14,false,"replaced_item"]})";
     COUT(result, expect);
 }
 
@@ -317,7 +317,7 @@ DEF_TAST(operator_stream_object, "test operator<< with GenericObject for alterna
     builder.EndObject();
 
     std::string result = builder.GetResult();
-    std::string expect = R"({"person":{"name":"John","age":30,"active":true,"score":95.500000}})";
+    std::string expect = R"({"person":{"name":"John","age":30,"active":true,"score":95.5}})";
     COUT(result, expect);
 }
 
@@ -375,7 +375,7 @@ DEF_TAST(operator_stream_types, "test operator<< with various data types")
     builder.EndObject();
 
     std::string result = builder.GetResult();
-    std::string expect = R"({"data":["string",123,3.140000,true,false,null],"types":{"str":"hello","int":42,"float":2.500000,"bool":true,"null_val":null}})";
+    std::string expect = R"({"data":["string",123,3.14,true,false,null],"types":{"str":"hello","int":42,"float":2.5,"bool":true,"null_val":null}})";
     COUT(result, expect);
 }
 

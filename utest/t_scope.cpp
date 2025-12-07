@@ -40,7 +40,7 @@ DEF_TAST(scope_ctor_nest, "test build nest json with RAII auto close")
         }
     } // auto add right brace when destruct root beyond scope
 
-    std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.500000,"double":0.333333}]})";
+    std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.5,"double":0.333333}]})";
     COUT(builder.GetResult(), expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
@@ -82,7 +82,7 @@ DEF_TAST(scope_auto_nest, "test build nest json with auto close using scope meth
         }
     } // auto add right brace when destruct root beyond scope
 
-    std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.500000,"double":0.333333}]})";
+    std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.5,"double":0.333333}]})";
     COUT(builder.GetResult(), expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
@@ -155,7 +155,7 @@ DEF_TAST(scope_if_bool_operator, "test operator bool in if statements for scope 
         }
     }
     
-    std::string expect = R"({"name":"test_if","items":[1,2,{"nested_key":"nested_value"}],"config":{"debug":true,"version":1.000000}})";
+    std::string expect = R"({"name":"test_if","items":[1,2,{"nested_key":"nested_value"}],"config":{"debug":true,"version":1}})";
     COUT(builder.GetResult(), expect);
     COUT(test::IsJsonValid(builder.json), true);
 }

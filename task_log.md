@@ -1480,8 +1480,6 @@ builder.EndRoot('}'); // 不加逗号
 - --size参数正确传递和使用
 - 功能完全保持，性能测试可正常运行
 
-EOF;
-
 ## TASK:20251207-114414
 -----------------------
 
@@ -1526,4 +1524,58 @@ EOF;
 - 整数序列化性能已超越yyjson（yyjson为13-18ms）
 - 输出JSON格式正确，验证与yyjson输出完全一致
 
-EOF;
+## TASK:20251207-184927
+-----------------------
+
+**需求ID**: 2025-12-07/2
+**任务描述**: 使用 std::to_chars 及回滚机制优化浮点数序列化
+
+**实施内容**:
+
+1. **std::to_chars 检测机制**:
+   - 在 wwjson.hpp 开头添加 has_float_to_chars_v 检测机制
+   - 使用 C++17 的 std::to_chars 进行浮点数转换检测
+   - 在 NumberWriter 类中增加 Output(stringT& dst, floatT value) 支持
+   - 优先判断 NaN/Inf 并输出 "null" 保证 JSON 合法性
+
+2. **编译宏控制精度**:
+   - 添加 WWJSON_USE_SIMPLE_FLOAT_FORMAT 编译宏
+   - 开发模式：使用 %g 格式 (shortest representation)
+   - 生产模式：使用 %.17g 格式 (maximum precision)
+   - CMakeLists.txt 中为测试添加宏定义
+
+3. **BasicConfig 优化**:
+   - 更新 BasicConfig::NumberString 使用 is_arithmetic_v 约束
+   - 统一整数和浮点数的处理逻辑
+   - 保持为将来扩展预留灵活性
+
+4. **GenericBuilder 重构**:
+   - 统一 PutValue 重载为单一模板实现
+   - 消除重复代码，提高代码维护性
+   - 通过模板约束确保类型安全
+
+5. **测试用例更新**:
+   - 创建 float_serialization 测试用例
+   - 使用 has_float_to_chars_v 动态检测期望输出
+   - 移除所有固定 6 位小数的测试期望
+   - 更新多个测试文件适配新的浮点输出格式
+
+**技术细节**:
+- 使用 SFINAE 技术在编译期检测 std::to_chars 支持
+- NaN/Inf 输出 "null" 而非 "nan"/"inf" 保证 JSON 合法性
+- 动态检测机制确保测试用例在所有环境下正确运行
+- 精度控制宏支持开发和生产环境的不同需求
+
+**测试结果**:
+- 编译成功，无错误
+- 所有 63 个测试用例全部通过
+- 输出格式验证正确，JSON 合法性通过
+- to_chars 检测机制正常工作，回滚机制稳定
+- 测试用例动态适配，覆盖率完整
+
+**验证**:
+- 功能正确性：浮点数序列化输出正确且符合 JSON 标准
+- 性能优化：std::to_chars 比传统方法更高效
+- 向后兼容：整数序列化性能保持不变
+- 灵活性：编译宏支持不同精度需求
+

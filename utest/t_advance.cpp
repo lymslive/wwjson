@@ -539,7 +539,7 @@ DEF_TAST(advance_function_free, "test AddItem with free functions")
     
     builder1.EndArray();
     
-    std::string expect1 = R"([{"func_type":"free_function","number":3.140000}])";  // Double precision formatting
+    std::string expect1 = R"([{"func_type":"free_function","number":3.14}])";  // Shortest decimal representation
     COUT(builder1.GetResult(), expect1);
     COUT(test::IsJsonValid(builder1.json), true);
     

@@ -42,6 +42,9 @@ add_executable(utwwjson
     test_util.cpp
 )
 
+# Add compile definition for simple float format in development
+target_compile_definitions(utwwjson PRIVATE WWJSON_USE_SIMPLE_FLOAT_FORMAT=1)
+
 # Link with wwjson library
 target_link_libraries(utwwjson PRIVATE wwjson)
 

@@ -29,10 +29,18 @@
 #include <string>
 #include <string_view>
 #include <array>
-// for std::to_chars C++17
-// #include <charconv>
+#include <charconv>
+#include <cmath>
 
 #include <string.h>
+
+/// High precision floating-point serialization control.
+/// Define this macro to use simple %g format (shorter but less precise).
+/// Default is high precision %.17g for better accuracy.
+/// Note: This setting is ignored if std::to_chars is available for floating-point types.
+#ifndef WWJSON_USE_SIMPLE_FLOAT_FORMAT
+    #define WWJSON_USE_SIMPLE_FLOAT_FORMAT 0
+#endif
 
 namespace wwjson
 {
@@ -52,6 +60,31 @@ template<> struct is_key<std::string_view> : std::true_type {};
 
 template<typename T>
 inline constexpr bool is_key_v = is_key<std::decay_t<T>>::value;
+
+namespace detail
+{
+
+template <typename T>
+using has_fp_to_chars = decltype(
+    std::to_chars(std::declval<char*>(), std::declval<char*>(), std::declval<T>()
+    //  , std::declval<std::chars_format>()
+    )
+);
+
+template <typename T, typename = void>
+struct supports_to_chars_float : std::false_type {};
+
+template <typename T>
+struct supports_to_chars_float<T, std::void_t<has_fp_to_chars<T>>>
+    : std::true_type {};
+
+} // namespace detail
+
+/// Detect if std::to_chars supports floating-point types.
+template <typename T>
+constexpr bool has_float_to_chars_v =
+    std::is_floating_point_v<std::remove_cv_t<T>> &&
+    detail::supports_to_chars_float<std::remove_cv_t<T>>::value;
 
 /// String concept struct to document required interfaces for custom string types.
 /// Although C++17 doesn't support concepts, this serves as documentation.
@@ -172,7 +205,7 @@ private:
     }
     
 public:
-    /// Main output interface for integer types.
+    /// Converts integer values to their string representation.
     template<typename intT>
     static std::enable_if_t<std::is_integral_v<intT>, void> 
     Output(stringT& dst, intT value)
@@ -182,6 +215,63 @@ public:
         } else {
             WriteUnsigned(dst, value);
         }
+    }
+    
+    /// Converts floating-point values to their string representation.
+    /// Handles special cases:
+    /// - NaN -> outputs "null" (JSON has no NaN representation)
+    /// - +Inf -> outputs "null" (JSON has no Infinity representation) 
+    /// - -Inf -> outputs "null" (JSON has no -Infinity representation)
+    /// Uses std::to_chars if available, otherwise falls back to snprintf.
+    /// Format controlled by WWJSON_USE_SIMPLE_FLOAT_FORMAT:
+    /// - Simple: %g (shorter output)
+    /// - High precision: %.9g/%.17g/%.21Lg (more accurate)
+    template<typename floatT>
+    static std::enable_if_t<std::is_floating_point_v<floatT>, void>
+    Output(stringT& dst, floatT value)
+    {
+        if (wwjson_unlikely(std::isnan(value))) {
+            dst.append("null", 4);
+            return;
+        }
+        if (wwjson_unlikely(std::isinf(value))) {
+            dst.append("null", 4);
+            return;
+        }
+        
+        if constexpr (has_float_to_chars_v<floatT>) {
+            char buffer[256];
+            auto result = std::to_chars(buffer, buffer + sizeof(buffer), value); // , std::chars_format::general
+            if (result.ec == std::errc{}) {
+                dst.append(buffer, static_cast<size_t>(result.ptr - buffer));
+                return;
+            }
+        }
+        
+        // --- Fallback path for regular numbers ---
+        char buffer[256];
+        int len = 0;
+        
+#if WWJSON_USE_SIMPLE_FLOAT_FORMAT
+        // Simple format - shorter output
+        len = std::snprintf(buffer, sizeof(buffer), "%g", value);
+#else
+        // High precision format - more accurate
+        if constexpr (std::is_same_v<floatT, float>) {
+            len = std::snprintf(buffer, sizeof(buffer), "%.9g", value);
+        } else if constexpr (std::is_same_v<floatT, double>) {
+            len = std::snprintf(buffer, sizeof(buffer), "%.17g", value);
+        } else if constexpr (std::is_same_v<floatT, long double>) {
+            len = std::snprintf(buffer, sizeof(buffer), "%.21Lg", value);
+        }
+#endif
+        
+        if (wwjson_likely(len > 0 && static_cast<size_t>(len) < sizeof(buffer))) {
+            dst.append(buffer, static_cast<size_t>(len));
+            return;
+        }
+        
+        dst.append(std::to_string(value));
     }
 };
 
@@ -273,9 +363,10 @@ struct BasicConfig
         }
     }
     
-    /// Convert integer to string using NumberWriter
-    template<typename intT>
-    static void NumberString(stringT& dst, intT value)
+    /// Convert number to string using NumberWriter.
+    template<typename numberT>
+    static std::enable_if_t<std::is_arithmetic_v<numberT>, void>
+    NumberString(stringT& dst, numberT value)
     {
         NumberWriter<stringT>::Output(dst, value);
     }
@@ -535,20 +626,12 @@ struct GenericBuilder
         PutValue(strValue.data(), strValue.length());
     }
 
-    /// Append integral number value to JSON.
+    /// Append arithmetic number value to JSON (both integral and floating-point).
     template <typename numberT>
-    std::enable_if_t<std::is_integral_v<numberT>, void>
+    std::enable_if_t<std::is_arithmetic_v<numberT>, void>
     /*void*/ PutValue(numberT nValue)
     {
         configT::NumberString(json, nValue);
-    }
-
-    /// Append floating-point number value to JSON.
-    template <typename numberT>
-    std::enable_if_t<std::is_floating_point_v<numberT>, void>
-    /*void*/ PutValue(numberT nValue)
-    {
-        Append(std::to_string(nValue));
     }
     
     /// Append object key with quotes and colon.

@@ -2,6 +2,7 @@
 #include "wwjson.hpp"
 #include "test_util.h"
 #include <string>
+#include <limits>
 
 DEF_TAST(basic_builder, "test json builder with raw string")
 {
@@ -31,7 +32,7 @@ DEF_TAST(basic_builder, "test json builder with raw string")
     builder.EndObject();
     builder.GetResult();
 
-    std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.500000,"double":0.333333,"ints":"124","intf":"125"})";
+    std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.5,"double":0.333333,"ints":"124","intf":"125"})";
     COUT(builder.json, expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
@@ -99,7 +100,7 @@ DEF_TAST(basic_builder_nest, "test build nest json with array of object")
     // Not neccessay after EndRoot(), but needed after EndObject
 //  builder.GetResult();
 
-    std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},{"short":280,"double":0.500000,"double":0.333333}]})";
+    std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},{"short":280,"double":0.5,"double":0.333333}]})";
     COUT(builder.json, expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
@@ -277,7 +278,7 @@ DEF_TAST(basic_low_level, "test using low-level methods PutKey/PutValue/PutNext"
 
     builder.EndObject();
 
-    std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.500000,"double":0.333333,"ints":"124","intf":"125","numbers":[1,2,3]})";
+    std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.5,"double":0.333333,"ints":"124","intf":"125","numbers":[1,2,3]})";
     COUT(builder.GetResult(), expect);
 }
 
@@ -339,7 +340,7 @@ DEF_TAST(basic_string_view_support, "test std::string_view support for keys and 
     builder.EndObject();
     builder.GetResult();
 
-    std::string expect = R"({"sv_key1":"string_value","sv_key1":42,"sv_value_key":"sv_value","sv_key2":"assigned_value","sv_key3":3.140000,"sv_key4":"escaped\nvalue","escape_sv_value":"value\twith\ttabs"})";
+    std::string expect = R"({"sv_key1":"string_value","sv_key1":42,"sv_value_key":"sv_value","sv_key2":"assigned_value","sv_key3":3.14,"sv_key4":"escaped\nvalue","escape_sv_value":"value\twith\ttabs"})";
     COUT(builder.json, expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
@@ -521,7 +522,7 @@ DEF_TAST(basic_empty_string, "test not null but empty string edge cases")
     COUT(test::IsJsonValid(builder3.json), true);  // JSON is actually valid even with empty key
 }
 
-DEF_TAST(integer_serialization, "test serialization of 8 standard integer types")
+DEF_TAST(basic_integer_member, "test serialization of 8 standard integer types")
 {
     wwjson::RawBuilder builder;
     builder.BeginRoot();
@@ -579,7 +580,7 @@ DEF_TAST(integer_serialization, "test serialization of 8 standard integer types"
     COUT(test::IsJsonValid(builder.json), true);
 }
 
-DEF_TAST(integer_array_serialization, "test serialization of integers in arrays")
+DEF_TAST(basic_integer_item, "test serialization of integers in arrays")
 {
     wwjson::RawBuilder builder;
     builder.BeginRoot('[');
@@ -619,3 +620,56 @@ DEF_TAST(integer_array_serialization, "test serialization of integers in arrays"
     COUT(builder.json, expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
+
+DEF_TAST(basic_float_serialization, "test various floating-point serialization scenarios")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginRoot();
+    
+    // Test basic floating-point values
+    builder.AddMember("zero", 0.0);
+    builder.AddMember("positive", 3.14159);
+    builder.AddMember("negative", -2.71828);
+    builder.AddMember("small", 0.00123);
+    builder.AddMember("large", 1234567.89);
+    
+    // Test special values - NaN and Inf should become "null" for valid JSON
+    float positive_inf = std::numeric_limits<float>::infinity();
+    float negative_inf = -std::numeric_limits<float>::infinity();
+    float nan_val = std::numeric_limits<float>::quiet_NaN();
+    
+    builder.AddMember("pos_inf", positive_inf);
+    builder.AddMember("neg_inf", negative_inf);
+    builder.AddMember("nan_val", nan_val);
+    
+    // Test precision for different floating-point types
+    builder.AddMember("float_val", 3.14159f);
+    builder.AddMember("double_val", 2.718281828459045);
+    
+    // Test very precise values
+    builder.AddMember("precise_float", 1.23456789f);
+    builder.AddMember("precise_double", 1.23456789012345);
+    
+    builder.EndRoot();
+    
+    // Expected output based on to_chars support and format choice
+    std::string expect;
+    
+    // Default to high precision expectations
+    expect = R"({"zero":0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1234567.89,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.718281828459045,"precise_float":1.2345679,"precise_double":1.23456789012345})";
+    
+    // If no to_chars support, adjust expectations based on format choice
+    if (!::wwjson::has_float_to_chars_v<double>) {
+#if WWJSON_USE_SIMPLE_FLOAT_FORMAT
+        // Simple format expectations
+        expect = R"({"zero":0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1.23457e+06,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.71828,"precise_float":1.23457,"precise_double":1.23457})";
+#else
+        // High precision fallback expectations (same as default)
+        expect = R"({"zero":0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1234567.89,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.718281828459045,"precise_float":1.2345679,"precise_double":1.23456789012345})";
+#endif
+    }
+    
+    COUT(builder.json, expect);
+    COUT(test::IsJsonValid(builder.json), true);
+}
+

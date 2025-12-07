@@ -26,5 +26,8 @@ DEF_TOOL(to_chars, "test std::to_chars")
         COUT(strMaxInt);
         COUT(strMaxInt.size());
     }
+
+    COUT(wwjson::has_float_to_chars_v<float>);
+    COUT(wwjson::has_float_to_chars_v<double>);
 }
 
