@@ -230,6 +230,9 @@ DEF_TOOL(verify_json_builders, "Verify wwjson and yyjson generate identical JSON
     DESC("yyjson result length: %zu bytes", yyjson_result.size());
     
     COUT(wwjson_result == yyjson_result, true);
+
+    COUT(wwjson::has_float_to_chars_v<float>);
+    COUT(wwjson::has_float_to_chars_v<double>);
 }
 
 // Tool to test different n values and their corresponding JSON sizes

@@ -33,6 +33,7 @@
 #include <cmath>
 
 #include <string.h>
+#include <stdint.h>
 
 /// High precision floating-point serialization control.
 /// Define this macro to use simple %g format (shorter but less precise).
