@@ -99,7 +99,7 @@ if(NOT WWJSON_LIB_ONLY)
         FetchContent_Declare(
             yyjson
             GIT_REPOSITORY https://github.com/ibireme/yyjson.git
-            GIT_TAG main  # or specific tag/commit
+            GIT_TAG master  # or specific tag/commit
         )
         FetchContent_MakeAvailable(yyjson)
     endif()
