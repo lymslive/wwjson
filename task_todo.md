@@ -791,6 +791,25 @@ utest/t_experiment.cpp 新增两个测试工具用例，double_view 与 float_vi
 
 ### DONE: 20251208~153630
 
+## TODO:2025-12-08/2 设计字符串序列化性能测试
+
+参考 `perf/p_number.cpp` 新增 `p_string.cpp` 文件，设计几组用例与构建函数没用
+字符串的性能，命令行控制参数尽量复用已支持的参数。
+
+- 构造字符串数组，将 [start, start+items) 范围的整数，先转成字符串，以字符串类
+  型写入一个 json 数组。
+- 构造字符串键值对，值与字符串数组用例一样，键名加一个 `k` 前缀，构建一个 Json
+  对象。
+- 构造含转义的 Json 对象，键名用 `k` 加数字前缀，值都用一个相同的子 json 串
+  `{"key":"value"}` ，用 wwjson 构建时，显式调用 AddMemberEscape 。
+
+小计三组用例，6 个函数，6 个用例。
+
+### DONE: 20251208-174952
+
+纯字符串序列化也比 yyjson 略快。那么混合 json 构建比 yyjson 慢的原因应该是浮点
+数序列化了。
+
 ## TODO: 优化 wwjson.hpp 英文注释
 
 ## TODO: 完善项目文档

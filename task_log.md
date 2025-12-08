@@ -1689,3 +1689,24 @@ builder.EndRoot('}'); // 不加逗号
 - 自动触发：推送 tag 到仓库即可触发完整构建和测试
 - 手动触发：在 GitHub Actions 页面手动运行，可输入自定义参数
 - 参数可选：所有参数都是可选的，未输入时使用程序默认值
+
+## TASK:20251208-174952
+-----------------------
+需求ID: 2025-12-08/2 - 设计字符串序列化性能测试
+
+完成内容：
+1. 创建 perf/p_string.cpp 文件，参考 p_number.cpp 的结构
+2. 实现了 6 个函数（wwjson 和 yyjson 各 3 个）：
+   - BuildStringArray: 构造字符串数组，将整数转为字符串
+   - BuildStringObject: 构造字符串键值对，键名加 k 前缀
+   - BuildEscapeObject: 构造含转义的 JSON 对象，值使用 {"key":"value"}
+3. 创建了 6 个性能测试用例，复用现有的 --start, --items, --loop 参数
+4. 添加了 compare_string_output 工具验证输出正确性
+5. 更新 perf/CMakeLists.txt 包含 p_string.cpp
+6. 修复了 yyjson 实现中的字符串生命周期问题
+
+测试验证：
+- 编译成功，所有测试用例可见
+- compare_string_output 验证输出一致性
+- 性能测试运行正常
+
