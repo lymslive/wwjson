@@ -22,6 +22,8 @@ endif()
 # Link with yyjson for performance comparison
 if(TARGET yyjson::yyjson)
     target_link_libraries(pfwwjson PRIVATE yyjson::yyjson)
+elseif(TARGET yyjson)
+    target_link_libraries(pfwwjson PRIVATE yyjson)
 endif()
 
 # Add custom target for listing performance tests

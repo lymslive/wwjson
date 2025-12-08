@@ -61,6 +61,8 @@ endif()
 
 if(TARGET yyjson::yyjson)
     target_link_libraries(utwwjson PRIVATE yyjson::yyjson)
+elseif(TARGET yyjson)
+    target_link_libraries(pfwwjson PRIVATE yyjson)
 endif()
 
 if(TARGET xyjson::xyjson)
