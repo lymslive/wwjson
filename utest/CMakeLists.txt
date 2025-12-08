@@ -10,8 +10,11 @@ if(NOT xyjson_FOUND)
     FetchContent_Declare(
         xyjson
         GIT_REPOSITORY https://github.com/lymslive/xyjson.git
+#       GIT_REPOSITORY git@github.com:lymslive/xyjson.git
         GIT_TAG main  # or specific tag/commit
-        OPTIONS "-DXYJSON_LIB_ONLY=ON"
+        GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE
+        OPTIONS "-DXYJSON_LIB_ONLY=ON" "-DUSE_FETCHCONTENT=OFF"
     )
     FetchContent_MakeAvailable(xyjson)
 endif()
