@@ -65,6 +65,8 @@ endif()
 
 if(TARGET xyjson::xyjson)
     target_link_libraries(utwwjson PRIVATE xyjson::xyjson)
+elseif(TARGET xyjson)
+    target_link_libraries(utwwjson PRIVATE xyjson)
 endif()
 
 # Add test to CTest if available
