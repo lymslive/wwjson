@@ -28,6 +28,7 @@ message(STATUS "Using xyjson from: ${XYJSON_INCLUDE_DIR}")
 add_executable(utwwjson
     # functional test files
     t_basic.cpp
+    t_number.cpp
     t_scope.cpp
     t_custom.cpp
     t_escape.cpp
