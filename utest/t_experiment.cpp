@@ -8,6 +8,7 @@
 #include <bitset>
 #include <iostream>
 #include <cmath>
+#include <chrono>
 
 DEF_TOOL(to_chars, "test std::to_chars")
 {
@@ -37,8 +38,11 @@ DEF_TOOL(to_chars, "test std::to_chars")
     COUT(wwjson::has_float_to_chars_v<double>);
 }
 
+namespace tool
+{
 // 分析 double 类型的二进制编码
-void analyze_double_binary(double value) {
+void analyze_double_binary(double value)
+{
     // 使用 union 来访问 double 的二进制表示
     union {
         double d;
@@ -96,7 +100,8 @@ void analyze_double_binary(double value) {
 }
 
 // 分析 float 类型的二进制编码
-void analyze_float_binary(float value) {
+void analyze_float_binary(float value)
+{
     // 使用 union 来访问 float 的二进制表示
     union {
         float f;
@@ -153,21 +158,285 @@ void analyze_float_binary(float value) {
     std::cout << std::endl;
 }
 
+// Fixed-point floating-point experimental tests
+template<typename floatT>
+bool is_effectively_integer(floatT value)
+{
+    floatT int_part;
+    return std::modf(value, &int_part) == 0.0;
+}
+
+template<typename floatT>
+void print_fraction_sequence(int scale, bool show_scaled = false)
+{
+    if (show_scaled)
+    {
+        DESC("Printing %d*f values:", scale);
+    }
+    else
+    {
+        DESC("Printing fractions 0/%d to %d/%d:", scale, scale-1, scale);
+    }
+    std::cout << std::fixed << std::setprecision(10);
+    
+    if (scale > 100)
+    {
+        // For large scale, print first 50 and last 50
+        DESC("Showing first 50 values:");
+        for (int i = 0; i < 50; ++i)
+        {
+            floatT f = static_cast<floatT>(i) / static_cast<floatT>(scale);
+            floatT value = show_scaled ? (f * static_cast<floatT>(scale)) : f;
+            
+            if (show_scaled)
+            {
+                std::cout << std::setw(8) << std::setprecision(2) << std::fixed << value;
+            }
+            else
+            {
+                std::cout << std::setw(12) << std::setprecision(6) << std::defaultfloat << value;
+            }
+            
+            if ((i + 1) % 10 == 0)
+            {
+                std::cout << std::endl;
+            }
+        }
+        DESC("Showing last 50 values:");
+        for (int i = scale - 50; i < scale; ++i)
+        {
+            floatT f = static_cast<floatT>(i) / static_cast<floatT>(scale);
+            floatT value = show_scaled ? (f * static_cast<floatT>(scale)) : f;
+            
+            if (show_scaled)
+            {
+                std::cout << std::setw(8) << std::setprecision(2) << std::fixed << value;
+            }
+            else
+            {
+                std::cout << std::setw(12) << std::setprecision(6) << std::defaultfloat << value;
+            }
+            
+            if ((i + 1) % 10 == 0) std::cout << std::endl;
+        }
+        if ((50) % 10 != 0) std::cout << std::endl;
+    }
+    else
+    {
+        for (int i = 0; i < scale; ++i)
+        {
+            floatT f = static_cast<floatT>(i) / static_cast<floatT>(scale);
+            floatT value = show_scaled ? (f * static_cast<floatT>(scale)) : f;
+            
+            if (show_scaled)
+            {
+                std::cout << std::setw(8) << std::setprecision(2) << std::fixed << value;
+            }
+            else
+            {
+                std::cout << std::setw(12) << std::setprecision(6) << std::defaultfloat << value;
+            }
+            
+            if ((i + 1) % 10 == 0)
+            {
+                std::cout << std::endl;
+            }
+        }
+        if ((scale) % 10 != 0)
+        {
+            std::cout << std::endl;
+        }
+    }
+}
+
+template<typename floatT>
+void test_decimal_precision(int scale, const char* type_name)
+{
+    DESC("=== Testing %s precision with scale %d ===", type_name, scale);
+    
+    // Print the sequence
+    // print_fraction_sequence<floatT>(scale);
+    
+    // Print scale*f values
+    // print_fraction_sequence<floatT>(scale, true);
+    
+    // Test if scale*f is effectively integer
+    DESC("Testing if %d*f is integer:", scale);
+    int integer_errors = 0;
+    int total_checks = 0;
+    floatT max_int_error = 0.0f;
+ // for (int i = 0; i < scale; i += (scale > 10000 ? scale/100 : 1))
+    for (int i = 0; i < scale; ++i)
+    {
+        total_checks++;
+        floatT f = static_cast<floatT>(i) / static_cast<floatT>(scale);
+        floatT scaled = f * static_cast<floatT>(scale);
+        if (!is_effectively_integer(scaled))
+        {
+            integer_errors++;
+            floatT error = std::abs(scaled - std::round(scaled));
+            max_int_error = std::max(max_int_error, error);
+            if (integer_errors <= 50) // Show details for first 50 errors
+            {
+                DESC("Error: %d * %g = %.*g is not integer (error: %.*g)", i, f, 
+                     std::numeric_limits<floatT>::max_digits10, scaled,
+                     std::numeric_limits<floatT>::max_digits10, error);
+            }
+        }
+    }
+    floatT int_error_rate = static_cast<floatT>(integer_errors) / total_checks * 100.0f;
+    DESC("Integer check failure rate: %.2f%% (%d/%d)", int_error_rate, integer_errors, total_checks);
+    DESC("Maximum integer check error: %.*g", std::numeric_limits<floatT>::max_digits10, max_int_error);
+    COUTF(integer_errors, 0);
+    if (integer_errors > 0)
+    {
+        DESC("Total %d values failed integer check (showing first 50)", integer_errors);
+    }
+    
+    // Test if scale.0*f/scale.0 equals original f
+    DESC("Testing if %d.0*f/%d.0 equals original f:", scale, scale);
+    int restore_errors = 0;
+    total_checks = 0;
+    floatT max_error = 0.0f;
+//  for (int i = 0; i < scale; i += (scale > 10000 ? scale/100 : 1))
+    for (int i = 0; i < scale; ++i)
+    {
+        total_checks++;
+        floatT f = static_cast<floatT>(i) / static_cast<floatT>(scale);
+        floatT restored = (static_cast<floatT>(scale) * f) / static_cast<floatT>(scale);
+        floatT error = std::abs(f - restored);
+        if (error > max_error)
+        {
+            max_error = error;
+        }
+        if (error > std::numeric_limits<floatT>::epsilon())
+        {
+            restore_errors++;
+            if (restore_errors <= 50) // Show details for first 50 errors
+            {
+                DESC("Error: %g -> %g (diff: %.*g)", f, restored,
+                     std::numeric_limits<floatT>::max_digits10, f - restored);
+            }
+        }
+    }
+    floatT restore_error_rate = static_cast<floatT>(restore_errors) / total_checks * 100.0f;
+    DESC("Restoration failure rate: %.2f%% (%d/%d)", restore_error_rate, restore_errors, total_checks);
+    DESC("Maximum restoration error: %.*g", std::numeric_limits<floatT>::max_digits10, max_error);
+    COUTF(restore_errors, 0);
+    if (restore_errors > 0)
+    {
+        DESC("Total %d restoration errors (showing first 50)", restore_errors);
+    }
+}
+
+template<typename floatT>
+int detect_decimal_places(floatT value)
+{
+    // Separate integer and fractional parts
+    floatT int_part;
+    floatT frac_part = std::modf(std::abs(value), &int_part);
+    
+    // If it's effectively an integer, return 0
+    if (is_effectively_integer(value))
+    {
+        return 0;
+    }
+    
+    // Count decimal places by multiplying by 10 until we get an integer
+    int decimal_places = 0;
+    floatT test_frac = frac_part;
+    const floatT epsilon = std::numeric_limits<floatT>::epsilon() * 100.0f;
+    
+    while (decimal_places < 15) // Reasonable limit
+    {
+        test_frac *= 10.0f;
+        decimal_places++;
+        if (is_effectively_integer(test_frac))
+        {
+            break;
+        }
+    }
+    
+    return decimal_places;
+}
+
+template<typename floatT>
+void test_decimal_detection(floatT value)
+{
+    DESC("Testing decimal places detection for: %.*g", std::numeric_limits<floatT>::max_digits10, value);
+    
+    floatT int_part;
+    floatT frac_part = std::modf(std::abs(value), &int_part);
+    
+    DESC("Integer part: %g, Fractional part: %.*g", int_part, std::numeric_limits<floatT>::max_digits10, frac_part);
+    
+    int decimal_places = detect_decimal_places(value);
+    DESC("Detected decimal places: %d", decimal_places);
+    
+    // Test restoration - only scale and restore fractional part
+    floatT scale = std::pow(10.0f, decimal_places);
+    floatT scaled_frac = frac_part * scale;
+    floatT restored_frac = std::round(scaled_frac) / scale;
+    floatT restored = int_part + restored_frac;
+    
+    DESC("Original: %.*g", std::numeric_limits<floatT>::max_digits10, value);
+    DESC("Scaled fractional part by %g: %.*g", scale, std::numeric_limits<floatT>::max_digits10, scaled_frac);
+    DESC("Restored: %.*g", std::numeric_limits<floatT>::max_digits10, restored);
+    COUTF(std::abs(value - restored) < std::numeric_limits<floatT>::epsilon() * 100.0f, true);
+}
+
+template<typename floatT>
+void performance_test(int scale)
+{
+    DESC("Performance test for %s with scale %d (processing %d values)", 
+         typeid(floatT).name(), scale, scale * scale);
+    
+    auto start = std::chrono::high_resolution_clock::now();
+    
+    volatile floatT sum = 0.0f; // volatile to prevent optimization
+    for (int i = 0; i < scale; ++i)
+    {
+        for (int j = 0; j < scale; ++j)
+        {
+            floatT f = i + static_cast<floatT>(j) / static_cast<floatT>(scale);
+            
+            // Separate integer and fractional parts
+            floatT int_part;
+            floatT frac_part = std::modf(f, &int_part);
+            
+            // Scale and restore only the fractional part
+            floatT scaled_frac = frac_part * static_cast<floatT>(scale);
+            floatT restored_frac = std::round(scaled_frac) / static_cast<floatT>(scale);
+            floatT restored = int_part + restored_frac;
+            
+            sum += restored; // Use the result to prevent optimization
+        }
+    }
+    
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    
+    DESC("Completed in %ld ms", duration.count());
+    DESC("Sum (to prevent optimization): %g", sum);
+}
+
+} // namespace tool
+
 DEF_TOOL(double_view, "analyze double binary representation")
 {
     double value = 0.0;
     BIND_ARGV(value);
     if (value != 0.0) {
         DESC("Analyzing provided double value:");
-        analyze_double_binary(value);
+        tool::analyze_double_binary(value);
     } else {
-        analyze_double_binary(value);
+        tool::analyze_double_binary(value);
         DESC("Analyzing sample double values (1/10 to 1/1):");
         // 分析从 1/10, 1/9 到 1/2, 1/1 这几个示例小数
         for (int denominator = 10; denominator >= 1; --denominator) {
             double sample = 1.0 / denominator;
             DESC("=== 1/%d ===", denominator);
-            analyze_double_binary(sample);
+            tool::analyze_double_binary(sample);
         }
     }
 }
@@ -178,16 +447,107 @@ DEF_TOOL(float_view, "analyze float binary representation")
     BIND_ARGV(value);
     if (value != 0.0f) {
         DESC("Analyzing provided float value:");
-        analyze_float_binary(value);
+        tool::analyze_float_binary(value);
     } else {
-        analyze_double_binary(value);
+        tool::analyze_double_binary(value);
         DESC("Analyzing sample float values (1/10 to 1/1):");
         // 分析从 1/10, 1/9 到 1/2, 1/1 这几个示例小数
         for (int denominator = 10; denominator >= 1; --denominator) {
             float sample = 1.0f / denominator;
             DESC("=== 1/%d ===", denominator);
-            analyze_float_binary(sample);
+            tool::analyze_float_binary(sample);
         }
+    }
+}
+
+// Test cases for fixed-point experiments
+DEF_TOOL(fixed_point_2decimals, "test 2-decimal place precision")
+{
+    tool::test_decimal_precision<double>(100, "double");
+}
+
+DEF_TOOL(fixed_point_4decimals, "test 4-decimal place precision")
+{
+    tool::test_decimal_precision<double>(10000, "double");
+}
+
+DEF_TOOL(fixed_point_8decimals, "test 8-decimal place precision")
+{
+    tool::test_decimal_precision<double>(100000000, "double");
+}
+
+DEF_TOOL(fixed_point_2decimals_float, "test 2-decimal place precision with float")
+{
+    tool::test_decimal_precision<float>(100, "float");
+}
+
+DEF_TOOL(fixed_point_4decimals_float, "test 4-decimal place precision with float")
+{
+    tool::test_decimal_precision<float>(10000, "float");
+}
+
+DEF_TOOL(fixed_point_8decimals_float, "test 8-decimal place precision with float")
+{
+    tool::test_decimal_precision<float>(100000000, "float");
+}
+
+DEF_TOOL(fixed_point_generic, "generic fixed-point test with command-line parameters")
+{
+    std::string type_str = "double";
+    int scale = 10000;
+    
+    BIND_ARGV(type_str, "type");
+    BIND_ARGV(scale);
+    
+    DESC("Running generic fixed-point test with type=%s, scale=%d", type_str.c_str(), scale);
+    
+    if (type_str == "float")
+    {
+        tool::test_decimal_precision<float>(scale, "float");
+    }
+    else
+    {
+        tool::test_decimal_precision<double>(scale, "double");
+    }
+}
+
+DEF_TOOL(fixed_point_detect, "detect decimal places of a floating-point number")
+{
+    std::string type_str = "double";
+    double value = 0.0;
+    
+    BIND_ARGV(type_str, "type");
+    BIND_ARGV(value);
+    
+    DESC("Detecting decimal places for value=%g with type=%s", value, type_str.c_str());
+    
+    if (type_str == "float")
+    {
+        tool::test_decimal_detection<float>(static_cast<float>(value));
+    }
+    else
+    {
+        tool::test_decimal_detection<double>(value);
+    }
+}
+
+DEF_TOOL(fixed_point_performance, "performance test for large number of fixed-point operations")
+{
+    int scale = 10000;
+    std::string type_str = "double";
+    
+    BIND_ARGV(scale);
+    BIND_ARGV(type_str);
+    
+    DESC("Running performance test with scale=%d, type=%s", scale, type_str.c_str());
+    
+    if (type_str == "float")
+    {
+        tool::performance_test<float>(scale);
+    }
+    else
+    {
+        tool::performance_test<double>(scale);
     }
 }
 
