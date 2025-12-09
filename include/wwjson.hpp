@@ -87,6 +87,12 @@ constexpr bool has_float_to_chars_v =
     std::is_floating_point_v<std::remove_cv_t<T>> &&
     detail::supports_to_chars_float<std::remove_cv_t<T>>::value;
 
+#if WWJSON_USE_SIMPLE_FLOAT_FORMAT
+constexpr bool use_simple_float_format = !has_float_to_chars_v<double>;
+#else
+constexpr bool use_simple_float_format = false;
+#endif
+
 /// String concept struct to document required interfaces for custom string types.
 /// Although C++17 doesn't support concepts, this serves as documentation.
 struct StringConcept
@@ -110,7 +116,6 @@ struct StringConcept
 template<typename stringT>
 struct NumberWriter
 {
-private:
     /// Structure to store a pair of digit characters.
     struct DigitPair {
         char high;
@@ -174,10 +179,8 @@ private:
         
         constexpr int max_len = std::numeric_limits<intT>::digits10 + 1;
         char buffer[max_len];
-        char* ptr = buffer;
-        
         char* const buffer_end = buffer + max_len;
-        ptr = buffer_end;
+        char* ptr = buffer_end;
         
         while (value >= 10000) {
             uint32_t chunk = static_cast<uint32_t>(value % 10000);
@@ -218,17 +221,13 @@ private:
     /// Returns true if the number was handled, false if fallback is needed.
     static bool WriteSmall(stringT& dst, double value)
     {
-        // Pre-calculated maximum precise integer value for double (2^53)
         constexpr double max_precise_double = 9007199254740992.0;
         if (wwjson_unlikely(value > max_precise_double)) {
             return false;
         }
         
-        // Extract integer and fractional parts using static_cast
         uint64_t integer_part = static_cast<uint64_t>(value);
         double fractional_part = value - static_cast<double>(integer_part);
-        
-        // If it's an integer, use integer serialization path
         if (fractional_part == 0.0) {
             WriteUnsigned(dst, integer_part);
             return true;
@@ -236,49 +235,50 @@ private:
         
         // Multiply fractional part by 10000 and check if it's an integer
         double scaled_fractional = fractional_part * 10000.0;
-        
-        // Allow small floating-point errors (1.0e-12 tolerance)
         uint64_t scaled_int = static_cast<uint64_t>(scaled_fractional + 0.5);
         double error_check = scaled_fractional - static_cast<double>(scaled_int);
-        if (std::abs(error_check) > 1.0e-12) {
+        double tolerance = 1.0e-8; // allow some tolerace after scaled
+        if (std::abs(error_check) > tolerance) {
             return false; 
         }
         
+        if (scaled_int == 10000) {
+            ++integer_part;
+            WriteUnsigned(dst, integer_part);
+            return true;
+        }
+
         // Now we have a valid fixed-point number with at most 4 decimal places
         WriteUnsigned(dst, integer_part);
         dst.push_back('.');
         
-        // Write fractional part as 4 digits, then remove trailing zeros
         uint32_t frac_part = static_cast<uint32_t>(scaled_int);
-        
-        // Write thousands digit
-        uint32_t thousands = frac_part / 1000;
-        dst.push_back(static_cast<char>('0' + thousands));
-        frac_part %= 1000;
-        
-        // Write hundreds digit
-        uint32_t hundreds = frac_part / 100;
-        dst.push_back(static_cast<char>('0' + hundreds));
-        frac_part %= 100;
-        
-        // Write tens digit
-        uint32_t tens = frac_part / 10;
-        dst.push_back(static_cast<char>('0' + tens));
-        frac_part %= 10;
-        
-        // Write ones digit
-        uint32_t ones = frac_part;
-        dst.push_back(static_cast<char>('0' + ones));
-        
-        // Remove trailing zeros from right to left
-        while (dst.back() == '0') {
-            dst.pop_back();
+        uint32_t q = static_cast<uint32_t>(frac_part / 100);
+        uint32_t r = static_cast<uint32_t>(frac_part % 100);
+        const DigitPair& pair_q = kDigitPairs[q];
+        const DigitPair& pair_r = kDigitPairs[r];
+
+        if (r == 0) {
+            dst.push_back(pair_q.high);
+            if (pair_q.low != '0') {
+                dst.push_back(pair_q.low);
+            }
         }
-        
+        else {
+            dst.push_back(pair_q.high);
+            dst.push_back(pair_q.low);
+            if (pair_r.low != '0') {
+                dst.push_back(pair_r.high);
+                dst.push_back(pair_r.low);
+            }
+            else {
+                dst.push_back(pair_r.high);
+            }
+        }
+
         return true;
     }
 
-public:
     /// Converts integer values to their string representation.
     template<typename intT>
     static std::enable_if_t<std::is_integral_v<intT>, void> 
@@ -306,7 +306,6 @@ public:
             return;
         }
         
-        // Handle negative numbers
         if (value < 0) {
             dst.push_back('-');
             value = -value;
@@ -317,7 +316,7 @@ public:
             return;
         }
         
-        // --- Fallback path for regular numbers ---
+        // --- Normal path for regular numbers ---
         if constexpr (has_float_to_chars_v<floatT>) {
             char buffer[256];
             auto result = std::to_chars(buffer, buffer + sizeof(buffer), value); // , std::chars_format::general
@@ -327,7 +326,7 @@ public:
             }
         }
         
-        // --- Fallback path for regular numbers ---
+        // --- Fallback path without std::to_chars ---
         char buffer[256];
         int len = 0;
         

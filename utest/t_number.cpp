@@ -1,6 +1,9 @@
 #include "couttast/tinytast.hpp"
+#include "couttast/tastargv.hpp"
+
 #include "wwjson.hpp"
 #include "test_util.h"
+
 #include <string>
 #include <limits>
 #include <iostream>
@@ -142,11 +145,9 @@ DEF_TAST(number_float_serialization, "test various floating-point serialization 
     expect = R"({"zero":0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1234567.89,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.718281828459045,"precise_float":1.2345679,"precise_double":1.23456789012345})";
     
     // If no to_chars support, adjust expectations based on format choice
-    if (!::wwjson::has_float_to_chars_v<double>) {
-#if WWJSON_USE_SIMPLE_FLOAT_FORMAT
+    if (::wwjson::use_simple_float_format) {
     // Simple format expectations %g
     expect = R"({"zero":0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1.23457e+06,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.71828,"precise_float":1.23457,"precise_double":1.23457})";
-#endif
     }
     
     COUT(builder.json, expect);
@@ -158,13 +159,7 @@ DEF_TAST(number_std_support, "check current runtime support for std::to_chars")
     // Use std::cout instead of COUT or DESC to ensure output even with --cout=silent
     std::cout << "=== std::to_chars Support Check ===" << std::endl;
     std::cout << "has_float_to_chars_v<double>: " << ::wwjson::has_float_to_chars_v<double> << std::endl;
-    std::cout << "WWJSON_USE_SIMPLE_FLOAT_FORMAT: " << 
-#if WWJSON_USE_SIMPLE_FLOAT_FORMAT
-        "1 (enabled)"
-#else
-        "0 (disabled)"
-#endif
-        << std::endl;
+    std::cout << "WWJSON_USE_SIMPLE_FLOAT_FORMAT: " << (::wwjson::use_simple_float_format ? "1 (enabled)" : "0 (disabled)") << std::endl;
     
     // Test actual float serialization with 1/3 and 1/4
     double third = 1.0/3.0;
@@ -223,6 +218,12 @@ DEF_TAST(float_opt_edge_cases, "test edge cases for floating-point optimization"
     b2.AddMember("value", 9999.9999);
     b2.EndObject();
     COUT(b2.GetResult(), R"({"value":9999.9999})");
+//  if (::wwjson::use_simple_float_format) {
+//      COUT(b2.GetResult(), R"({"value":10000})");
+//  }
+//  else {
+//      COUT(b2.GetResult(), R"({"value":9999.9999})");
+//  }
     
     // Test large integer that should use the optimization
     wwjson::RawBuilder b3;
@@ -266,4 +267,69 @@ DEF_TAST(float_opt_special_values, "test special floating-point values")
     b1.AddMember("neg_inf", -std::numeric_limits<double>::infinity());
     b1.EndObject();
     COUT(b1.GetResult(), R"({"nan":null,"inf":null,"neg_inf":null})");
+}
+
+// --value=0
+DEF_TOOL(check_fast_double, "test a double value to WriteSmall path")
+{
+    double value = 0.0;
+    BIND_ARGV(value);
+    if (value != 0.0)
+    {
+        std::string dst;
+        bool fast = wwjson::NumberWriter<std::string>::WriteSmall(dst, value);
+        COUT(dst);
+        COUT(fast);
+        return;
+    }
+
+    auto smallPath = [](double val) {
+        std::string dst;
+        return wwjson::NumberWriter<std::string>::WriteSmall(dst, val);
+    };
+
+    COUT(smallPath(9999.9999), true);
+    COUT(smallPath(1.0), true);
+    COUT(smallPath(0.1), true);
+    COUT(smallPath(0.01), true);
+    COUT(smallPath(0.001), true);
+    COUT(smallPath(0.0001), true);
+    COUT(smallPath(0.00001), false);
+    COUT(smallPath(0.1234), true);
+    COUT(smallPath(0.12341), false);
+    COUT(smallPath(0.123401), false);
+    COUT(smallPath(0.1234001), false);
+    COUT(smallPath(0.12340001), false);
+    COUT(smallPath(0.123400001), false);
+    COUT(smallPath(0.1234000001), false);
+    COUT(smallPath(9999.999901), false);
+    COUT(smallPath(9999.9999001), false);
+    COUT(smallPath(9999.99990001), false);
+    COUT(smallPath(9999.999900001), false);
+    COUT(smallPath(9999.999900001), false);
+    COUT(smallPath(9999.9999000001), false);
+}
+
+// --ipart=0
+// when set tolerance=e-8, all double number 9999.xxxx pass fast path.
+DEF_TAST(rate_fast_double, "check the rate of miss WriteSmall path")
+{
+    int ipart = 9999;
+    BIND_ARGV(ipart);
+
+    int scale = 10000;
+    double fscale = 10000.0;
+    int miss = 0;
+    for (int i = 0; i < scale; ++i)
+    {
+        double value = ipart + i / fscale;
+        std::string dst;
+        bool fast = wwjson::NumberWriter<std::string>::WriteSmall(dst, value);
+        if (!fast)
+        {
+            ++miss;
+        }
+    }
+    COUT(miss, 0);
+    DESC("%d.xxxx miss WriteSmall %d/%d", ipart, miss, scale);
 }

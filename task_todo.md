@@ -925,6 +925,11 @@ NumberWriter::kDigitPairs 再提一层抽象，增加 DigitPair 结构体，只�
 - 虽然按 double 设计，但也考虑有可能传入 float 类型
 - 辅助方法可继续拆分小方法
 
+### DONE: 20251209~231818
+
+四位小数检测误差放大到 e-8 才能保证完全通过。
+性能还是比不上 yyjson ，p_number.cpp 只有 u8 数组能快一点。
+
 ## TODO: 优化 wwjson.hpp 英文注释
 
 ## TODO: 完善项目文档

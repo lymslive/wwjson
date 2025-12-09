@@ -167,98 +167,9 @@ bool is_effectively_integer(floatT value)
 }
 
 template<typename floatT>
-void print_fraction_sequence(int scale, bool show_scaled = false)
-{
-    if (show_scaled)
-    {
-        DESC("Printing %d*f values:", scale);
-    }
-    else
-    {
-        DESC("Printing fractions 0/%d to %d/%d:", scale, scale-1, scale);
-    }
-    std::cout << std::fixed << std::setprecision(10);
-    
-    if (scale > 100)
-    {
-        // For large scale, print first 50 and last 50
-        DESC("Showing first 50 values:");
-        for (int i = 0; i < 50; ++i)
-        {
-            floatT f = static_cast<floatT>(i) / static_cast<floatT>(scale);
-            floatT value = show_scaled ? (f * static_cast<floatT>(scale)) : f;
-            
-            if (show_scaled)
-            {
-                std::cout << std::setw(8) << std::setprecision(2) << std::fixed << value;
-            }
-            else
-            {
-                std::cout << std::setw(12) << std::setprecision(6) << std::defaultfloat << value;
-            }
-            
-            if ((i + 1) % 10 == 0)
-            {
-                std::cout << std::endl;
-            }
-        }
-        DESC("Showing last 50 values:");
-        for (int i = scale - 50; i < scale; ++i)
-        {
-            floatT f = static_cast<floatT>(i) / static_cast<floatT>(scale);
-            floatT value = show_scaled ? (f * static_cast<floatT>(scale)) : f;
-            
-            if (show_scaled)
-            {
-                std::cout << std::setw(8) << std::setprecision(2) << std::fixed << value;
-            }
-            else
-            {
-                std::cout << std::setw(12) << std::setprecision(6) << std::defaultfloat << value;
-            }
-            
-            if ((i + 1) % 10 == 0) std::cout << std::endl;
-        }
-        if ((50) % 10 != 0) std::cout << std::endl;
-    }
-    else
-    {
-        for (int i = 0; i < scale; ++i)
-        {
-            floatT f = static_cast<floatT>(i) / static_cast<floatT>(scale);
-            floatT value = show_scaled ? (f * static_cast<floatT>(scale)) : f;
-            
-            if (show_scaled)
-            {
-                std::cout << std::setw(8) << std::setprecision(2) << std::fixed << value;
-            }
-            else
-            {
-                std::cout << std::setw(12) << std::setprecision(6) << std::defaultfloat << value;
-            }
-            
-            if ((i + 1) % 10 == 0)
-            {
-                std::cout << std::endl;
-            }
-        }
-        if ((scale) % 10 != 0)
-        {
-            std::cout << std::endl;
-        }
-    }
-}
-
-template<typename floatT>
 void test_decimal_precision(int scale, const char* type_name)
 {
     DESC("=== Testing %s precision with scale %d ===", type_name, scale);
-    
-    // Print the sequence
-    // print_fraction_sequence<floatT>(scale);
-    
-    // Print scale*f values
-    // print_fraction_sequence<floatT>(scale, true);
     
     // Test if scale*f is effectively integer
     DESC("Testing if %d*f is integer:", scale);
