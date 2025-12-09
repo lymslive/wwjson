@@ -26,8 +26,8 @@ DEF_TAST(custom_builder, "test json builder with custom string")
     double half = 0.5;
     builder.AddMember("double", half);
 
-    double third = 1.0/3.0;
-    builder.AddMember("double", third);
+    double quarter = 1.0/4.0;
+    builder.AddMember("double", quarter);
 
     // add number as string with extra argument, no matter true/false
     builder.AddMember("ints", 124, true);
@@ -35,7 +35,7 @@ DEF_TAST(custom_builder, "test json builder with custom string")
 
     builder.EndRoot();
 
-    std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.5,"double":0.333333,"ints":"124","intf":"125"})";
+    std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.5,"double":0.25,"ints":"124","intf":"125"})";
     COUT(builder.json.c_str(), expect);
     COUT(test::IsJsonValid(builder.json.c_str()), true);
 }
@@ -116,14 +116,14 @@ DEF_TAST(custom_scope, "test build nest json with custom string using auto close
                 body.AddMember("short", sh);
                 double half = 0.5;
                 body.AddMember("double", half);
-                double third = 1.0/3.0;
-                body.AddMember("double", third);
+                double quarter = 1.0/4.0;
+                body.AddMember("double", quarter);
             }
         }
     } // auto add right brace when destruct root beyond scope
 
     builder.GetResult();
-    std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.5,"double":0.333333}]})";
+    std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.5,"double":0.25}]})";
     COUT(builder.json.c_str(), expect);
 }
 

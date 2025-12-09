@@ -810,6 +810,41 @@ utest/t_experiment.cpp 新增两个测试工具用例，double_view 与 float_vi
 纯字符串序列化也比 yyjson 略快。那么混合 json 构建比 yyjson 慢的原因应该是浮点
 数序列化了。
 
+## TODO:2025-12-09/1 优化 CI 流水线与单元测试
+
+.github/workflows/ci.yml 运行时报告了 7 个测试用例不通过：
+
+!! basic_builder
+!! basic_builder_nest
+!! basic_low_level
+!! scope_ctor_nest
+!! scope_auto_nest
+!! custom_builder
+!! custom_scope
+
+因为 CI 环境使用最新镜像已经支持 `std::to_chars` 序列化浮点数，这是期望行为。
+那些用例用到 1/3 这个浮点数，被序列化为 `0.3333333333333333` 。
+
+本来，由于浮点数误差，对浮点数进行全等断言并不合适，但是我们测试 json 构造，断
+言整个串写起来也更方便。为了解决这个回归测试问题的矛盾，先将以上可能失败的用例
+中使用 1/3 改为 1/4 ，使其在大部分算法能输出 `0.25` 。
+
+然后将浮点数的专门测试集中在 `t_number.cpp` 文件，并且智能判断调整期望输出值。
+增加一个简单测试用例 `number_std_support` ，检查观测当前运行时对 `std:: to_chars`
+的支持度。使用标准 `std::cout` 或 `printf` 打印一行信息，否则用 `COUT` 或 `DESC`
+宏不会在 `--cout=silent` 输出。
+
+然后将 `ci.yml` 拆成两个流水线，分别运行单元测试与性能测试。触发条件支持两种：
+- 自动触发，main push 且修改了 include/wwjson.hpp 或当前 yml 文件
+- 手动触发，支持输入自定义命令行参数
+
+测试测试与性能测试使用相同的框架，支持类似的命令行参数风格，在自动触发或未输入
+参数时默认加上 `--cout=silent` 参数。自定义参数简化为一个输入框，允许输入多个
+以空格分开的参数，需要原样传给 utwwjson 或 pfwwjson 程序，不要加引号当成一个参
+数输入。并且 echo 实际将运行的完整命令行，以便检查运行参数。
+
+### DONE: 20251209-101200
+
 ## TODO: 优化 wwjson.hpp 英文注释
 
 ## TODO: 完善项目文档

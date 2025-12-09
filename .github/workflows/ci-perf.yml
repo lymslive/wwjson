@@ -1,0 +1,51 @@
+name: Performance Tests
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'include/wwjson.hpp'
+      - '.github/workflows/ci-perf.yml'
+  workflow_dispatch:
+    inputs:
+      args:
+        description: 'Command line arguments. eg: --cout=silent --items=? --loop=? [cases]'
+        required: false
+        default: ''
+
+jobs:
+  performance-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential
+        
+    - name: Build release version
+      run: |
+        make release
+        
+    - name: Run performance tests
+      run: |
+        # Prepare performance test command
+        PERF_CMD="./build-release/perf/pfwwjson"
+        
+        # Add arguments if provided
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.args }}" ]; then
+          PERF_CMD="$PERF_CMD ${{ github.event.inputs.args }}"
+        else
+          # Default to silent mode for automatic triggers
+          PERF_CMD="$PERF_CMD --cout=silent"
+        fi
+        
+        # Echo the actual command for verification
+        echo "Running command: $PERF_CMD"
+        
+        # Execute the performance tests
+        $PERF_CMD

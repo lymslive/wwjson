@@ -1710,3 +1710,36 @@ builder.EndRoot('}'); // 不加逗号
 - compare_string_output 验证输出一致性
 - 性能测试运行正常
 
+## TASK:20251209-101200
+-----------------------
+需求ID: 2025-12-09/1 - 优化 CI 流水线与单元测试
+
+完成内容：
+1. 修复浮点数测试用例
+   - 将所有 1/3 浮点数替换为 1/4，避免精度问题
+   - 涉及文件：t_basic.cpp, t_scope.cpp, t_custom.cpp
+   - 修改变量名 third 为 quarter，保持语义一致性
+
+2. 增强 t_number.cpp 测试
+   - 添加 number_std_support 测试用例，检测 std::to_chars 支持度
+   - 使用 std::cout 确保 --cout=silent 模式下也能输出信息
+   - 显示编译宏 WWJSON_USE_SIMPLE_FLOAT_FORMAT 状态
+   - 测试 1/3 和 1/4 的实际序列化输出
+
+3. 拆分 CI 流水线
+   - 创建 ci-unit.yml：专门运行单元测试
+   - 创建 ci-perf.yml：专门运行性能测试
+   - 支持自动触发：main 分支推送，且修改了 include/wwjson.hpp 或 yml 文件
+   - 支持手动触发：workflow_dispatch，接受自定义命令行参数
+
+4. 命令行参数优化
+   - 自动触发时默认添加 --cout=silent 参数
+   - 手动触发时支持用户自定义参数（单一输入框，空格分隔）
+   - 输出实际运行的完整命令行以便检查
+
+测试验证：
+- 本地编译成功，所有 64 个测试用例全部通过
+- 之前失败的 7 个测试用例现在全部通过
+- CI 流水线配置正确，触发条件符合预期
+- 测试输出格式正确，支持灵活的参数配置
+

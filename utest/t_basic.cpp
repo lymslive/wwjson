@@ -22,8 +22,8 @@ DEF_TAST(basic_builder, "test json builder with raw string")
     double half = 0.5;
     builder.AddMember("double", half);
 
-    double third = 1.0/3.0;
-    builder.AddMember("double", third);
+    double quarter = 1.0/4.0;
+    builder.AddMember("double", quarter);
 
     // add number as string with extra argument, no matter true/false
     builder.AddMember("ints", 124, true);
@@ -32,7 +32,7 @@ DEF_TAST(basic_builder, "test json builder with raw string")
     builder.EndObject();
     builder.GetResult();
 
-    std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.5,"double":0.333333,"ints":"124","intf":"125"})";
+    std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.5,"double":0.25,"ints":"124","intf":"125"})";
     COUT(builder.json, expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
@@ -90,8 +90,8 @@ DEF_TAST(basic_builder_nest, "test build nest json with array of object")
     builder.AddMember("short", sh);
     double half = 0.5;
     builder.AddMember("double", half);
-    double third = 1.0/3.0;
-    builder.AddMember("double", third);
+    double quarter = 1.0/4.0;
+    builder.AddMember("double", quarter);
     builder.EndObject();
 
     builder.EndArray();
@@ -100,7 +100,7 @@ DEF_TAST(basic_builder_nest, "test build nest json with array of object")
     // Not neccessay after EndRoot(), but needed after EndObject
 //  builder.GetResult();
 
-    std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},{"short":280,"double":0.5,"double":0.333333}]})";
+    std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},{"short":280,"double":0.5,"double":0.25}]})";
     COUT(builder.json, expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
@@ -245,9 +245,9 @@ DEF_TAST(basic_low_level, "test using low-level methods PutKey/PutValue/PutNext"
     builder.PutValue(half);
     builder.PutNext();
 
-    double third = 1.0/3.0;
+    double quarter = 1.0/4.0;
     builder.PutKey("double");
-    builder.PutValue(third);
+    builder.PutValue(quarter);
     builder.PutNext();
 
     // Add numbers as strings using low-level methods
@@ -278,7 +278,7 @@ DEF_TAST(basic_low_level, "test using low-level methods PutKey/PutValue/PutNext"
 
     builder.EndObject();
 
-    std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.5,"double":0.333333,"ints":"124","intf":"125","numbers":[1,2,3]})";
+    std::string expect = R"({"int":123,"string":"123","char":49,"uchar":50,"short":280,"double":0.5,"double":0.25,"ints":"124","intf":"125","numbers":[1,2,3]})";
     COUT(builder.GetResult(), expect);
 }
 

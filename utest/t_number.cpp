@@ -3,6 +3,7 @@
 #include "test_util.h"
 #include <string>
 #include <limits>
+#include <iostream>
 
 DEF_TAST(number_integer_member, "test serialization of 8 standard integer types")
 {
@@ -143,14 +144,42 @@ DEF_TAST(number_float_serialization, "test various floating-point serialization 
     // If no to_chars support, adjust expectations based on format choice
     if (!::wwjson::has_float_to_chars_v<double>) {
 #if WWJSON_USE_SIMPLE_FLOAT_FORMAT
-        // Simple format expectations
-        expect = R"({"zero":0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1.23457e+06,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.71828,"precise_float":1.23457,"precise_double":1.23457})";
-#else
-        // High precision fallback expectations (same as default)
-        expect = R"({"zero":0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1234567.89,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.718281828459045,"precise_float":1.2345679,"precise_double":1.23456789012345})";
+    // Simple format expectations %g
+    expect = R"({"zero":0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1.23457e+06,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.71828,"precise_float":1.23457,"precise_double":1.23457})";
 #endif
     }
     
     COUT(builder.json, expect);
     COUT(test::IsJsonValid(builder.json), true);
+}
+
+DEF_TAST(number_std_support, "check current runtime support for std::to_chars")
+{
+    // Use std::cout instead of COUT or DESC to ensure output even with --cout=silent
+    std::cout << "=== std::to_chars Support Check ===" << std::endl;
+    std::cout << "has_float_to_chars_v<double>: " << ::wwjson::has_float_to_chars_v<double> << std::endl;
+    std::cout << "WWJSON_USE_SIMPLE_FLOAT_FORMAT: " << 
+#if WWJSON_USE_SIMPLE_FLOAT_FORMAT
+        "1 (enabled)"
+#else
+        "0 (disabled)"
+#endif
+        << std::endl;
+    
+    // Test actual float serialization with 1/3 and 1/4
+    double third = 1.0/3.0;
+    double quarter = 1.0/4.0;
+    
+    std::cout << "1/3 value: " << third << std::endl;
+    std::cout << "1/4 value: " << quarter << std::endl;
+    
+    // Build a simple test to see actual serialization
+    wwjson::RawBuilder builder;
+    builder.BeginRoot();
+    builder.AddMember("third", third);
+    builder.AddMember("quarter", quarter);
+    builder.EndRoot();
+    
+    std::cout << "Actual JSON output: " << builder.json << std::endl;
+    std::cout << "=== End Support Check ===" << std::endl;
 }

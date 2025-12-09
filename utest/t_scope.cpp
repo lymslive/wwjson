@@ -34,13 +34,13 @@ DEF_TAST(scope_ctor_nest, "test build nest json with RAII auto close")
                 body.AddMember("short", sh);
                 double half = 0.5;
                 body.AddMember("double", half);
-                double third = 1.0/3.0;
-                body.AddMember("double", third);
+                double quarter = 1.0/4.0;
+                body.AddMember("double", quarter);
             }
         }
     } // auto add right brace when destruct root beyond scope
 
-    std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.5,"double":0.333333}]})";
+    std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.5,"double":0.25}]})";
     COUT(builder.GetResult(), expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
@@ -76,13 +76,13 @@ DEF_TAST(scope_auto_nest, "test build nest json with auto close using scope meth
                 body.AddMember("short", sh);
                 double half = 0.5;
                 body.AddMember("double", half);
-                double third = 1.0/3.0;
-                body.AddMember("double", third);
+                double quarter = 1.0/4.0;
+                body.AddMember("double", quarter);
             }
         }
     } // auto add right brace when destruct root beyond scope
 
-    std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.5,"double":0.333333}]})";
+    std::string expect = R"({"title":"Title","head":{"int":123,"string":"123"},"bodys":[{"char":49,"uchar":50},"simple",{"short":280,"double":0.5,"double":0.25}]})";
     COUT(builder.GetResult(), expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
