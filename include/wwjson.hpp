@@ -111,27 +111,35 @@ template<typename stringT>
 struct NumberWriter
 {
 private:
+    /// Structure to store a pair of digit characters.
+    struct DigitPair {
+        char high;
+        char low;
+        constexpr DigitPair() : high('0'), low('0') {}
+        constexpr DigitPair(char h, char l) : high(h), low(l) {}
+    };
+    
     /// 0-99 digit pairs for fast lookup.
-    alignas(64) static constexpr std::array<char, 200> kDigitPairs = []() {
-        std::array<char, 200> table{};
+    alignas(64) static constexpr std::array<DigitPair, 100> kDigitPairs = []() {
+        std::array<DigitPair, 100> table{};
         for (int i = 0; i < 100; ++i) {
-            table[i * 2] = '0' + (i / 10);
-            table[i * 2 + 1] = '0' + (i % 10);
+            table[i] = DigitPair('0' + (i / 10), '0' + (i % 10));
         }
         return table;
     }();
     
     /// Write small integers (0-9999) to output string.
     template<typename intT>
-    static inline void WriteSmall(stringT& dst, intT value)
+    static inline std::enable_if_t<std::is_integral_v<intT>, void>
+    WriteSmall(stringT& dst, intT value)
     {
         if (value < 100) {
             if (value < 10) {
                 dst.push_back(static_cast<char>('0' + value));
             } else {
-                const char* src = &kDigitPairs[static_cast<std::size_t>(value) * 2];
-                dst.push_back(src[0]);
-                dst.push_back(src[1]);
+                const DigitPair& pair = kDigitPairs[static_cast<std::size_t>(value)];
+                dst.push_back(pair.high);
+                dst.push_back(pair.low);
             }
             return;
         }
@@ -139,25 +147,26 @@ private:
         if (value < 1000) {
             dst.push_back(static_cast<char>('0' + (value / 100)));
             value %= 100;
-            const char* src = &kDigitPairs[static_cast<std::size_t>(value) * 2];
-            dst.push_back(src[0]);
-            dst.push_back(src[1]);
+            const DigitPair& pair = kDigitPairs[static_cast<std::size_t>(value)];
+            dst.push_back(pair.high);
+            dst.push_back(pair.low);
             return;
         }
         
         // 4 digits (1000-9999)
         uint32_t q = static_cast<uint32_t>(value / 100);
         uint32_t r = static_cast<uint32_t>(value % 100);
-        const char* src_q = &kDigitPairs[q * 2];
-        const char* src_r = &kDigitPairs[r * 2];
-        dst.push_back(src_q[0]);
-        dst.push_back(src_q[1]);
-        dst.push_back(src_r[0]);
-        dst.push_back(src_r[1]);
+        const DigitPair& pair_q = kDigitPairs[q];
+        const DigitPair& pair_r = kDigitPairs[r];
+        dst.push_back(pair_q.high);
+        dst.push_back(pair_q.low);
+        dst.push_back(pair_r.high);
+        dst.push_back(pair_r.low);
     }
     
     template<typename intT>
-    static void WriteUnsigned(stringT& dst, intT value)
+    static std::enable_if_t<std::is_integral_v<intT>, void>
+    WriteUnsigned(stringT& dst, intT value)
     {
         if (value < 10000) {
             return WriteSmall(dst, value);
@@ -177,13 +186,14 @@ private:
             uint32_t high = chunk / 100;
             uint32_t low = chunk % 100;
             
-            const char* src_low = &kDigitPairs[low * 2];
-            const char* src_high = &kDigitPairs[high * 2];
+            // Use value is bit faster than reference here, after testing
+            DigitPair pair_low = kDigitPairs[low];
+            DigitPair pair_high = kDigitPairs[high];
             
-            *(--ptr) = src_low[1];
-            *(--ptr) = src_low[0];
-            *(--ptr) = src_high[1];
-            *(--ptr) = src_high[0];
+            *(--ptr) = pair_low.low;
+            *(--ptr) = pair_low.high;
+            *(--ptr) = pair_high.low;
+            *(--ptr) = pair_high.high;
         }
         
         WriteSmall(dst, value);
@@ -191,7 +201,8 @@ private:
     }
     
     template<typename intT>
-    static void WriteSigned(stringT& dst, intT value)
+    static std::enable_if_t<std::is_integral_v<intT>, void>
+    WriteSigned(stringT& dst, intT value)
     {
         using UnsignedT = std::make_unsigned_t<intT>;
         

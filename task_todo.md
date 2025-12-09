@@ -885,6 +885,19 @@ utwwjson fixed_point_generic
 utwwjson fixed_point_generic --type=float
 失败率差不多，1144个，但最大误差 0.00048828125
 
+## TODO:2025-12-09/3 优化小整数缓存表
+
+NumberWriter::kDigitPairs 再提一层抽象，增加 DigitPair 结构体，只含 high low
+两个 char 成员，而 kDigitPairs 是后者的数组，长度 100，总计仍是 200 字节。
+
+然后在 WriteSmall 使用时，src 取 DigitPair 结构的值，而不是指针。分析确认一下
+这样的改动是否能提升效率，因为指针 8 字节比这个结构体还大，并且是间接访问。
+
+另外，输出整数的 Output 方法调用链上的其他方法也一致地加上 `is_integral_v` 限
+定。
+
+### DONE: 20251209-155416
+
 ## TODO: 优化 wwjson.hpp 英文注释
 
 ## TODO: 完善项目文档
