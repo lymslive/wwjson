@@ -183,3 +183,87 @@ DEF_TAST(number_std_support, "check current runtime support for std::to_chars")
     std::cout << "Actual JSON output: " << builder.json << std::endl;
     std::cout << "=== End Support Check ===" << std::endl;
 }
+
+DEF_TAST(float_opt_basic, "test basic floating-point optimization")
+{
+    // Test integer values
+    wwjson::RawBuilder b1;
+    b1.BeginObject();
+    b1.AddMember("value", 123.0);
+    b1.EndObject();
+    COUT(b1.GetResult(), R"({"value":123})");
+    
+    // Test simple decimal values
+    wwjson::RawBuilder b2;
+    b2.BeginObject();
+    b2.AddMember("value", 123.5);
+    b2.EndObject();
+    COUT(b2.GetResult(), R"({"value":123.5})");
+    
+    // Test values with trailing zeros that should be removed
+    wwjson::RawBuilder b3;
+    b3.BeginObject();
+    b3.AddMember("value", 123.5000);
+    b3.EndObject();
+    COUT(b3.GetResult(), R"({"value":123.5})");
+}
+
+DEF_TAST(float_opt_edge_cases, "test edge cases for floating-point optimization")
+{
+    // Test small values
+    wwjson::RawBuilder b1;
+    b1.BeginObject();
+    b1.AddMember("value", 0.1);
+    b1.EndObject();
+    COUT(b1.GetResult(), R"({"value":0.1})");
+    
+    // Test values at boundary
+    wwjson::RawBuilder b2;
+    b2.BeginObject();
+    b2.AddMember("value", 9999.9999);
+    b2.EndObject();
+    COUT(b2.GetResult(), R"({"value":9999.9999})");
+    
+    // Test large integer that should use the optimization
+    wwjson::RawBuilder b3;
+    b3.BeginObject();
+    b3.AddMember("value", 123456789.0);
+    b3.EndObject();
+    COUT(b3.GetResult(), R"({"value":123456789})");
+}
+
+DEF_TAST(float_opt_negative_numbers, "test negative numbers")
+{
+    // Test negative integers
+    wwjson::RawBuilder b1;
+    b1.BeginObject();
+    b1.AddMember("value", -123.0);
+    b1.EndObject();
+    COUT(b1.GetResult(), R"({"value":-123})");
+    
+    // Test negative decimals
+    wwjson::RawBuilder b2;
+    b2.BeginObject();
+    b2.AddMember("value", -123.5);
+    b2.EndObject();
+    COUT(b2.GetResult(), R"({"value":-123.5})");
+    
+    // Test -0.0 should serialize as 0
+    wwjson::RawBuilder b3;
+    b3.BeginObject();
+    b3.AddMember("value", -0.0);
+    b3.EndObject();
+    COUT(b3.GetResult(), R"({"value":0})");
+}
+
+DEF_TAST(float_opt_special_values, "test special floating-point values")
+{
+    // Test NaN and infinity
+    wwjson::RawBuilder b1;
+    b1.BeginObject();
+    b1.AddMember("nan", std::numeric_limits<double>::quiet_NaN());
+    b1.AddMember("inf", std::numeric_limits<double>::infinity());
+    b1.AddMember("neg_inf", -std::numeric_limits<double>::infinity());
+    b1.EndObject();
+    COUT(b1.GetResult(), R"({"nan":null,"inf":null,"neg_inf":null})");
+}

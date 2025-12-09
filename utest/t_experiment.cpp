@@ -276,7 +276,7 @@ void test_decimal_precision(int scale, const char* type_name)
             integer_errors++;
             floatT error = std::abs(scaled - std::round(scaled));
             max_int_error = std::max(max_int_error, error);
-            if (integer_errors <= 50) // Show details for first 50 errors
+//          if (integer_errors <= 50) // Show details for first 50 errors
             {
                 DESC("Error: %d * %g = %.*g is not integer (error: %.*g)", i, f, 
                      std::numeric_limits<floatT>::max_digits10, scaled,

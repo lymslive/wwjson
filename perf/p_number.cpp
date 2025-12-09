@@ -189,10 +189,10 @@ void BuildFloatArray(std::string& dst, int start, int count) {
         int value = start + i;
         
         // Generate 4 floating point values for each integer using yyjson_mut_arr_add_float
-        yyjson_mut_arr_add_float(doc, root, static_cast<float>(value + 0.0f));
-        yyjson_mut_arr_add_float(doc, root, static_cast<float>(value + 1.0f/5.0f));
-        yyjson_mut_arr_add_float(doc, root, static_cast<float>(value + 1.0f/3.0f));
-        yyjson_mut_arr_add_float(doc, root, static_cast<float>(value + 1.0f/2.0f));
+        yyjson_mut_arr_add_real(doc, root, static_cast<float>(value + 0.0f));
+        yyjson_mut_arr_add_real(doc, root, static_cast<float>(value + 1.0f/5.0f));
+        yyjson_mut_arr_add_real(doc, root, static_cast<float>(value + 1.0f/3.0f));
+        yyjson_mut_arr_add_real(doc, root, static_cast<float>(value + 1.0f/2.0f));
     }
     
     char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
@@ -229,10 +229,10 @@ void BuildDoubleArray(std::string& dst, int start, int count) {
         int value = start + i;
         
         // Generate 4 floating point values for each integer using yyjson_mut_arr_add_double
-        yyjson_mut_arr_add_double(doc, root, static_cast<double>(value + 0.0));
-        yyjson_mut_arr_add_double(doc, root, static_cast<double>(value + 1.0/5.0));
-        yyjson_mut_arr_add_double(doc, root, static_cast<double>(value + 1.0/3.0));
-        yyjson_mut_arr_add_double(doc, root, static_cast<double>(value + 1.0/2.0));
+        yyjson_mut_arr_add_real(doc, root, static_cast<double>(value + 0.0));
+        yyjson_mut_arr_add_real(doc, root, static_cast<double>(value + 1.0/5.0));
+        yyjson_mut_arr_add_real(doc, root, static_cast<double>(value + 1.0/3.0));
+        yyjson_mut_arr_add_real(doc, root, static_cast<double>(value + 1.0/2.0));
     }
     
     char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
