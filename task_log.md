@@ -1829,3 +1829,32 @@ builder.EndRoot('}'); // 不加逗号
 - 编译无错误无警告
 - 功能验证正确：整数序列化输出与原实现一致
 
+## TASK:20251210-101816
+-----------------------
+
+### 任务概述
+修改 perf/ 目录的代码，将 test_data.cpp 的内容合并到 p_builder.cpp，删除 test_data.h，实现自动容量估算功能。
+
+### 完成内容
+1. **代码重构**：将 test_data.cpp 中的函数定义合并到 p_builder.cpp 中，便于维护
+2. **文件清理**：删除了 test_data.h 和 test_data.cpp，避免重复定义
+3. **自动容量估算**：实现了 wwjson::RawBuilder 的自动容量估算功能
+   - 只在 argv.size 为默认值 1 时进行预计算
+   - 运行一次测试获取 JSON 长度，估算所需容量
+   - 同时起到预热作用
+4. **用例更新**：更新了所有需要自动估算的用例
+   - p_builder.cpp 中的 builder_ex_wwjson
+   - p_number.cpp 中所有带 _wwjson 后缀的用例
+   - p_string.cpp 中所有带 _wwjson 后缀的用例
+5. **构建更新**：更新了 perf/CMakeLists.txt，移除了对 test_data.cpp 的引用
+
+### 技术细节
+- 自动估算逻辑：当 argv.size == 1 时，先运行一次生成 JSON，根据结果大小估算容量
+- 容量计算：`(json_data.size() / 1024) + 1`，转换为 KB 并向上取整
+- 测试验证：确认了所有修改后的用例能够正常编译和运行
+
+### 验证结果
+- 代码编译成功
+- 自动估算功能正常工作
+- 性能测试程序输出正确显示估算的 size 参数
+

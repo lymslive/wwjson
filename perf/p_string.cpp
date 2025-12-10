@@ -1,6 +1,5 @@
 #include "couttast/tinytast.hpp"
 
-#include "test_data.h"
 #include "argv.h"
 
 #include "wwjson.hpp"
@@ -222,6 +221,14 @@ DEF_TAST(array_string_wwjson, "Performance test for wwjson string array building
 {
     test::CArgv argv;
     std::string json_data;
+
+    // Auto-estimate capacity only when argv.size is default (1)
+    if (argv.size == 1) {
+        // Run once to estimate capacity
+        test::wwjson::BuildStringArray(json_data, argv.start, argv.items, 1);
+        int estimated_size = (json_data.size() / 1024) + 1;  // Convert to KB, round up
+        argv.size = estimated_size;
+    }
     
     TIME_TIC;
     for (int i = 0; i < argv.loop; i++) {
@@ -229,7 +236,7 @@ DEF_TAST(array_string_wwjson, "Performance test for wwjson string array building
     }
     TIME_TOC;
     
-    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    DESC("Args: --start=%d --items=%d --size=%d", argv.start, argv.items, argv.size);
     DESC("Generated JSON size: %zu bytes", json_data.size());
     DESC("Array elements: %d", argv.items);
     
@@ -266,6 +273,14 @@ DEF_TAST(object_string_wwjson, "Performance test for wwjson string object buildi
 {
     test::CArgv argv;
     std::string json_data;
+
+    // Auto-estimate capacity only when argv.size is default (1)
+    if (argv.size == 1) {
+        // Run once to estimate capacity
+        test::wwjson::BuildStringObject(json_data, argv.start, argv.items, 1);
+        int estimated_size = (json_data.size() / 1024) + 1;  // Convert to KB, round up
+        argv.size = estimated_size;
+    }
     
     TIME_TIC;
     for (int i = 0; i < argv.loop; i++) {
@@ -273,7 +288,7 @@ DEF_TAST(object_string_wwjson, "Performance test for wwjson string object buildi
     }
     TIME_TOC;
     
-    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    DESC("Args: --start=%d --items=%d --size=%d", argv.start, argv.items, argv.size);
     DESC("Generated JSON size: %zu bytes", json_data.size());
     DESC("Object members: %d", argv.items);
     
@@ -310,6 +325,14 @@ DEF_TAST(escape_string_wwjson, "Performance test for wwjson escaped string objec
 {
     test::CArgv argv;
     std::string json_data;
+
+    // Auto-estimate capacity only when argv.size is default (1)
+    if (argv.size == 1) {
+        // Run once to estimate capacity
+        test::wwjson::BuildEscapeObject(json_data, argv.start, argv.items, 1);
+        int estimated_size = (json_data.size() / 1024) + 1;  // Convert to KB, round up
+        argv.size = estimated_size;
+    }
     
     TIME_TIC;
     for (int i = 0; i < argv.loop; i++) {
@@ -317,7 +340,7 @@ DEF_TAST(escape_string_wwjson, "Performance test for wwjson escaped string objec
     }
     TIME_TOC;
     
-    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    DESC("Args: --start=%d --items=%d --size=%d", argv.start, argv.items, argv.size);
     DESC("Generated JSON size: %zu bytes", json_data.size());
     DESC("Object members: %d", argv.items);
     

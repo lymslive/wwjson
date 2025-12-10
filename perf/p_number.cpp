@@ -1,6 +1,5 @@
 #include "couttast/tinytast.hpp"
 
-#include "test_data.h"
 #include "argv.h"
 
 #include "wwjson.hpp"
@@ -265,6 +264,14 @@ DEF_TAST(array_int8_wwjson, "Performance test for wwjson int8 array building")
 {
     test::CArgv argv;
     std::string json_data;
+
+    // Auto-estimate capacity only when argv.size is default (1)
+    if (argv.size == 1) {
+        // Run once to estimate capacity
+        test::wwjson::BuildIntArray(json_data, static_cast<uint8_t>(argv.start), argv.items, 1);
+        int estimated_size = (json_data.size() / 1024) + 1;  // Convert to KB, round up
+        argv.size = estimated_size;
+    }
     
     TIME_TIC;
     for (int i = 0; i < argv.loop; i++) {
@@ -272,7 +279,7 @@ DEF_TAST(array_int8_wwjson, "Performance test for wwjson int8 array building")
     }
     TIME_TOC;
     
-    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    DESC("Args: --start=%d --items=%d --size=%d", argv.start, argv.items, argv.size);
     DESC("Generated JSON size: %zu bytes", json_data.size());
     DESC("Array elements: %d (2*items)", argv.items * 2);
     
@@ -309,6 +316,14 @@ DEF_TAST(array_int16_wwjson, "Performance test for wwjson int16 array building")
 {
     test::CArgv argv;
     std::string json_data;
+
+    // Auto-estimate capacity only when argv.size is default (1)
+    if (argv.size == 1) {
+        // Run once to estimate capacity
+        test::wwjson::BuildIntArray(json_data, static_cast<uint16_t>(argv.start), argv.items, 1);
+        int estimated_size = (json_data.size() / 1024) + 1;  // Convert to KB, round up
+        argv.size = estimated_size;
+    }
     
     TIME_TIC;
     for (int i = 0; i < argv.loop; i++) {
@@ -316,7 +331,7 @@ DEF_TAST(array_int16_wwjson, "Performance test for wwjson int16 array building")
     }
     TIME_TOC;
     
-    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    DESC("Args: --start=%d --items=%d --size=%d", argv.start, argv.items, argv.size);
     DESC("Generated JSON size: %zu bytes", json_data.size());
     DESC("Array elements: %d (2*items)", argv.items * 2);
     
@@ -353,6 +368,14 @@ DEF_TAST(array_int32_wwjson, "Performance test for wwjson int32 array building")
 {
     test::CArgv argv;
     std::string json_data;
+
+    // Auto-estimate capacity only when argv.size is default (1)
+    if (argv.size == 1) {
+        // Run once to estimate capacity
+        test::wwjson::BuildIntArray(json_data, static_cast<uint32_t>(argv.start), argv.items, 1);
+        int estimated_size = (json_data.size() / 1024) + 1;  // Convert to KB, round up
+        argv.size = estimated_size;
+    }
     
     TIME_TIC;
     for (int i = 0; i < argv.loop; i++) {
@@ -360,7 +383,7 @@ DEF_TAST(array_int32_wwjson, "Performance test for wwjson int32 array building")
     }
     TIME_TOC;
     
-    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    DESC("Args: --start=%d --items=%d --size=%d", argv.start, argv.items, argv.size);
     DESC("Generated JSON size: %zu bytes", json_data.size());
     DESC("Array elements: %d (2*items)", argv.items * 2);
     
@@ -397,6 +420,14 @@ DEF_TAST(array_int64_wwjson, "Performance test for wwjson int64 array building")
 {
     test::CArgv argv;
     std::string json_data;
+
+    // Auto-estimate capacity only when argv.size is default (1)
+    if (argv.size == 1) {
+        // Run once to estimate capacity
+        test::wwjson::BuildIntArray(json_data, static_cast<uint64_t>(argv.start), argv.items, 1);
+        int estimated_size = (json_data.size() / 1024) + 1;  // Convert to KB, round up
+        argv.size = estimated_size;
+    }
     
     TIME_TIC;
     for (int i = 0; i < argv.loop; i++) {
@@ -404,7 +435,7 @@ DEF_TAST(array_int64_wwjson, "Performance test for wwjson int64 array building")
     }
     TIME_TOC;
     
-    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    DESC("Args: --start=%d --items=%d --size=%d", argv.start, argv.items, argv.size);
     DESC("Generated JSON size: %zu bytes", json_data.size());
     DESC("Array elements: %d (2*items)", argv.items * 2);
     
@@ -480,6 +511,14 @@ DEF_TAST(array_float_wwjson, "Performance test for wwjson float array building")
 {
     test::CArgv argv;
     std::string json_data;
+
+    // Auto-estimate capacity only when argv.size is default (1)
+    if (argv.size == 1) {
+        // Run once to estimate capacity
+        test::wwjson::BuildFloatArray(json_data, argv.start, argv.items, 1);
+        int estimated_size = (json_data.size() / 1024) + 1;  // Convert to KB, round up
+        argv.size = estimated_size;
+    }
     
     TIME_TIC;
     for (int i = 0; i < argv.loop; i++) {
@@ -487,7 +526,7 @@ DEF_TAST(array_float_wwjson, "Performance test for wwjson float array building")
     }
     TIME_TOC;
     
-    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    DESC("Args: --start=%d --items=%d --size=%d", argv.start, argv.items, argv.size);
     DESC("Generated JSON size: %zu bytes", json_data.size());
     DESC("Array elements: %d (4*items)", argv.items * 4);
     
@@ -524,6 +563,14 @@ DEF_TAST(array_double_wwjson, "Performance test for wwjson double array building
 {
     test::CArgv argv;
     std::string json_data;
+
+    // Auto-estimate capacity only when argv.size is default (1)
+    if (argv.size == 1) {
+        // Run once to estimate capacity
+        test::wwjson::BuildDoubleArray(json_data, argv.start, argv.items, 1);
+        int estimated_size = (json_data.size() / 1024) + 1;  // Convert to KB, round up
+        argv.size = estimated_size;
+    }
     
     TIME_TIC;
     for (int i = 0; i < argv.loop; i++) {
@@ -531,7 +578,7 @@ DEF_TAST(array_double_wwjson, "Performance test for wwjson double array building
     }
     TIME_TOC;
     
-    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    DESC("Args: --start=%d --items=%d --size=%d", argv.start, argv.items, argv.size);
     DESC("Generated JSON size: %zu bytes", json_data.size());
     DESC("Array elements: %d (4*items)", argv.items * 4);
     

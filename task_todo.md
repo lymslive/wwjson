@@ -930,6 +930,27 @@ NumberWriter::kDigitPairs 再提一层抽象，增加 DigitPair 结构体，只�
 四位小数检测误差放大到 e-8 才能保证完全通过。
 性能还是比不上 yyjson ，p_number.cpp 只有 u8 数组能快一点。
 
+## TODO:2025-12-10/1 性能测试程序优化
+
+修改 perf/ 目录的代码。
+
+将 test_data.cpp 的内容合并到 p_builder.cpp ，预计只有后者用到前者定义的函数了
+，test_data.h 删除；相关用例与实现函数放一起，更易维护。
+
+wwjson::RawBuilder 构造函数支持的预设容量参数，之前设计为可从命令行参数
+--size= 输入，但发现很不实用，应该让程序自动估计该值。最简单的估算方法就是在循
+环计时前先跑一次，根据实现输出的 json 串取其长度。同时多跑这一次也可视为预热。
+
+但为了兼容之前传 argv.size 参数，只在该参数不是默认 1 时才预计算，并且预算后修
+改 argv.size 的值，这样就不必修改后面的调用了。
+
+需要自动计算 argv.size 的用例：
+- p_builder.cpp: builder_ex_wwjson
+- p_number.cpp: 所有带 _wwjson 后缀的用例
+- p_string.cpp: 所有带 _wwjson 后缀的用例
+
+### DONE: 20251210-101816
+
 ## TODO: 优化 wwjson.hpp 英文注释
 
 ## TODO: 完善项目文档
