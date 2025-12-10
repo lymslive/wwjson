@@ -6,6 +6,7 @@ add_executable(pfwwjson
     p_builder.cpp
     p_number.cpp
     p_string.cpp
+    p_design.cpp
 )
 
 # Link with wwjson library

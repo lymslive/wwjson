@@ -1889,3 +1889,59 @@ builder.EndRoot('}'); // 不加逗号
 - 浮点数数组测试显示yyjson API比wwjson builder快2157%
 - 所有测试用例都接受--start, --items, --loop参数
 
+## TASK:20251210-231224
+-----------------------
+
+### 任务概述
+使用相对性能AB测试复核设计选择，创建 perf/p_design.cpp 文件，验证 NumberWriter 的小整数、小范围浮点数优化和大整数除法策略的有效性。
+
+### 关联需求ID
+2025-12-10/5
+
+### 完成内容
+
+**1. 创建核心测试文件**
+- 新建 `perf/p_design.cpp` 文件，实现三个AB测试用例
+- 更新 `perf/CMakeLists.txt`，将新文件加入构建系统
+- 利用 `relative_perf.h` 的 RelativeTimer 框架实现测试逻辑
+
+**2. 实现三个设计验证测试**
+
+**小整数优化验证**
+- 方法A：NumberWriter::WriteSmall（当前实现）
+- 方法B：std::to_chars（标准库实现）
+- 结果：NumberWriter 快 62.5%，验证小整数优化有效
+
+**小范围浮点数优化验证**
+- 方法A：NumberWriter::WriteSmall(double)（当前实现）
+- 方法B：环境自适应选择 std::to_chars 或 snprintf %.17g
+- 结果：NumberWriter 快 6341.43%，浮点数优化效果显著
+
+**大整数除法策略验证**
+- 方法A：当前实现（每次除10000）
+- 方法B：备用版本（每次除100，使用kDigitPairs缓存）
+- 结果：除10000策略快 38.9%，确认当前策略更优
+
+**3. 代码质量优化**
+- 移除所有 DEF_TAST 用例中的重复 DESC 打印
+- 改进 verify_design_correctness 用例，调用 tester 的 methodA/methodB 方法
+- 移除不必要的 if != 判断，利用 COUT 断言语句
+- 实现环境自适应浮点数处理，支持CI环境使用 std::to_chars
+
+**4. 技术特性**
+- 支持 --start --items --loop 参数控制
+- 提供 verify_design_correctness 工具验证输出正确性
+- 完整的随机数生成和测试逻辑
+- 编译期环境检测和动态方法名调整
+
+### 性能测试结果
+所有测试成功运行并验证：
+- 小整数优化策略的有效性（62.5%性能提升）
+- 浮点数优化的巨大性能优势（6341%性能提升）
+- 大整数除法策略的优化空间（38.9%性能差异）
+
+### 验证结果
+- 代码编译成功，无警告无错误
+- 所有测试用例运行正常
+- 为后续代码优化提供了数据支撑，特别是浮点数优化的巨大性能提升值得进一步推广
+

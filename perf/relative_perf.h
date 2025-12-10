@@ -113,7 +113,6 @@ public:
         } else {
             std::cout << "Performance is approximately equal" << std::endl;
         }
-        std::cout << std::endl;
         
         return ratio;
     }
