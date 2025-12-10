@@ -259,7 +259,7 @@ namespace perf {
  * This class compares the performance between wwjson builder and yyjson API
  * when building JSON arrays of randomly generated integers.
  */
-class RandomIntArrayPerfTest : public RelativePerfTester<RandomIntArrayPerfTest> {
+class RandomIntArrayPerfTest : public RelativeTimer<RandomIntArrayPerfTest> {
 public:
     // Configuration
     int items;
@@ -331,7 +331,7 @@ public:
  * Each double is generated as f = m + 1/n where m and n are random integers,
  * and both +f and -f are added to the array.
  */
-class RandomDoubleArrayPerfTest : public RelativePerfTester<RandomDoubleArrayPerfTest> {
+class RandomDoubleArrayPerfTest : public RelativeTimer<RandomDoubleArrayPerfTest> {
 public:
     // Configuration
     int items;
@@ -771,7 +771,8 @@ DEF_TAST(relative_int_array, "Relative performance test for random integer array
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
     
     test::perf::RandomIntArrayPerfTest tester(argv.items, argv.start);
-    tester.runAndPrint("Random Integer Array", "wwjson builder", "yyjson API", argv.loop, 10);
+    double ratio = tester.runAndPrint("Random Integer Array", "wwjson builder", "yyjson API", argv.loop, 10);
+    DESC("Performance ratio: %.3f", ratio);
 }
 
 // Relative performance test for random double arrays
@@ -781,5 +782,6 @@ DEF_TAST(relative_double_array, "Relative performance test for random double arr
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
     
     test::perf::RandomDoubleArrayPerfTest tester(argv.items, argv.start);
-    tester.runAndPrint("Random Double Array", "wwjson builder", "yyjson API", argv.loop, 10);
+    double ratio = tester.runAndPrint("Random Double Array", "wwjson builder", "yyjson API", argv.loop, 10);
+    DESC("Performance ratio: %.3f", ratio);
 }

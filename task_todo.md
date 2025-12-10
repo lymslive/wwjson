@@ -1001,6 +1001,77 @@ n ，则浮点数 f = m + 1/n ，将 +f 与 -f 写入 json 数组。
 
 ### DONE: 20251210-160322
 
+## TODO: 使用相对性能AB测试复核设计选择
+
+增加 perf/p_design.cpp 文件，利用 perf/relative_perf.h 的 RelativeTimer 设计一
+些测试用例，可参考 p_number.cpp 中两个相关用例的应用方式。
+
+1. 验证 NumberWriter 的小整数优化是否有效。
+  - 方法 A 调用当前实现的 NumberWriter::WriteSmall
+  - 方法 B 直接调用 std::to_chars，封装为相同的接口，写入 dst string  中
+  - 复用接收 --start --items --loop 参数，随机生成 items 上整数进行转换
+  - 不必生成完整合法的 json ，只要转换 n 个相同的正整数，需小于 10000
+2. 验证 NumberWriter 的小范围浮点数优化是否有效，与上个用例类似。
+  - 方法 A 调用 double 参数的 NumberWriter::WriteSmall
+  - 方法 B 调用 std::to_chars，但本地开发环境不支持浮点数的 to_chars, 先用
+    snprintf %17.g 代替
+  - 随机数样例限用正数，在 [0, 9999.9999] 范围
+3. 验证大整数每次除 10000 快还是每次除 100 快。
+  - 方法 A 调用当前实现 WriteUnsigned uint32 版
+  - 方法 B 要重写 WriteUnsigned 方法，每次除 100，可用 kDigitPairs 双数缓存表，
+    但不要调用 WriteSmall
+  - 随机数样例要大于 10000 的正数
+
+## TODO: 测试使用 wwjson 不同 api 的相对性能
+
+wwjson 提供了几种风格来构建 json 。新增 perf/p_api.cpp 来测试不同 api 的使用性
+能差异，利用 RelativeTimer 的静态多态派生子类模式。
+
+可先设计一个公共业务基类，使用最基本最常见的构建方法作为 methodB 充当其他使用
+风格的基准。
+
+基本方法 methodB 用法：
+- 开始 BeginRoot() ，结束 EndRoot() ，
+- 用 AddMember 增加对象字段，用 AddItem 在数组中增加元素
+- 嵌套子结构使用 BeginOjbect/EndObject 或 BeginArray/EndArray() 配对
+- 完成后不必调用 GetResult/MoveResult ，直接使用公有成员 builder.json
+- 需要传出参数或赋值时用 = std::move(builder.json)
+
+自动关闭容器的 methodA1  用法：
+- 每次开启嵌套结构时使用 if (auto sub = builder.ScopeObject()) {} 风格
+- 根结点也用 ScopeObject/Array 创建，在 {} 中添加根字段
+- 完成后，根结点的 {} 后面，必须调用一次 GetResult 或 MoveResult
+
+使用操作符的 methodA2 用法：
+- 创建根结构与嵌套结构与基本方法相同
+- AddMember 用 [key] = val 代替，AddItem 用 [-1] = val 代替
+
+使用局部对象操作符的 methodA3 用法：
+- 创建根结构与嵌套结构与 methodA1 相同
+- 在对象中使用 obj << key << val 添加字段，可链式调用
+- 在数组中使用 arr << val 添加元素，可链式调用
+
+使用 lambda 创建嵌套结构的 methodA4 用法：
+- 根结点开始结束与基本方法 methodB 相同
+- 创建嵌套结构时直接在 AddMember/AddItem 的参数中传入 lambda
+- lamba 捕获当前 builder 引用，不用再传参数
+- 在 lambda 中使用 ScopeObject/Array 创建局部变量
+
+使用类方法拆分构建过程的 methodA5 用法：
+- 以上方法都是将整个构建 json 过程放在同一个大方法（函数）中，这里模拟复杂业务
+  需要将不同部分（顺序）拆分到不同方法中构建 json 的场景；
+- 创建一个业务数据管理类，提供一个 json 构建入口方法，用 BeingRoot/EndRoot 表
+  示总体构建，直接在根对象下的字段也可以写在这里，
+- 需要创建嵌套子结构时，先调用 PutKey （父结构是数组时不用），再调用另一个方法
+  ，传入 builder 引用
+- 在下游方法中使用 ScopeObject/Array 创建局部变量
+
+以上方法要求能生成相同的 json:
+- json 需要有多层嵌套，不低于 p_builder.cpp 中生成的层数，可以再多一两层
+- 可复用接收 --start 与 --itmes 命令行参数控制生成的内容与规模大小
+- 额外加个 DEF_TOOL 工具用例验证它们能生成相同的 json，可用 yyjson api 解析验
+  证它们是合法 json
+
 ## TODO: 优化 wwjson.hpp 英文注释
 
 ## TODO: 完善项目文档

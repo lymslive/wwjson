@@ -19,20 +19,22 @@ namespace perf {
  * @tparam Derived The derived class that implements methodA and methodB
  */
 template <typename Derived>
-class RelativePerfTester {
+class RelativeTimer {
 public:
     /**
      * @brief Run relative performance test
-     * 
+     *
      * Executes methodA and methodB alternately in batches for the specified number
      * of loops. Returns the performance ratio (timeA/timeB).
-     * 
+     *
      * @param loop Total number of iterations for each method
      * @param batch Number of batches to divide the loops into (default: 10)
+     * @param timeA_ms Optional pointer to store methodA's total execution time in milliseconds
+     * @param timeB_ms Optional pointer to store methodB's total execution time in milliseconds
      * @return double Performance ratio (timeA/timeB). Values < 1 mean A is faster,
      *               values > 1 mean B is faster, value = 1 means equal performance
      */
-    double run(int loop, int batch = 10) {
+    double run(int loop, int batch = 10, double* timeA_ms = nullptr, double* timeB_ms = nullptr) {
         // Handle special values for safety
         if (batch <= 0) batch = 1;
         if (loop <= 0) loop = 1;
@@ -71,6 +73,10 @@ public:
             timeB += elapsedB.count();
         }
         
+        // Convert to milliseconds for output if requested
+        if (timeA_ms) *timeA_ms = timeA * 1000.0;
+        if (timeB_ms) *timeB_ms = timeB * 1000.0;
+        
         // Calculate and return ratio
         if (timeB == 0.0) {
             // Avoid division by zero
@@ -88,15 +94,17 @@ public:
      * @param loop Total number of iterations for each method
      * @param batch Number of batches to divide the loops into
      */
-    void runAndPrint(const std::string& testName, 
-                    const std::string& methodALabel, 
-                    const std::string& methodBLabel,
-                    int loop, int batch = 10) {
-        double ratio = run(loop, batch);
+    double runAndPrint(const std::string& testName,
+                      const std::string& methodALabel,
+                      const std::string& methodBLabel,
+                      int loop, int batch = 10) {
+        double timeA_ms, timeB_ms;
+        double ratio = run(loop, batch, &timeA_ms, &timeB_ms);
         
         std::cout << "=== " << testName << " ===" << std::endl;
         std::cout << "Loops: " << loop << ", Batches: " << batch << std::endl;
-        std::cout << "Performance ratio (" << methodALabel << "/" << methodBLabel << "): " << ratio << std::endl;
+        std::cout << "Performance ratio (" << methodALabel << "/" << methodBLabel << ") "
+                  << timeA_ms << " ms / " << timeB_ms << " ms = " << ratio << std::endl;
         
         if (ratio < 0.95) {
             std::cout << methodALabel << " is " << (1.0/ratio - 1.0) * 100 << "% faster" << std::endl;
@@ -106,6 +114,8 @@ public:
             std::cout << "Performance is approximately equal" << std::endl;
         }
         std::cout << std::endl;
+        
+        return ratio;
     }
 };
 
