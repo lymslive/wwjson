@@ -144,24 +144,24 @@ public:
     }
     
     template <typename floatT>
-    void to_chars(floatT num, char* buffer) {
+    void to_chars(floatT num, char* buffer, size_t bufsz) {
         if constexpr (wwjson::has_float_to_chars_v<double>) {
-            auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), num);
+            auto [ptr, ec] = std::to_chars(buffer, buffer + bufsz, num);
             result.append(buffer, ptr - buffer);
         }
         else {
-            int len = std::snprintf(buffer, sizeof(buffer), "%.17g", num);
+            int len = std::snprintf(buffer, bufsz, "%.17g", num);
             result.append(buffer, len);
         }
     }
     void methodB() {
         // 方法B: 根据环境支持情况选择 std::to_chars 或 snprintf %17.g
         result.clear();
-        char buffer[64];
+        char buffer[64] = {0};
         
         // 尝试使用 std::to_chars，如果编译失败则回退到 snprintf
         for (double num : test_numbers) {
-            to_chars(num, buffer);
+            to_chars(num, buffer, sizeof(buffer));
         }
     }
 };
@@ -273,11 +273,14 @@ DEF_TOOL(verify_design_correctness, "验证设计测试的输出正确性")
     // 验证浮点数输出
     {
         test::perf::SmallFloatOptimizationTest tester(1, 456); // 单个值测试
-        COUT(tester.test_numbers[0]);
+        COUT(tester.test_numbers[0]); // 2487.9804
+        //^ couttast 库用 << 输出，默认精度是 6 ，打印 2487.98
+
         tester.methodA();
-        std::string result_a = tester.result;
+        std::string result_a = tester.result; // 2487.9804
         tester.methodB();
         std::string result_b = tester.result;
+        // 有精度误差
         COUT(result_a, result_b);
     }
     

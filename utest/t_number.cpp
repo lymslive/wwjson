@@ -269,7 +269,7 @@ DEF_TAST(float_opt_special_values, "test special floating-point values")
     COUT(b1.GetResult(), R"({"nan":null,"inf":null,"neg_inf":null})");
 }
 
-// --value=0
+// --value=0 --full=0
 DEF_TOOL(check_fast_double, "test a double value to WriteSmall path")
 {
     double value = 0.0;
@@ -308,6 +308,41 @@ DEF_TOOL(check_fast_double, "test a double value to WriteSmall path")
     COUT(smallPath(9999.999900001), false);
     COUT(smallPath(9999.999900001), false);
     COUT(smallPath(9999.9999000001), false);
+
+    int full = 0;
+    BIND_ARGV(full);
+    if (full == 0) return;
+    DESC("full check to write small double [0, 9999.9999]");
+
+    auto fnWriteSimple = [](int m, int n) {
+        std::string dst = std::to_string(m);
+        if (n == 0) return dst;
+        char buffer[16];
+        ::snprintf(buffer, sizeof(buffer), "%04d", n);
+        dst += '.';
+        dst.append(buffer, 4);
+        while (dst.back() == '0') dst.pop_back();
+        return dst;
+    };
+
+    int nError = 0;
+    for (int m = 0; m < 10000; ++m) {
+        for (int n = 0; n < 10000; ++n) {
+            double f = m + n / 10000.0;
+            std::string strConv;
+            wwjson::NumberWriter<std::string>::WriteSmall(strConv, f);
+            std::string strExpect = fnWriteSimple(m, n);
+            if (strConv != strExpect) {
+                ++nError;
+                if (nError <= 10)
+                {
+                    DESC("m = %d, n = %d, f = %g, strConv = %s, strExpect = %s",
+                            m, n, f, strConv.c_str(), strExpect.c_str());
+                }
+            }
+        }
+    }
+    COUT(nError, 0);
 }
 
 // --ipart=0
