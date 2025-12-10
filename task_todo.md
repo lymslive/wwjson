@@ -951,6 +951,17 @@ wwjson::RawBuilder 构造函数支持的预设容量参数，之前设计为可�
 
 ### DONE: 20251210-101816
 
+## TODO:2025-12-10/2 优化流水线加上编译选项
+
+优化 .github/workflows/ci-perf.yml 与 ci-unit.yml
+之前的参数是提供给测试程序的，默认值声明为 --cout=silent，
+后面运行程序就不必判断参数非空了。
+
+再加上一个参数传给 cmake 控制编译选项，默认值保存现状行为。
+不要用快捷包装命令 make release ，而是显式用 cmake && make 两个步骤。
+
+### DONE: 20251210~122930
+
 ## TODO: 优化 wwjson.hpp 英文注释
 
 ## TODO: 完善项目文档
