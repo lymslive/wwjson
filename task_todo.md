@@ -962,6 +962,45 @@ wwjson::RawBuilder 构造函数支持的预设容量参数，之前设计为可�
 
 ### DONE: 20251210~122930
 
+## TODO:2025-12-10/3 性能热点分析
+
+用 RelWithDebInfo 编译打开 -g 选项后，可用 valgrind 粗略分析性能热点
+
+valgrind --tool=callgrind ./build-release/perf/pfwwjson
+callgrind_annotate callgrind.out
+gprof2dot -f callgrind callgrind.out | dot -Tsvg -o profile.svg
+
+结果发现大部分操作都汇聚于 std::string 的 push_back 或 append 方法。
+是否说明 wwjson 的 builder 封装可能不是瓶颈，受限于 string 目标的操作了。
+
+### DONE: 20251210~141830
+
+## TODO:2025-12-10/4 设计相对性能测试方案
+
+perf/ 增加一个 .h 文件，用 CRTP 模式设计一个模板类，用于测试两个函数的相对性能
+，运行时间比值。大致思路如下：
+
+- 约定子类有两个 void 函数，methodA 与 methodB
+- 接口方法 double run(int loop, int batch = 10); 表示分别运行方法 A 与方法 B
+  各 loop 次，但分批运行，每批运行 loop/batch 次，A B 交替运行，分别累计总时间
+  ，计算 A/B 的时间比，返回调用者，调用者可用返回值与 1 相比，判断哪个方法快，
+  快多少。
+- 为了简单通用，约定 methodA 与 methodB 的参数与返回值都是 void ，实际有用的方
+  法若要接收参数，可将参数先存在对象状态中，接口仍以无参调用。
+
+然后在原有的 p_number.cpp 文件中，增加两个相对测试用例，需要为各个用例定义相对
+计时的子类。
+
+新用例一：复用 --start --items --loop 几个命令行参数，随机生成 items 个整数，
+范围在 int32 以内，start 用作随机种子，类似原来的 BuildIntArray 创建整数数组，
+每个整数分别写入正负数。methdA 用 wwjson builder 构建，methodB 用 yyjson api
+构建。
+
+新用例二：类似地生成随机浮点数数组。整数部分与小数部分分别随机 int32 以内的 m
+n ，则浮点数 f = m + 1/n ，将 +f 与 -f 写入 json 数组。
+
+### DONE: 20251210-160322
+
 ## TODO: 优化 wwjson.hpp 英文注释
 
 ## TODO: 完善项目文档

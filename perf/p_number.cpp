@@ -1,6 +1,7 @@
 #include "couttast/tinytast.hpp"
 
 #include "argv.h"
+#include "relative_perf.h"
 
 #include "wwjson.hpp"
 #include "yyjson.h"
@@ -246,6 +247,159 @@ void BuildDoubleArray(std::string& dst, int start, int count) {
 }
 
 } // namespace yyjson
+} // namespace test
+
+// Relative performance test classes
+namespace test {
+namespace perf {
+
+/**
+ * @brief Relative performance test for integer array building with random values
+ * 
+ * This class compares the performance between wwjson builder and yyjson API
+ * when building JSON arrays of randomly generated integers.
+ */
+class RandomIntArrayPerfTest : public RelativePerfTester<RandomIntArrayPerfTest> {
+public:
+    // Configuration
+    int items;
+    int seed;
+    
+    // Test data
+    std::string result;
+    std::vector<int> random_numbers;
+    
+    RandomIntArrayPerfTest(int items_count, int random_seed) 
+        : items(items_count), seed(random_seed) {
+        generateRandomNumbers();
+    }
+    
+    void generateRandomNumbers() {
+        std::srand(seed);
+        random_numbers.clear();
+        random_numbers.reserve(items);
+        
+        for (int i = 0; i < items; i++) {
+            // Generate random integer in int32 range
+            int random_val = std::rand() % 2000001 - 1000000; // Range: -1000000 to 1000000
+            random_numbers.push_back(random_val);
+        }
+    }
+    
+    void methodA() {
+        // Using wwjson builder with random numbers
+        ::wwjson::RawBuilder builder(items * 10); // Estimate capacity
+        builder.BeginArray();
+        
+        for (int num : random_numbers) {
+            builder.AddItem(num);
+            builder.AddItem(-num); // Add negative counterpart
+        }
+        
+        builder.EndArray();
+        result = builder.MoveResult();
+    }
+    
+    void methodB() {
+        // Using yyjson API with random numbers
+        yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+        yyjson_mut_val *root = yyjson_mut_arr(doc);
+        yyjson_mut_doc_set_root(doc, root);
+        
+        for (int num : random_numbers) {
+            yyjson_mut_arr_add_int(doc, root, num);
+            yyjson_mut_arr_add_int(doc, root, -num); // Add negative counterpart
+        }
+        
+        char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
+        if (json_str) {
+            result = json_str;
+            free(json_str);
+        } else {
+            result = "[]";
+        }
+        
+        yyjson_mut_doc_free(doc);
+    }
+};
+
+/**
+ * @brief Relative performance test for double array building with random values
+ * 
+ * This class compares the performance between wwjson builder and yyjson API
+ * when building JSON arrays of randomly generated double precision numbers.
+ * Each double is generated as f = m + 1/n where m and n are random integers,
+ * and both +f and -f are added to the array.
+ */
+class RandomDoubleArrayPerfTest : public RelativePerfTester<RandomDoubleArrayPerfTest> {
+public:
+    // Configuration
+    int items;
+    int seed;
+    
+    // Test data
+    std::string result;
+    std::vector<double> random_doubles;
+    
+    RandomDoubleArrayPerfTest(int items_count, int random_seed) 
+        : items(items_count), seed(random_seed) {
+        generateRandomNumbers();
+    }
+    
+    void generateRandomNumbers() {
+        std::srand(seed);
+        random_doubles.clear();
+        random_doubles.reserve(items);
+        
+        for (int i = 0; i < items; i++) {
+            // Generate random integers m and n in int32 range
+            int m = std::rand() % 2000001 - 1000000; // Range: -1000000 to 1000000
+            int n = std::rand() % 1000 + 1; // Range: 1 to 1000 (avoid division by zero)
+            
+            // Generate double f = m + 1/n
+            double f = static_cast<double>(m) + 1.0 / static_cast<double>(n);
+            random_doubles.push_back(f);
+        }
+    }
+    
+    void methodA() {
+        // Using wwjson builder with random doubles
+        ::wwjson::RawBuilder builder(items * 20); // Estimate capacity
+        builder.BeginArray();
+        
+        for (double f : random_doubles) {
+            builder.AddItem(f);
+            builder.AddItem(-f); // Add negative counterpart
+        }
+        
+        builder.EndArray();
+        result = builder.MoveResult();
+    }
+    
+    void methodB() {
+        // Using yyjson API with random doubles
+        yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+        yyjson_mut_val *root = yyjson_mut_arr(doc);
+        yyjson_mut_doc_set_root(doc, root);
+        
+        for (double f : random_doubles) {
+            yyjson_mut_arr_add_real(doc, root, f);
+            yyjson_mut_arr_add_real(doc, root, -f); // Add negative counterpart
+        }
+        
+        char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
+        if (json_str) {
+            result = json_str;
+            free(json_str);
+        } else {
+            result = "[]";
+        }
+        
+        yyjson_mut_doc_free(doc);
+    }
+};
+
+} // namespace perf
 } // namespace test
 
 /**
@@ -608,4 +762,24 @@ DEF_TAST(array_double_yyjson, "Performance test for yyjson double array building
     if (argv.loop == 1) {
         COUT(json_data);
     }
+}
+
+// Relative performance test for random integer arrays
+DEF_TAST(relative_int_array, "Relative performance test for random integer arrays")
+{
+    test::CArgv argv;
+    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    
+    test::perf::RandomIntArrayPerfTest tester(argv.items, argv.start);
+    tester.runAndPrint("Random Integer Array", "wwjson builder", "yyjson API", argv.loop, 10);
+}
+
+// Relative performance test for random double arrays
+DEF_TAST(relative_double_array, "Relative performance test for random double arrays")
+{
+    test::CArgv argv;
+    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    
+    test::perf::RandomDoubleArrayPerfTest tester(argv.items, argv.start);
+    tester.runAndPrint("Random Double Array", "wwjson builder", "yyjson API", argv.loop, 10);
 }

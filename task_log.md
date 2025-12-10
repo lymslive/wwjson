@@ -1858,3 +1858,34 @@ builder.EndRoot('}'); // 不加逗号
 - 自动估算功能正常工作
 - 性能测试程序输出正确显示估算的 size 参数
 
+## TASK:20251210-160322
+-----------------------
+### 任务：实现相对性能测试方案
+
+### 关联需求ID
+2025-12-10/4
+
+### 目标
+设计并实现一个相对性能测试方案，包括：
+1. 创建CRTP模板类用于测试两个函数的相对性能
+2. 在p_number.cpp中添加两个相对测试用例
+
+### 实施过程
+1. 在perf/目录下创建了relative_perf.h文件，实现了CRTP模式的RelativePerfTester模板类
+2. 修改p_number.cpp，添加了两个相对测试用例：
+   - RandomIntArrayPerfTest：测试随机整数数组的构建性能
+   - RandomDoubleArrayPerfTest：测试随机双精度浮点数数组的构建性能
+
+### 关键实现点
+- RelativePerfTester使用CRTP模式，要求子类实现methodA和methodB方法
+- run方法交替运行两个方法，分批执行，计算时间比
+- runAndPrint方法提供友好的输出显示性能对比结果
+- 随机数生成使用种子参数保证可重现性
+
+### 验证结果
+- 代码编译成功
+- 相对性能测试正常运行
+- 整数数组测试显示yyjson API比wwjson builder快114%
+- 浮点数数组测试显示yyjson API比wwjson builder快2157%
+- 所有测试用例都接受--start, --items, --loop参数
+
