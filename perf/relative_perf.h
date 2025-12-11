@@ -4,9 +4,27 @@
 #include <chrono>
 #include <iostream>
 #include <string>
+#include <limits>
+#include <cmath>
 
 namespace test {
 namespace perf {
+
+/**
+ * @brief Concept structure for documenting RelativeTimer requirements
+ * 
+ * This struct serves as documentation for the expected interface of classes
+ * that inherit from RelativeTimer. In C++17, concepts are not supported, but
+ * this struct provides a clear reference for the expected methods.
+ */
+struct RelativeTimerConcept {
+    void methodA();        // Required: First method to compare
+    void methodB();        // Required: Second method to compare
+    bool methodVerify();   // Optional: Verification method (recommended to override)
+    std::string testName;  // Optional: Test scenario description
+    std::string labelA;    // Optional: Description for method A
+    std::string labelB;    // Optional: Description for method B
+};
 
 /**
  * @brief CRTP template class for relative performance testing
@@ -22,17 +40,30 @@ template <typename Derived>
 class RelativeTimer {
 public:
     /**
-     * @brief Run relative performance test
+     * @brief Verification method for functional correctness
+     * 
+     * This method should be overridden by derived classes to verify that
+     * methodA and methodB produce equivalent results. The default implementation
+     * returns true (no verification).
+     * 
+     * @return bool True if methods are functionally equivalent, false otherwise
+     */
+    bool methodVerify() {
+        return true;
+    }
+    
+    /**
+     * @brief Run relative performance test with verification
      *
      * Executes methodA and methodB alternately in batches for the specified number
-     * of loops. Returns the performance ratio (timeA/timeB).
+     * of loops. Returns the performance ratio (timeA/timeB). Includes a verification
+     * phase to ensure functional correctness before performance measurement.
      *
      * @param loop Total number of iterations for each method
      * @param batch Number of batches to divide the loops into (default: 10)
      * @param timeA_ms Optional pointer to store methodA's total execution time in milliseconds
      * @param timeB_ms Optional pointer to store methodB's total execution time in milliseconds
-     * @return double Performance ratio (timeA/timeB). Values < 1 mean A is faster,
-     *               values > 1 mean B is faster, value = 1 means equal performance
+     * @return double Performance ratio (timeA/timeB). Returns NaN if verification fails
      */
     double run(int loop, int batch = 10, double* timeA_ms = nullptr, double* timeB_ms = nullptr) {
         // Handle special values for safety
@@ -43,6 +74,14 @@ public:
         if (inner_loop <= 0) inner_loop = 1;
         
         auto& derived = static_cast<Derived&>(*this);
+        
+        // Verification phase - check functional correctness before performance testing
+        if (!derived.methodVerify()) {
+            // Return NaN to indicate verification failure
+            if (timeA_ms) *timeA_ms = 0.0;
+            if (timeB_ms) *timeB_ms = 0.0;
+            return std::numeric_limits<double>::quiet_NaN();
+        }
         
         // Warm up
         derived.methodA();

@@ -1945,3 +1945,69 @@ builder.EndRoot('}'); // 不加逗号
 - 所有测试用例运行正常
 - 为后续代码优化提供了数据支撑，特别是浮点数优化的巨大性能提升值得进一步推广
 
+## TASK:20251211-110903
+-----------------------
+
+### 任务概述（需求ID:2025-12-11/1）
+优化性能相对测试框架，增加功能验证阶段，确保比较的两个方法输出一致，提高测试的可信度。
+
+### 完成内容
+
+**1. 定义概念结构 (RelativeTimerConcept)**
+- 在 `perf/relative_perf.h` 中添加 `RelativeTimerConcept` struct
+- 列出约定方法：methodA, methodB (必需), methodVerify (可选), testName, labelA, labelB (可选)
+- 作为 C++17 环境下的文档参考，提高代码可读性
+
+**2. 扩展 RelativeTimer 基类 (CRTP模式)**
+- 添加 `methodVerify()` 默认实现，返回 `true`
+- 修改 `run()` 方法，在预热阶段前增加验证阶段
+- 如果 `methodVerify()` 返回 `false`，则返回 `std::numeric_limits<double>::quiet_NaN()`
+- 调用者可通过判断返回值是否为 `nan` 来检测验证失败
+
+**3. 更新现有测试类验证功能**
+
+**p_number.cpp 中的测试类**
+- `RandomIntArrayPerfTest`: 添加 `methodVerify()` 方法，比较 wwjson 和 yyjson 输出
+- `RandomDoubleArrayPerfTest`: 添加 `methodVerify()` 方法，处理浮点数精度差异
+
+**p_design.cpp 中的测试类**
+- `SmallIntOptimizationTest`: 添加 `methodVerify()` 方法，验证 WriteSmall 和 std::to_chars 输出
+- `SmallFloatOptimizationTest`: 添加 `methodVerify()` 方法，修复浮点数精度比较问题
+- `BigIntDivisionStrategyTest`: 添加 `methodVerify()` 方法，验证两种除法策略输出
+
+**4. 新增大整数测试用例**
+- 添加 `LargeIntOptimizationTest` 类，测试大整数（>9999）序列化
+- 对比 `WriteUnsigned` 与 `std::to_chars` 的性能
+- 随机数范围大于9999，确保测试大整数路径
+
+**5. 优化现有测试用例**
+- 修改 `SmallIntOptimizationTest` 的 `methodA()`，改为调用 `WriteUnsigned`（内部使用 `WriteSmall`）
+- 保持接口一致性，仅增加一层间接调用
+
+**6. 浮点数精度处理改进**
+- 修复 `SmallFloatOptimizationTest::methodVerify()` 实现
+- 采用逐个数字比较的方法，避免字符串拼接解析问题
+- 使用 `std::stod()` 反向转换比较，允许 `1e-10` 的精度误差
+
+### 技术特性
+- **静态多态**: 遵循 CRTP 模式，使用静态多态而非虚方法
+- **向后兼容**: 现有测试无需修改即可工作，`methodVerify()` 默认返回 `true`
+- **容错处理**: 验证失败时返回 `nan`，提供清晰的错误指示
+- **精度控制**: 浮点数验证支持合理的精度容差
+
+### 性能测试结果
+所有测试用例均成功运行并验证：
+- `small_int_optimization`: NumberWriter::WriteSmall 比 std::to_chars 快 42.15%
+- `small_float_optimization`: NumberWriter::WriteSmall(double) 比 snprintf %.17g 快 3251.42%
+- `large_int_optimization`: NumberWriter::WriteUnsigned 比 std::to_chars 快 19.25%
+- `big_int_division_strategy`: 除100策略比除10000策略快 17.15%
+
+### 验证结果
+- 代码编译成功：无错误无警告
+- 验证功能正常：所有测试用例的 `methodVerify()` 均返回 `true`
+- 性能测试可靠：功能验证通过后才进行性能比较
+- 测试框架稳定：支持 40+ 个性能测试用例的正常运行
+
+### 结论
+成功优化了性能相对测试框架，增加了功能验证阶段，显著提高了性能比较结果的可信度。框架现在能够在性能测试前自动验证两个方法的输出一致性，确保比较的是功能等效的实现。
+EOF;

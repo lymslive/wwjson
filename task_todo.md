@@ -1029,6 +1029,37 @@ n ，则浮点数 f = m + 1/n ，将 +f 与 -f 写入 json 数组。
 3. 大整数除法策略，除 10000 与除 100 差不多，多次运行有浮动误差，除 100 稍快的
    概率似乎大些
 
+## TODO:2025-12-11/1 优化性能相对测试框架与用例
+
+做性能比较的两个方法首先要保证它们是正确的，后续比较才有意义。因此希望把功能验
+证集成到性能测试之前，也相当于预热。
+
+perf/relative_perf.h 中 RelativeTimer 的子类约定除了 methodA 与 methodB 外，再
+要求定义一个 methodVerify 方法，返回 bool 。可选，基类默认实现直接返回 true 。
+子类一般应覆盖，验证两个方法的输出一致才返回 true 。
+
+RelativeTimer::run 在预热阶段，先调用 methodVerify ，如果 false ，直接返回特殊
+浮点数 nan 。调用者可判断该返回值。
+
+在 RelativeTimer 之前再定义一个 RelativeTimerConcept ，用 struct 语法列出约定
+方法。在 C++17 中暂不支持 concept ，但定义一个不用的 struct 可当文档参考：
+- methodA 与 methodB , 必须有
+- methodVerify ，可选，推荐覆盖
+- testName 可选，用例名或测试场景说明
+- labelA lableB 可选，方法 A 与方法 B 的名称或说明
+
+然后在 p_number.cpp 与 p_design.cpp 中用到 RelativeTimer 的子类，补上
+methodVerify 方法。可以用 COUTF(expr, expect) 断言宏语句。但要注意
+SmallFloatOptimizationTest 测试浮点数时，由于精度取舍不同，未必保证不同方法产
+生完全一样的输出，可考虑反向转回 double 比较，COUTF 加第三参数表示容许误差。
+
+最后在 p_design.cpp 加个新用例，测试当前大整数序列化与 std::to_chars 的性能对
+比，与小整数测试 SmallIntOptimizationTest 类似，但生成的随机数应该大于 9999 ，
+方法 A 直接调用 WriteUnsigned 。以及原来的 SmallIntOptimizationTest 方法 A 也
+可以改为通用入口 WriteUnsigned ，仅多一层间接调用 WriteSmall  。
+
+### DONE: 20251211-110903
+
 ## TODO: 测试使用 wwjson 不同 api 的相对性能
 
 wwjson 提供了几种风格来构建 json 。新增 perf/p_api.cpp 来测试不同 api 的使用性
