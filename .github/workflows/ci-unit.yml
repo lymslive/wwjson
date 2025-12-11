@@ -13,7 +13,7 @@ on:
         description: 'CMake configuration arguments. Default: -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_UNIT_TESTS=ON'
         required: false
         default: '-DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_UNIT_TESTS=ON'
-      args:
+      test_args:
         description: 'Command line arguments for unit tests. Default: --cout=silent'
         required: false
         default: '--cout=silent'
@@ -21,6 +21,10 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
+    
+    env:
+      CMAKE_ARGS: ${{ github.event.inputs.cmake_args || '-DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_UNIT_TESTS=ON' }}
+      TEST_ARGS: ${{ github.event.inputs.test_args || '--cout=silent' }}
     
     steps:
     - name: Checkout code
@@ -35,13 +39,14 @@ jobs:
       run: |
         mkdir -p build-release
         cd build-release
-        cmake ${{ github.event.inputs.cmake_args }} ..
+        echo "Running cmake command: cmake $CMAKE_ARGS .."
+        cmake $CMAKE_ARGS ..
         make -j4
         
     - name: Run unit tests
       run: |
         # Prepare test command with default arguments
-        TEST_CMD="./build-release/utest/utwwjson ${{ github.event.inputs.args }}"
+        TEST_CMD="./build-release/utest/utwwjson $TEST_ARGS"
         
         # Echo the actual command for verification
         echo "Running command: $TEST_CMD"
