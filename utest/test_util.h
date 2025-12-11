@@ -5,6 +5,6 @@
 namespace test
 {
 
-bool IsJsonValid(const std::string& json);
+bool IsJsonValid(const std::string &json);
 
-} /* test */
+} // namespace test

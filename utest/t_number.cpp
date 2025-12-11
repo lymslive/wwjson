@@ -1,12 +1,12 @@
-#include "couttast/tinytast.hpp"
 #include "couttast/tastargv.hpp"
+#include "couttast/tinytast.hpp"
 
-#include "wwjson.hpp"
 #include "test_util.h"
+#include "wwjson.hpp"
 
-#include <string>
-#include <limits>
 #include <iostream>
+#include <limits>
+#include <string>
 
 DEF_TAST(number_integer_member, "8 种标准整数类型的序列化测试")
 {
@@ -60,8 +60,9 @@ DEF_TAST(number_integer_member, "8 种标准整数类型的序列化测试")
     builder.EndRoot();
 
     // Expected JSON string
-    std::string expect = R"({"int8_t":-128,"int16_t":-32768,"int32_t":-2147483648,"int64_t":-9223372036854775807,"uint8_t":255,"uint16_t":65535,"uint32_t":4294967295,"uint64_t":18446744073709551615,"zero":0,"small_pos":42,"small_neg":-42,"border_99":99,"border_100":100,"border_101":101,"border_999":999,"border_1000":1000,"border_1001":1001,"border_9999":9999,"border_10000":10000,"border_10001":10001})";
-    
+    std::string expect =
+        R"({"int8_t":-128,"int16_t":-32768,"int32_t":-2147483648,"int64_t":-9223372036854775807,"uint8_t":255,"uint16_t":65535,"uint32_t":4294967295,"uint64_t":18446744073709551615,"zero":0,"small_pos":42,"small_neg":-42,"border_99":99,"border_100":100,"border_101":101,"border_999":999,"border_1000":1000,"border_1001":1001,"border_9999":9999,"border_10000":10000,"border_10001":10001})";
+
     COUT(builder.json, expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
@@ -101,8 +102,9 @@ DEF_TAST(number_integer_item, "数组中整数的序列化测试")
 
     builder.EndRoot(']');
 
-    std::string expect = R"([-128,255,-32768,65535,-2147483648,4294967295,-9223372036854775807,18446744073709551615,0,1,42,99,-1,-42,100,101,999,1000,1001,9999,10000,10001])";
-    
+    std::string expect =
+        R"([-128,255,-32768,65535,-2147483648,4294967295,-9223372036854775807,18446744073709551615,0,1,42,99,-1,-42,100,101,999,1000,1001,9999,10000,10001])";
+
     COUT(builder.json, expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
@@ -111,70 +113,78 @@ DEF_TAST(number_float_serialization, "多种浮点数序列化场景测试")
 {
     wwjson::RawBuilder builder;
     builder.BeginRoot();
-    
+
     // Test basic floating-point values
     builder.AddMember("zero", 0.0);
     builder.AddMember("positive", 3.14159);
     builder.AddMember("negative", -2.71828);
     builder.AddMember("small", 0.00123);
     builder.AddMember("large", 1234567.89);
-    
+
     // Test special values - NaN and Inf should become "null" for valid JSON
     float positive_inf = std::numeric_limits<float>::infinity();
     float negative_inf = -std::numeric_limits<float>::infinity();
     float nan_val = std::numeric_limits<float>::quiet_NaN();
-    
+
     builder.AddMember("pos_inf", positive_inf);
     builder.AddMember("neg_inf", negative_inf);
     builder.AddMember("nan_val", nan_val);
-    
+
     // Test precision for different floating-point types
     builder.AddMember("float_val", 3.14159f);
     builder.AddMember("double_val", 2.718281828459045);
-    
+
     // Test very precise values
     builder.AddMember("precise_float", 1.23456789f);
     builder.AddMember("precise_double", 1.23456789012345);
-    
+
     builder.EndRoot();
-    
+
     // Expected output based on to_chars support and format choice
     std::string expect;
-    
+
     // Default to high precision expectations
-    expect = R"({"zero":0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1234567.89,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.718281828459045,"precise_float":1.2345679,"precise_double":1.23456789012345})";
-    
+    expect =
+        R"({"zero":0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1234567.89,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.718281828459045,"precise_float":1.2345679,"precise_double":1.23456789012345})";
+
     // If no to_chars support, adjust expectations based on format choice
-    if (::wwjson::use_simple_float_format) {
-    // Simple format expectations %g
-    expect = R"({"zero":0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1.23457e+06,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.71828,"precise_float":1.23457,"precise_double":1.23457})";
+    if (::wwjson::use_simple_float_format)
+    {
+        // Simple format expectations %g
+        expect =
+            R"({"zero":0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1.23457e+06,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.71828,"precise_float":1.23457,"precise_double":1.23457})";
     }
-    
+
     COUT(builder.json, expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
 
 DEF_TAST(number_std_support, "检查当前运行时对 std::to_chars 的支持")
 {
-    // Use std::cout instead of COUT or DESC to ensure output even with --cout=silent
+    // Use std::cout instead of COUT or DESC to ensure output even with
+    // --cout=silent
     std::cout << "=== std::to_chars Support Check ===" << std::endl;
-    std::cout << "has_float_to_chars_v<double>: " << ::wwjson::has_float_to_chars_v<double> << std::endl;
-    std::cout << "WWJSON_USE_SIMPLE_FLOAT_FORMAT: " << (::wwjson::use_simple_float_format ? "1 (enabled)" : "0 (disabled)") << std::endl;
-    
+    std::cout << "has_float_to_chars_v<double>: "
+              << ::wwjson::has_float_to_chars_v<double> << std::endl;
+    std::cout << "WWJSON_USE_SIMPLE_FLOAT_FORMAT: "
+              << (::wwjson::use_simple_float_format ? "1 (enabled)"
+                                                    : "0 (disabled)")
+              << std::endl;
+
     // Test actual float serialization with 1/3 and 1/4
-    double third = 1.0/3.0;
-    double quarter = 1.0/4.0;
-    
+    double third = 1.0 / 3.0;
+    double quarter = 1.0 / 4.0;
+
     std::cout << "1/3 value: " << third << std::endl;
     std::cout << "1/4 value: " << quarter << std::endl;
-    
+
     // Build a simple test to see actual serialization
     wwjson::RawBuilder builder;
     builder.BeginRoot();
     builder.AddMember("third", third);
     builder.AddMember("quarter", quarter);
     builder.EndRoot();
-    
+
     std::cout << "Actual JSON output: " << builder.json << std::endl;
     std::cout << "=== End Support Check ===" << std::endl;
 }
@@ -187,14 +197,14 @@ DEF_TAST(number_float_basic, "浮点数优化基本测试")
     b1.AddMember("value", 123.0);
     b1.EndObject();
     COUT(b1.GetResult(), R"({"value":123})");
-    
+
     // Test simple decimal values
     wwjson::RawBuilder b2;
     b2.BeginObject();
     b2.AddMember("value", 123.5);
     b2.EndObject();
     COUT(b2.GetResult(), R"({"value":123.5})");
-    
+
     // Test values with trailing zeros that should be removed
     wwjson::RawBuilder b3;
     b3.BeginObject();
@@ -211,14 +221,14 @@ DEF_TAST(number_float_edge, "浮点数优化的边界情况测试")
     b1.AddMember("value", 0.1);
     b1.EndObject();
     COUT(b1.GetResult(), R"({"value":0.1})");
-    
+
     // Test values at boundary
     wwjson::RawBuilder b2;
     b2.BeginObject();
     b2.AddMember("value", 9999.9999);
     b2.EndObject();
     COUT(b2.GetResult(), R"({"value":9999.9999})");
-    
+
     // Test large integer that should use the optimization
     wwjson::RawBuilder b3;
     b3.BeginObject();
@@ -235,14 +245,14 @@ DEF_TAST(number_float_negative, "负数浮点数优化测试")
     b1.AddMember("value", -123.0);
     b1.EndObject();
     COUT(b1.GetResult(), R"({"value":-123})");
-    
+
     // Test negative decimals
     wwjson::RawBuilder b2;
     b2.BeginObject();
     b2.AddMember("value", -123.5);
     b2.EndObject();
     COUT(b2.GetResult(), R"({"value":-123.5})");
-    
+
     // Test -0.0 should serialize as 0
     wwjson::RawBuilder b3;
     b3.BeginObject();
@@ -305,33 +315,39 @@ DEF_TAST(number_small_double, "测试 double 值是否走 WriteSmall 路径")
 
     int full = 0;
     BIND_ARGV(full);
-    if (full == 0) return;
+    if (full == 0)
+        return;
     DESC("full check to write small double [0, 9999.9999]");
 
     auto fnWriteSimple = [](int m, int n) {
         std::string dst = std::to_string(m);
-        if (n == 0) return dst;
+        if (n == 0)
+            return dst;
         char buffer[16];
         ::snprintf(buffer, sizeof(buffer), "%04d", n);
         dst += '.';
         dst.append(buffer, 4);
-        while (dst.back() == '0') dst.pop_back();
+        while (dst.back() == '0')
+            dst.pop_back();
         return dst;
     };
 
     int nError = 0;
-    for (int m = 0; m < 10000; ++m) {
-        for (int n = 0; n < 10000; ++n) {
+    for (int m = 0; m < 10000; ++m)
+    {
+        for (int n = 0; n < 10000; ++n)
+        {
             double f = m + n / 10000.0;
             std::string strConv;
             wwjson::NumberWriter<std::string>::WriteSmall(strConv, f);
             std::string strExpect = fnWriteSimple(m, n);
-            if (strConv != strExpect) {
+            if (strConv != strExpect)
+            {
                 ++nError;
                 if (nError <= 10)
                 {
                     DESC("m = %d, n = %d, f = %g, strConv = %s, strExpect = %s",
-                            m, n, f, strConv.c_str(), strExpect.c_str());
+                         m, n, f, strConv.c_str(), strExpect.c_str());
                 }
             }
         }

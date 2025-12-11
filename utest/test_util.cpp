@@ -4,10 +4,10 @@
 namespace test
 {
 
-bool IsJsonValid(const std::string& json)
+bool IsJsonValid(const std::string &json)
 {
     yyjson::Document doc(json);
     return doc.isValid();
 }
 
-} /* test */ 
+} // namespace test
