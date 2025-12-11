@@ -13,53 +13,6 @@
 #include <string>
 #include <vector>
 
-// 备用除100版本的 WriteUnsigned 实现
-namespace wwjson
-{
-namespace design_test
-{
-
-/// 每次除100版本的 WriteUnsigned（不使用 WriteSmall）
-template <typename stringT>
-void WriteUnsignedDiv100(stringT &dst, uint32_t value)
-{
-    constexpr int max_len = 15; // uint32_t 最大10位数字
-    char buffer[max_len];
-    char *const buffer_end = buffer + max_len;
-    char *ptr = buffer_end;
-
-    while (value >= 100)
-    {
-        uint32_t chunk = value % 100;
-        value /= 100;
-
-        // 使用 DigitPair 缓存表
-        auto &pairs = NumberWriter<stringT>::kDigitPairs;
-        const auto &pair = pairs[chunk];
-
-        *(--ptr) = pair.low;
-        *(--ptr) = pair.high;
-    }
-
-    // 剩余的单个或两位数直接添加
-    if (value < 10)
-    {
-        dst.push_back(static_cast<char>('0' + value));
-    }
-    else
-    {
-        auto &pairs = NumberWriter<stringT>::kDigitPairs;
-        const auto &pair = pairs[value];
-        dst.push_back(pair.high);
-        dst.push_back(pair.low);
-    }
-
-    dst.append(ptr, buffer_end - ptr);
-}
-
-} // namespace design_test
-} // namespace wwjson
-
 namespace test
 {
 namespace perf
@@ -327,72 +280,6 @@ class SmallFloatOptimizationTest
     }
 };
 
-// ========== 测试4: 大整数除法策略验证 ==========
-
-/**
- * @brief 大整数除法策略验证测试
- * 对比除10000 vs 除100的策略
- */
-class BigIntDivisionStrategyTest
-    : public RelativeTimer<BigIntDivisionStrategyTest>
-{
-  public:
-    int items;
-    uint32_t seed;
-    std::string result;
-    std::vector<uint32_t> test_numbers;
-
-    BigIntDivisionStrategyTest(int count, uint32_t s) : items(count), seed(s)
-    {
-        generateTestNumbers();
-    }
-
-    void generateTestNumbers()
-    {
-        std::mt19937 gen(seed);
-        std::uniform_int_distribution<uint32_t> dis(10001, UINT32_MAX);
-
-        test_numbers.clear();
-        test_numbers.reserve(items);
-        for (int i = 0; i < items; ++i)
-        {
-            test_numbers.push_back(dis(gen));
-        }
-    }
-
-    void methodA()
-    {
-        // 方法A: 调用当前实现 WriteUnsigned uint32 版（除10000）
-        result.clear();
-        for (uint32_t num : test_numbers)
-        {
-            wwjson::NumberWriter<std::string>::WriteUnsigned(result, num);
-        }
-    }
-
-    void methodB()
-    {
-        // 方法B: 重写版本，每次除100（不使用 WriteSmall）
-        result.clear();
-        for (uint32_t num : test_numbers)
-        {
-            wwjson::design_test::WriteUnsignedDiv100<std::string>(result, num);
-        }
-    }
-
-    bool methodVerify()
-    {
-        // 验证两个方法产生相同的输出
-        methodA();
-        std::string resultA = result;
-        methodB();
-        std::string resultB = result;
-
-        // 对于大整数，两种除法策略应该产生完全相同的字符串
-        return resultA == resultB;
-    }
-};
-
 } // namespace perf
 } // namespace test
 
@@ -452,14 +339,3 @@ DEF_TAST(design_small_float, "NumberWriter 小范围浮点数优化验证")
                        argv.loop, 10);
 }
 
-// 测试4: 大整数除法策略验证
-DEF_TAST(design_large_division, "大整数除法策略（10000 vs 100）性能对比")
-{
-    test::CArgv argv;
-    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items,
-         argv.loop);
-    test::perf::BigIntDivisionStrategyTest tester(
-        argv.items, static_cast<uint32_t>(argv.start));
-    tester.runAndPrint("Big Integer Division Strategy", "Divide by 10000",
-                       "Divide by 100", argv.loop, 10);
-}

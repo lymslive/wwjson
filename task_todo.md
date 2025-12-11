@@ -1097,6 +1097,29 @@ utest/ 与 perf/ 目录都用 couttast 测试库驱动，命令行参数支持�
 
 ### DONE: 20251211-151512
 
+## TODO:2025-12-11/4 整数序列化方法优化
+
+perf/p_design.cpp 有个测试用例比较大整数序列化时每次除 10000 好还是除 100 好些
+，结果显示相差不大，在本地环境跑除 100 快些，在 CI 流水线跑除 10000 快些。但是
+再考虑到每次除 100 的代码会更简洁些，甚至可以减少一个函数。所以决定采用每次除
+100 的方案重构。
+
+具体需求如下，修改 include/wwjson.hpp 的 NumberWriter::WriteUnsigned 方法：
+- 先判断小于 100 ，直接写入一位数字或可表写入两位数字，不用调用 WriteSmall
+- 再循环除 100 ，逆向写入局部 buffer
+- 剩余的一位或两位高位数，也先写局部 buffer
+- 最后将局部 buffer 追加到目标字符串
+- 将连续两次的 push_back 替换为一次 append
+- 总体来说每个正整数只应涉及调一次 string 方法
+- 只在 WriteUnsigned 完成业务，可删除 WriteSmall
+
+重构完成并测试无误后，可以删除 perf/p_design.cpp 的以下代码：
+- WriteUnsignedDiv100 类
+- BigIntDivisionStrategyTest 类
+- design_large_division 用例
+
+### DONE:20251211-211924
+
 ## TODO: 测试使用 wwjson 不同 api 的相对性能
 
 wwjson 提供了几种风格来构建 json 。新增 perf/p_api.cpp 来测试不同 api 的使用性

@@ -133,48 +133,18 @@ struct NumberWriter
         return table;
     }();
     
-    /// Write small integers (0-9999) to output string.
     template<typename intT>
-    static inline std::enable_if_t<std::is_integral_v<intT>, void>
-    WriteSmall(stringT& dst, intT value)
+    static std::enable_if_t<std::is_integral_v<intT>, void>
+    WriteUnsigned(stringT& dst, intT value)
     {
         if (value < 100) {
             if (value < 10) {
                 dst.push_back(static_cast<char>('0' + value));
             } else {
                 const DigitPair& pair = kDigitPairs[static_cast<std::size_t>(value)];
-                dst.push_back(pair.high);
-                dst.push_back(pair.low);
+                dst.append(&pair.high, 2);
             }
             return;
-        }
-        
-        if (value < 1000) {
-            dst.push_back(static_cast<char>('0' + (value / 100)));
-            value %= 100;
-            const DigitPair& pair = kDigitPairs[static_cast<std::size_t>(value)];
-            dst.push_back(pair.high);
-            dst.push_back(pair.low);
-            return;
-        }
-        
-        // 4 digits (1000-9999)
-        uint32_t q = static_cast<uint32_t>(value / 100);
-        uint32_t r = static_cast<uint32_t>(value % 100);
-        const DigitPair& pair_q = kDigitPairs[q];
-        const DigitPair& pair_r = kDigitPairs[r];
-        dst.push_back(pair_q.high);
-        dst.push_back(pair_q.low);
-        dst.push_back(pair_r.high);
-        dst.push_back(pair_r.low);
-    }
-    
-    template<typename intT>
-    static std::enable_if_t<std::is_integral_v<intT>, void>
-    WriteUnsigned(stringT& dst, intT value)
-    {
-        if (value < 10000) {
-            return WriteSmall(dst, value);
         }
         
         constexpr int max_len = std::numeric_limits<intT>::digits10 + 1;
@@ -182,24 +152,23 @@ struct NumberWriter
         char* const buffer_end = buffer + max_len;
         char* ptr = buffer_end;
         
-        while (value >= 10000) {
-            uint32_t chunk = static_cast<uint32_t>(value % 10000);
-            value /= 10000;
+        while (value >= 100) {
+            uint32_t chunk = static_cast<uint32_t>(value % 100);
+            value /= 100;
             
-            uint32_t high = chunk / 100;
-            uint32_t low = chunk % 100;
-            
-            // Use value is bit faster than reference here, after testing
-            DigitPair pair_low = kDigitPairs[low];
-            DigitPair pair_high = kDigitPairs[high];
-            
-            *(--ptr) = pair_low.low;
-            *(--ptr) = pair_low.high;
-            *(--ptr) = pair_high.low;
-            *(--ptr) = pair_high.high;
+            const DigitPair& pair = kDigitPairs[chunk];
+            *(--ptr) = pair.low;
+            *(--ptr) = pair.high;
         }
         
-        WriteSmall(dst, value);
+        if (value < 10) {
+            *(--ptr) = static_cast<char>('0' + value);
+        } else {
+            const DigitPair& pair = kDigitPairs[static_cast<std::size_t>(value)];
+            *(--ptr) = pair.low;
+            *(--ptr) = pair.high;
+        }
+        
         dst.append(ptr, buffer_end - ptr);
     }
     
