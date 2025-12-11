@@ -26,6 +26,13 @@ elseif(TARGET yyjson)
     target_link_libraries(pfwwjson PRIVATE yyjson)
 endif()
 
+# Link with xyjson for JSON parsing in verification
+if(TARGET xyjson::xyjson)
+    target_link_libraries(pfwwjson PRIVATE xyjson::xyjson)
+elseif(TARGET xyjson)
+    target_link_libraries(pfwwjson PRIVATE xyjson)
+endif()
+
 # Add custom target for listing performance tests
 add_custom_target(list_perf_tests
     COMMAND pfwwjson --List

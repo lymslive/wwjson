@@ -1060,6 +1060,13 @@ SmallFloatOptimizationTest 测试浮点数时，由于精度取舍不同，未�
 
 ### DONE: 20251211-110903
 
+## TODO:2025-12-11/2 也利用 xyjson 验证 perf/ 的一些测试
+
+把 utest/ 对 xyjson 的依赖提到主 CMakeLists.txt 来，让 perf/ 目录也能使用。
+再用 xyjson 操作符语法优化 RandomDoubleArrayPerfTest::methodVerify 方法。
+
+### DONE: 20251211-134330
+
 ## TODO: 测试使用 wwjson 不同 api 的相对性能
 
 wwjson 提供了几种风格来构建 json 。新增 perf/p_api.cpp 来测试不同 api 的使用性

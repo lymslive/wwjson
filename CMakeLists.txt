@@ -104,6 +104,23 @@ if(NOT WWJSON_LIB_ONLY)
         FetchContent_MakeAvailable(yyjson)
     endif()
 
+    # Find xyjson dependency (for both unit tests and performance tests)
+    find_package(xyjson QUIET)
+    if(NOT xyjson_FOUND)
+        message(STATUS "xyjson not found locally, fetching from GitHub...")
+        
+        # Configure FetchContent for xyjson
+        FetchContent_Declare(
+            xyjson
+            GIT_REPOSITORY https://github.com/lymslive/xyjson.git
+            GIT_TAG main  # or specific tag/commit
+            GIT_SHALLOW TRUE
+            GIT_PROGRESS TRUE
+            OPTIONS "-DXYJSON_LIB_ONLY=ON" "-DUSE_FETCHCONTENT=OFF"
+        )
+        FetchContent_MakeAvailable(xyjson)
+    endif()
+
     # Get include directories from found packages
     if(TARGET couttast)
         get_target_property(COUTTAST_INCLUDE_DIR couttast INTERFACE_INCLUDE_DIRECTORIES)
@@ -113,9 +130,17 @@ if(NOT WWJSON_LIB_ONLY)
         get_target_property(YYJSON_INCLUDE_DIR yyjson::yyjson INTERFACE_INCLUDE_DIRECTORIES)
     endif()
 
+    # Get include directory for xyjson
+    if(TARGET xyjson::xyjson)
+        get_target_property(XYJSON_INCLUDE_DIR xyjson::xyjson INTERFACE_INCLUDE_DIRECTORIES)
+    elseif(TARGET xyjson)
+        get_target_property(XYJSON_INCLUDE_DIR xyjson INTERFACE_INCLUDE_DIRECTORIES)
+    endif()
+
     # Report what we found
     message(STATUS "Using couttast from: ${COUTTAST_INCLUDE_DIR}")
     message(STATUS "Using yyjson from: ${YYJSON_INCLUDE_DIR}")
+    message(STATUS "Using xyjson from: ${XYJSON_INCLUDE_DIR}")
 endif()
 
 # Add subdirectories for tests and performance benchmarks

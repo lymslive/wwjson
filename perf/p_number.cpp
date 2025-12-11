@@ -5,6 +5,7 @@
 
 #include "wwjson.hpp"
 #include "yyjson.h"
+#include "xyjson.h"
 
 #include <string>
 #include <type_traits>
@@ -417,17 +418,43 @@ public:
         methodB();
         std::string resultB = result;
         
-        // For floating-point JSON arrays, we need to parse and compare the values
-        // Since this is complex, we'll do a simple string comparison first
-        // If they match exactly, return true
         if (resultA == resultB) {
             return true;
         }
         
-        // If strings don't match, try to parse and compare individual values
-        // This is a simplified approach - in a real implementation, you'd want
-        // a proper JSON parser to compare the actual values
-        return true; // Assume valid for now, as the focus is on performance testing
+        // If strings don't match, parse and compare individual values using xyjson
+        ::yyjson::Document docA(resultA);
+        ::yyjson::Document docB(resultB);
+        if (!docA.isValid() || !docB.isValid()) {
+            return false;
+        }
+        
+        ::yyjson::Value rootA = docA.root();
+        ::yyjson::Value rootB = docB.root();
+        if (!rootA.isArray() || !rootB.isArray()) {
+            return false;
+        }
+        
+        size_t lenA = rootA.size();
+        size_t lenB = rootB.size();
+        if (lenA != lenB) {
+            return false;
+        }
+        
+        // Compare each array element with relative tolerance for floating-point precision
+        const double tolerance = 1e-12;
+        
+        for (size_t i = 0; i < lenA; ++i) {
+            double numA = rootA / i | 0.0;
+            double numB = rootB / i | 0.0;
+            double max_val = std::max(std::abs(numA), std::abs(numB));
+            double rel_tolerance = tolerance * std::max(1.0, max_val);
+            if (std::abs(numA - numB) > rel_tolerance) {
+                return false;
+            }
+        }
+        
+        return true;
     }
 };
 
