@@ -25,7 +25,7 @@ struct EscapeValueConfig : wwjson::BasicConfig<std::string> {
     static constexpr bool kEscapeValue = true;
 };
 
-DEF_TAST(escape_table_basic, "test escape table functionality")
+DEF_TAST(escape_table_basic, "转义表基本功能测试")
 {
     std::string dst;
     wwjson::BasicConfig<std::string>::EscapeString(dst, "Hello\nWorld\tTest", ::strlen("Hello\nWorld\tTest"));
@@ -49,7 +49,7 @@ DEF_TAST(escape_table_basic, "test escape table functionality")
     COUT(dst, expect);
 }
 
-DEF_TAST(escape_table_utf8, "test UTF-8 characters are not escaped")
+DEF_TAST(escape_table_utf8, "UTF-8 字符不被转义测试")
 {
     // Test UTF-8 characters should pass through unchanged
     std::string dst;
@@ -66,7 +66,7 @@ DEF_TAST(escape_table_utf8, "test UTF-8 characters are not escaped")
     COUT(dst, expect);
 }
 
-DEF_TAST(escape_table_mapping, "test escape table map optimization")
+DEF_TAST(escape_table_mapping, "转义表映射优化测试")
 {
     // Verify the escape table size is 128 bytes
     constexpr size_t table_size = wwjson::BasicConfig<std::string>::kEscapeTable.size();
@@ -96,7 +96,7 @@ DEF_TAST(escape_table_mapping, "test escape table map optimization")
     COUT(wwjson::BasicConfig<std::string>::kEscapeTable['9'], uint8_t{0});
 }
 
-DEF_TAST(escape_builder_api, "test escape methods in builder")
+DEF_TAST(escape_builder_api, "构建器中的转义方法测试")
 {
     wwjson::RawBuilder json;
     
@@ -126,7 +126,7 @@ DEF_TAST(escape_builder_api, "test escape methods in builder")
     COUT(json.json, expect);
 }
 
-DEF_TAST(escape_always_config, "test custom config with always escape")
+DEF_TAST(escape_always_config, "自定义配置：始终转义测试")
 {
     using EscapeBuilder = wwjson::GenericBuilder<std::string, EscapeConfig>;
     
@@ -155,7 +155,7 @@ DEF_TAST(escape_always_config, "test custom config with always escape")
     COUT(json.json, expect);
 }
 
-DEF_TAST(escape_key_config, "test custom config with key escaping only")
+DEF_TAST(escape_key_config, "自定义配置：仅转义键测试")
 {
     using EscapeKeyBuilder = wwjson::GenericBuilder<std::string, EscapeKeyConfig>;
     
@@ -180,7 +180,7 @@ with	tabs",)";
     COUT(json.json, expect);
 }
 
-DEF_TAST(escape_value_config, "test custom config with value escaping only")
+DEF_TAST(escape_value_config, "自定义配置：仅转义值测试")
 {
     using EscapeValueBuilder = wwjson::GenericBuilder<std::string, EscapeValueConfig>;
     
@@ -197,7 +197,7 @@ DEF_TAST(escape_value_config, "test custom config with value escaping only")
     COUT(json.json, expect);
 }
 
-DEF_TAST(escape_no_config, "test custom config with no escaping")
+DEF_TAST(escape_no_config, "自定义配置：无转义测试")
 {
     using NoEscapeBuilder = wwjson::GenericBuilder<std::string, NoEscapeConfig>;
     
@@ -213,7 +213,7 @@ with	tabs",)";
     COUT(json.json, expect);
 }
 
-DEF_TAST(escape_scope_objects, "test escape functionality with scope objects")
+DEF_TAST(escape_scope_objects, "scope 对象的转义功能测试")
 {
     wwjson::RawBuilder json;
     {
@@ -234,7 +234,7 @@ DEF_TAST(escape_scope_objects, "test escape functionality with scope objects")
     COUT(json.GetResult(), expect);
 }
 
-DEF_TAST(escape_std_ascii, "test standard ASCII escape characters")
+DEF_TAST(escape_std_ascii, "标准 ASCII 转义字符测试")
 {
     // Test C/C++ standard escape sequences
     std::string dst;
@@ -286,7 +286,7 @@ DEF_TAST(escape_std_ascii, "test standard ASCII escape characters")
     COUT(dst, expect);
 }
 
-DEF_TAST(escape_edge_cases, "test edge cases for escape functionality")
+DEF_TAST(escape_edge_cases, "转义功能的边界情况测试")
 {
     // Empty string
     std::string dst;

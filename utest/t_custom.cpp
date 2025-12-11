@@ -8,7 +8,7 @@
 #include "couttast/tinytast.hpp"
 #include "test_util.h"
 
-DEF_TAST(custom_builder, "test json builder with custom string")
+DEF_TAST(custom_builder, "自定义字符串的 JSON 构建器测试")
 {
     wwjson::GenericBuilder<test::string> builder;
     builder.BeginRoot();
@@ -40,7 +40,7 @@ DEF_TAST(custom_builder, "test json builder with custom string")
     COUT(test::IsJsonValid(builder.json.c_str()), true);
 }
 
-DEF_TAST(custom_wrapper, "test M1 string interface wrapper methods with custom string")
+DEF_TAST(custom_wrapper, "自定义字符串的 M1 接口封装方法测试")
 {
     wwjson::GenericBuilder<test::string> builder(64);
     
@@ -85,7 +85,7 @@ DEF_TAST(custom_wrapper, "test M1 string interface wrapper methods with custom s
     COUT(builder.json.c_str(), expect5);
 }
 
-DEF_TAST(custom_scope, "test build nest json with custom string using auto close scope methods")
+DEF_TAST(custom_scope, "使用自定义字符串和自动关闭 scope 方法构建嵌套 JSON")
 {
     wwjson::GenericBuilder<test::string> builder;
     {
@@ -132,7 +132,7 @@ struct QuoteNumberConfig : wwjson::BasicConfig<test::string> {
     static constexpr bool kQuoteNumber = true;
 };
 
-DEF_TAST(custom_number_quoted, "test number quoting behavior with AddItem/AddMember methods")
+DEF_TAST(custom_number_quoted, "AddItem/AddMember 方法的数字引号行为测试")
 {
     // Test default config (no quoting)
     wwjson::GenericBuilder<test::string> builder1;

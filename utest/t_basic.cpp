@@ -4,7 +4,7 @@
 #include <string>
 #include <limits>
 
-DEF_TAST(basic_builder, "test json builder with raw string")
+DEF_TAST(basic_builder, "基础 JSON 构建器测试")
 {
     wwjson::RawBuilder builder;
     builder.BeginObject();
@@ -37,7 +37,7 @@ DEF_TAST(basic_builder, "test json builder with raw string")
     COUT(test::IsJsonValid(builder.json), true);
 }
 
-DEF_TAST(basic_builder_root, "test json builder using BeginRoot")
+DEF_TAST(basic_builder_root, "使用 BeginRoot 的 JSON 构建器测试")
 {
     wwjson::RawBuilder builder;
     builder.BeginRoot();
@@ -62,7 +62,7 @@ DEF_TAST(basic_builder_root, "test json builder using BeginRoot")
     COUT(test::IsJsonValid(builder.json), true);
 }
 
-DEF_TAST(basic_builder_nest, "test build nest json with array of object")
+DEF_TAST(basic_builder_nest, "嵌套 JSON 构建测试（对象数组）")
 {
     wwjson::RawBuilder builder;
     builder.BeginRoot();
@@ -105,7 +105,7 @@ DEF_TAST(basic_builder_nest, "test build nest json with array of object")
     COUT(test::IsJsonValid(builder.json), true);
 }
 
-DEF_TAST(basic_wrapper, "test M1 string interface wrapper methods")
+DEF_TAST(basic_wrapper, "M1 字符串接口封装方法测试")
 {
     wwjson::RawBuilder builder(64);
     
@@ -152,7 +152,7 @@ DEF_TAST(basic_wrapper, "test M1 string interface wrapper methods")
     COUT(builder.json, expect5);
 }
 
-DEF_TAST(basic_null_bool_empty, "test null, bool, empty array and empty object")
+DEF_TAST(basic_null_bool_empty, "null、bool、空数组和空对象测试")
 {
     wwjson::RawBuilder builder;
     builder.BeginObject();
@@ -212,7 +212,7 @@ DEF_TAST(basic_null_bool_empty, "test null, bool, empty array and empty object")
     COUT(test::IsJsonValid(builder.json), true);
 }
 
-DEF_TAST(basic_low_level, "test using low-level methods PutKey/PutValue/PutNext")
+DEF_TAST(basic_low_level, "底层方法 PutKey/PutValue/PutNext 使用测试")
 {
     wwjson::RawBuilder builder;
     builder.BeginObject();
@@ -282,7 +282,7 @@ DEF_TAST(basic_low_level, "test using low-level methods PutKey/PutValue/PutNext"
     COUT(builder.GetResult(), expect);
 }
 
-DEF_TAST(basic_addmember_overloads, "test new AddMember overloads with different key parameter types")
+DEF_TAST(basic_addmember_overloads, "不同键参数类型的 AddMember 重载测试")
 {
     wwjson::RawBuilder builder;
     builder.BeginObject();
@@ -307,7 +307,7 @@ DEF_TAST(basic_addmember_overloads, "test new AddMember overloads with different
     COUT(builder.GetResult(), expect);
 }
 
-DEF_TAST(basic_string_view_support, "test std::string_view support for keys and values")
+DEF_TAST(basic_string_view_support, "std::string_view 对键值的支持测试")
 {
     wwjson::RawBuilder builder;
     builder.BeginObject();
@@ -345,7 +345,7 @@ DEF_TAST(basic_string_view_support, "test std::string_view support for keys and 
     COUT(test::IsJsonValid(builder.json), true);
 }
 
-DEF_TAST(basic_getresult, "test GetResult removes trailing comma")
+DEF_TAST(basic_getresult, "GetResult 移除尾逗号功能测试")
 {
     wwjson::RawBuilder builder;
     builder.BeginObject();
@@ -403,7 +403,7 @@ void buildJsonString(std::string& output) {
     output = builder.MoveResult();
 }
 
-DEF_TAST(basic_moveresult, "test MoveResult method")
+DEF_TAST(basic_moveresult, "MoveResult 方法测试")
 {
     wwjson::RawBuilder builder;
     builder.BeginObject();
@@ -436,7 +436,7 @@ DEF_TAST(basic_moveresult, "test MoveResult method")
     // 4. Avoid: return std::move(builder.json) - same as MoveResult() but less clear
 }
 
-DEF_TAST(basic_null_string, "test null pointer safety in string edge cases")
+DEF_TAST(basic_null_string, "字符串边界情况中的空指针安全测试")
 {
     wwjson::RawBuilder builder;
     builder.BeginObject();
@@ -467,7 +467,7 @@ DEF_TAST(basic_null_string, "test null pointer safety in string edge cases")
     COUT(test::IsJsonValid(builder.json), true);
 }
 
-DEF_TAST(basic_empty_string, "test not null but empty string edge cases")
+DEF_TAST(basic_empty_string, "非空但空字符串的边界情况测试")
 {
     wwjson::RawBuilder builder;
     builder.BeginRoot();

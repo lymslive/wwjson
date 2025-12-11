@@ -48,64 +48,6 @@ void BuildIntArray(std::string& dst, uintT start, int count, int size_k = 1) {
     dst = builder.MoveResult();
 }
 
-} // namespace wwjson
-
-namespace yyjson
-{
-
-/**
- * @brief Template function to build JSON arrays of integer pairs using yyjson
- * 
- * @tparam uintT Unsigned integer type (uint8_t, uint16_t, uint32_t, uint64_t)
- * @param dst Output string to store generated JSON
- * @param start Starting value for the sequence
- * @param count Number of integer pairs to generate
- */
-template <typename uintT>
-void BuildIntArray(std::string& dst, uintT start, int count) {
-    using sintT = std::make_signed_t<uintT>;
-    
-    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
-    if (!doc) {
-        dst = "[]";
-        return;
-    }
-    
-    yyjson_mut_val *root = yyjson_mut_arr(doc);
-    yyjson_mut_doc_set_root(doc, root);
-    
-    uintT current = start;
-    
-    for (int i = 0; i < count; i++) {
-        uintT positive = current;
-        sintT negative = -static_cast<sintT>(positive);
-        
-        yyjson_mut_arr_add_uint(doc, root, positive);
-        yyjson_mut_arr_add_sint(doc, root, negative);
-        
-        current++;
-    }
-    
-    char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
-    if (json_str) {
-        dst = json_str;
-        free(json_str);
-    } else {
-        dst = "[]";
-    }
-    
-    yyjson_mut_doc_free(doc);
-}
-
-} // namespace yyjson
-} // namespace test
-
-// Float array functions for performance testing
-namespace test
-{
-namespace wwjson
-{
-
 /**
  * @brief Function to build JSON arrays of float values
  * 
@@ -166,6 +108,50 @@ void BuildDoubleArray(std::string& dst, int start, int count, int size_k = 1) {
 
 namespace yyjson
 {
+
+/**
+ * @brief Template function to build JSON arrays of integer pairs using yyjson
+ * 
+ * @tparam uintT Unsigned integer type (uint8_t, uint16_t, uint32_t, uint64_t)
+ * @param dst Output string to store generated JSON
+ * @param start Starting value for the sequence
+ * @param count Number of integer pairs to generate
+ */
+template <typename uintT>
+void BuildIntArray(std::string& dst, uintT start, int count) {
+    using sintT = std::make_signed_t<uintT>;
+    
+    yyjson_mut_doc *doc = yyjson_mut_doc_new(NULL);
+    if (!doc) {
+        dst = "[]";
+        return;
+    }
+    
+    yyjson_mut_val *root = yyjson_mut_arr(doc);
+    yyjson_mut_doc_set_root(doc, root);
+    
+    uintT current = start;
+    
+    for (int i = 0; i < count; i++) {
+        uintT positive = current;
+        sintT negative = -static_cast<sintT>(positive);
+        
+        yyjson_mut_arr_add_uint(doc, root, positive);
+        yyjson_mut_arr_add_sint(doc, root, negative);
+        
+        current++;
+    }
+    
+    char *json_str = yyjson_mut_write(doc, YYJSON_WRITE_NOFLAG, NULL);
+    if (json_str) {
+        dst = json_str;
+        free(json_str);
+    } else {
+        dst = "[]";
+    }
+    
+    yyjson_mut_doc_free(doc);
+}
 
 /**
  * @brief Function to build JSON arrays of float values using yyjson
@@ -260,7 +246,7 @@ namespace perf {
  * This class compares the performance between wwjson builder and yyjson API
  * when building JSON arrays of randomly generated integers.
  */
-class RandomIntArrayPerfTest : public RelativeTimer<RandomIntArrayPerfTest> {
+class RandomIntArray : public RelativeTimer<RandomIntArray> {
 public:
     // Configuration
     int items;
@@ -270,7 +256,7 @@ public:
     std::string result;
     std::vector<int> random_numbers;
     
-    RandomIntArrayPerfTest(int items_count, int random_seed) 
+    RandomIntArray(int items_count, int random_seed) 
         : items(items_count), seed(random_seed) {
         generateRandomNumbers();
     }
@@ -343,7 +329,7 @@ public:
  * Each double is generated as f = m + 1/n where m and n are random integers,
  * and both +f and -f are added to the array.
  */
-class RandomDoubleArrayPerfTest : public RelativeTimer<RandomDoubleArrayPerfTest> {
+class RandomDoubleArray : public RelativeTimer<RandomDoubleArray> {
 public:
     // Configuration
     int items;
@@ -353,7 +339,7 @@ public:
     std::string result;
     std::vector<double> random_doubles;
     
-    RandomDoubleArrayPerfTest(int items_count, int random_seed) 
+    RandomDoubleArray(int items_count, int random_seed) 
         : items(items_count), seed(random_seed) {
         generateRandomNumbers();
     }
@@ -473,7 +459,7 @@ public:
  */
 
 // Performance test for wwjson int8 array building
-DEF_TAST(array_int8_wwjson, "Performance test for wwjson int8 array building")
+DEF_TAST(number_int8_wwjson, "wwjson int8 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -503,7 +489,7 @@ DEF_TAST(array_int8_wwjson, "Performance test for wwjson int8 array building")
 }
 
 // Performance test for yyjson int8 array building
-DEF_TAST(array_int8_yyjson, "Performance test for yyjson int8 array building")
+DEF_TAST(number_int8_yyjson, "yyjson int8 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -525,7 +511,7 @@ DEF_TAST(array_int8_yyjson, "Performance test for yyjson int8 array building")
 }
 
 // Performance test for wwjson int16 array building
-DEF_TAST(array_int16_wwjson, "Performance test for wwjson int16 array building")
+DEF_TAST(number_int16_wwjson, "wwjson int16 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -555,7 +541,7 @@ DEF_TAST(array_int16_wwjson, "Performance test for wwjson int16 array building")
 }
 
 // Performance test for yyjson int16 array building
-DEF_TAST(array_int16_yyjson, "Performance test for yyjson int16 array building")
+DEF_TAST(number_int16_yyjson, "yyjson int16 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -577,7 +563,7 @@ DEF_TAST(array_int16_yyjson, "Performance test for yyjson int16 array building")
 }
 
 // Performance test for wwjson int32 array building
-DEF_TAST(array_int32_wwjson, "Performance test for wwjson int32 array building")
+DEF_TAST(number_int32_wwjson, "wwjson int32 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -607,7 +593,7 @@ DEF_TAST(array_int32_wwjson, "Performance test for wwjson int32 array building")
 }
 
 // Performance test for yyjson int32 array building
-DEF_TAST(array_int32_yyjson, "Performance test for yyjson int32 array building")
+DEF_TAST(number_int32_yyjson, "yyjson int32 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -629,7 +615,7 @@ DEF_TAST(array_int32_yyjson, "Performance test for yyjson int32 array building")
 }
 
 // Performance test for wwjson int64 array building
-DEF_TAST(array_int64_wwjson, "Performance test for wwjson int64 array building")
+DEF_TAST(number_int64_wwjson, "wwjson int64 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -659,7 +645,7 @@ DEF_TAST(array_int64_wwjson, "Performance test for wwjson int64 array building")
 }
 
 // Performance test for yyjson int64 array building
-DEF_TAST(array_int64_yyjson, "Performance test for yyjson int64 array building")
+DEF_TAST(number_int64_yyjson, "yyjson int64 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -681,7 +667,7 @@ DEF_TAST(array_int64_yyjson, "Performance test for yyjson int64 array building")
 }
 
 // Comparison test for wwjson vs yyjson output
-DEF_TOOL(compare_array_output, "Compare wwjson and yyjson BuildIntArray output")
+DEF_TOOL(number_array_compare, "比较 wwjson 和 yyjson BuildIntArray 输出")
 {
     test::CArgv argv;
     int test_count = 10;
@@ -720,7 +706,7 @@ DEF_TOOL(compare_array_output, "Compare wwjson and yyjson BuildIntArray output")
 }
 
 // Performance test for wwjson float array building
-DEF_TAST(array_float_wwjson, "Performance test for wwjson float array building")
+DEF_TAST(number_float_wwjson, "wwjson float 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -750,7 +736,7 @@ DEF_TAST(array_float_wwjson, "Performance test for wwjson float array building")
 }
 
 // Performance test for yyjson float array building
-DEF_TAST(array_float_yyjson, "Performance test for yyjson float array building")
+DEF_TAST(number_float_yyjson, "yyjson float 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -772,7 +758,7 @@ DEF_TAST(array_float_yyjson, "Performance test for yyjson float array building")
 }
 
 // Performance test for wwjson double array building
-DEF_TAST(array_double_wwjson, "Performance test for wwjson double array building")
+DEF_TAST(number_double_wwjson, "wwjson double 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -802,7 +788,7 @@ DEF_TAST(array_double_wwjson, "Performance test for wwjson double array building
 }
 
 // Performance test for yyjson double array building
-DEF_TAST(array_double_yyjson, "Performance test for yyjson double array building")
+DEF_TAST(number_double_yyjson, "yyjson double 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -824,23 +810,23 @@ DEF_TAST(array_double_yyjson, "Performance test for yyjson double array building
 }
 
 // Relative performance test for random integer arrays
-DEF_TAST(relative_int_array, "Relative performance test for random integer arrays")
+DEF_TAST(number_int_rel, "随机整数数组相对性能测试")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
     
-    test::perf::RandomIntArrayPerfTest tester(argv.items, argv.start);
+    test::perf::RandomIntArray tester(argv.items, argv.start);
     double ratio = tester.runAndPrint("Random Integer Array", "wwjson builder", "yyjson API", argv.loop, 10);
     DESC("Performance ratio: %.3f", ratio);
 }
 
 // Relative performance test for random double arrays
-DEF_TAST(relative_double_array, "Relative performance test for random double arrays")
+DEF_TAST(number_double_rel, "随机 double 数组相对性能测试")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
     
-    test::perf::RandomDoubleArrayPerfTest tester(argv.items, argv.start);
+    test::perf::RandomDoubleArray tester(argv.items, argv.start);
     double ratio = tester.runAndPrint("Random Double Array", "wwjson builder", "yyjson API", argv.loop, 10);
     DESC("Performance ratio: %.3f", ratio);
 }

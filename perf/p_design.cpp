@@ -341,7 +341,7 @@ public:
 // ========== 性能测试用例定义 ==========
 
 // 测试1: 小整数优化验证
-DEF_TAST(small_int_optimization, "验证 NumberWriter 的小整数优化是否有效")
+DEF_TAST(design_small_int, "NumberWriter 小整数优化验证")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
@@ -352,7 +352,7 @@ DEF_TAST(small_int_optimization, "验证 NumberWriter 的小整数优化是否�
 }
 
 // 测试2: 大整数优化验证
-DEF_TAST(large_int_optimization, "验证大整数（>9999）WriteUnsigned 与 std::to_chars 性能对比")
+DEF_TAST(design_large_int, "大整数 WriteUnsigned 与 std::to_chars 性能对比")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
@@ -371,7 +371,7 @@ DEF_TAST(large_int_optimization, "验证大整数（>9999）WriteUnsigned 与 st
 }
 
 // 测试3: 小范围浮点数优化验证
-DEF_TAST(small_float_optimization, "验证 NumberWriter 的小范围浮点数优化是否有效")
+DEF_TAST(design_small_float, "NumberWriter 小范围浮点数优化验证")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
@@ -388,7 +388,7 @@ DEF_TAST(small_float_optimization, "验证 NumberWriter 的小范围浮点数优
 }
 
 // 测试4: 大整数除法策略验证
-DEF_TAST(big_int_division_strategy, "验证大整数每次除10000快还是每次除100快")
+DEF_TAST(design_large_division, "大整数除法策略（10000 vs 100）性能对比")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
@@ -398,42 +398,3 @@ DEF_TAST(big_int_division_strategy, "验证大整数每次除10000快还是每�
                       argv.loop, 10);
 }
 
-// 工具命令：验证输出正确性
-DEF_TOOL(verify_design_correctness, "验证设计测试的输出正确性")
-{
-    test::CArgv argv;
-    
-    // 验证小整数输出
-    {
-        test::perf::SmallIntOptimizationTest tester(1, 123); // 单个值测试
-        tester.methodA();
-        std::string result_a = tester.result;
-        tester.methodB();
-        std::string result_b = tester.result;
-        COUT(result_a, result_b);
-    }
-    
-    // 验证浮点数输出
-    {
-        test::perf::SmallFloatOptimizationTest tester(1, 456); // 单个值测试
-        COUT(tester.test_numbers[0]); // 2487.9804
-        //^ couttast 库用 << 输出，默认精度是 6 ，打印 2487.98
-
-        tester.methodA();
-        std::string result_a = tester.result; // 2487.9804
-        tester.methodB();
-        std::string result_b = tester.result;
-        // 有精度误差
-        COUT(result_a, result_b);
-    }
-    
-    // 验证大整数除法策略输出
-    {
-        test::perf::BigIntDivisionStrategyTest tester(1, 789); // 单个值测试
-        tester.methodA();
-        std::string result_a = tester.result;
-        tester.methodB();
-        std::string result_b = tester.result;
-        COUT(result_a, result_b);
-    }
-}

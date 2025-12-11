@@ -217,7 +217,7 @@ void BuildEscapeObject(std::string& dst, int start, int count) {
  */
 
 // Performance test for wwjson string array building
-DEF_TAST(array_string_wwjson, "Performance test for wwjson string array building")
+DEF_TAST(string_array_wwjson, "wwjson 字符串数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -247,7 +247,7 @@ DEF_TAST(array_string_wwjson, "Performance test for wwjson string array building
 }
 
 // Performance test for yyjson string array building
-DEF_TAST(array_string_yyjson, "Performance test for yyjson string array building")
+DEF_TAST(string_array_yyjson, "yyjson 字符串数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -269,7 +269,7 @@ DEF_TAST(array_string_yyjson, "Performance test for yyjson string array building
 }
 
 // Performance test for wwjson string object building
-DEF_TAST(object_string_wwjson, "Performance test for wwjson string object building")
+DEF_TAST(string_object_wwjson, "wwjson 字符串对象构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -299,7 +299,7 @@ DEF_TAST(object_string_wwjson, "Performance test for wwjson string object buildi
 }
 
 // Performance test for yyjson string object building
-DEF_TAST(object_string_yyjson, "Performance test for yyjson string object building")
+DEF_TAST(string_object_yyjson, "yyjson 字符串对象构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -321,7 +321,7 @@ DEF_TAST(object_string_yyjson, "Performance test for yyjson string object buildi
 }
 
 // Performance test for wwjson escaped string object building
-DEF_TAST(escape_string_wwjson, "Performance test for wwjson escaped string object building")
+DEF_TAST(string_escape_wwjson, "wwjson 转义字符串对象构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -351,7 +351,7 @@ DEF_TAST(escape_string_wwjson, "Performance test for wwjson escaped string objec
 }
 
 // Performance test for yyjson escaped string object building
-DEF_TAST(escape_string_yyjson, "Performance test for yyjson escaped string object building")
+DEF_TAST(string_escape_yyjson, "yyjson 转义字符串对象构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -373,7 +373,7 @@ DEF_TAST(escape_string_yyjson, "Performance test for yyjson escaped string objec
 }
 
 // Comparison test for wwjson vs yyjson output
-DEF_TOOL(compare_string_output, "Compare wwjson and yyjson string function output")
+DEF_TOOL(string_compare, "比较 wwjson 和 yyjson 字符串函数输出")
 {
     test::CArgv argv;
     int test_count = 5;

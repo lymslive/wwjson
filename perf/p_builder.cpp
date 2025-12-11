@@ -207,7 +207,7 @@ void BuildJson(std::string& dst, int n)
  */
 
 // Performance test for wwjson builder with ~0.5k JSON (n=6)
-DEF_TAST(build_0_5k_wwjson, "Performance test for wwjson builder (~0.5k JSON, n=6)")
+DEF_TAST(build_0_5k_wwjson, "wwjson 构建器性能测试（约 0.5k JSON，n=6）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -226,7 +226,7 @@ DEF_TAST(build_0_5k_wwjson, "Performance test for wwjson builder (~0.5k JSON, n=
 }
 
 // Performance test for yyjson builder with ~0.5k JSON (n=6)
-DEF_TAST(build_0_5k_yyjson, "Performance test for yyjson builder (~0.5k JSON, n=6)")
+DEF_TAST(build_0_5k_yyjson, "yyjson 构建器性能测试（约 0.5k JSON，n=6）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -245,7 +245,7 @@ DEF_TAST(build_0_5k_yyjson, "Performance test for yyjson builder (~0.5k JSON, n=
 }
 
 // Performance test for wwjson builder with ~1k JSON (n=12)
-DEF_TAST(build_1k_wwjson, "Performance test for wwjson builder (~1k JSON, n=12)")
+DEF_TAST(build_1k_wwjson, "wwjson 构建器性能测试（约 1k JSON，n=12）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -264,7 +264,7 @@ DEF_TAST(build_1k_wwjson, "Performance test for wwjson builder (~1k JSON, n=12)"
 }
 
 // Performance test for yyjson builder with ~1k JSON (n=12)
-DEF_TAST(build_1k_yyjson, "Performance test for yyjson builder (~1k JSON, n=12)")
+DEF_TAST(build_1k_yyjson, "yyjson 构建器性能测试（约 1k JSON，n=12）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -283,7 +283,7 @@ DEF_TAST(build_1k_yyjson, "Performance test for yyjson builder (~1k JSON, n=12)"
 }
 
 // Performance test for wwjson builder with ~10k JSON (n=120)
-DEF_TAST(build_10k_wwjson, "Performance test for wwjson builder (~10k JSON, n=120)")
+DEF_TAST(build_10k_wwjson, "wwjson 构建器性能测试（约 10k JSON，n=120）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -302,7 +302,7 @@ DEF_TAST(build_10k_wwjson, "Performance test for wwjson builder (~10k JSON, n=12
 }
 
 // Performance test for yyjson builder with ~10k JSON (n=120)
-DEF_TAST(build_10k_yyjson, "Performance test for yyjson builder (~10k JSON, n=120)")
+DEF_TAST(build_10k_yyjson, "yyjson 构建器性能测试（约 10k JSON，n=120）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -321,7 +321,7 @@ DEF_TAST(build_10k_yyjson, "Performance test for yyjson builder (~10k JSON, n=12
 }
 
 // Performance test for wwjson builder with ~100k JSON (n=1200)
-DEF_TAST(build_100k_wwjson, "Performance test for wwjson builder (~100k JSON, n=1200)")
+DEF_TAST(build_100k_wwjson, "wwjson 构建器性能测试（约 100k JSON，n=1200）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -340,7 +340,7 @@ DEF_TAST(build_100k_wwjson, "Performance test for wwjson builder (~100k JSON, n=
 }
 
 // Performance test for yyjson builder with ~100k JSON (n=1200)
-DEF_TAST(build_100k_yyjson, "Performance test for yyjson builder (~100k JSON, n=1200)")
+DEF_TAST(build_100k_yyjson, "yyjson 构建器性能测试（约 100k JSON，n=1200）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -359,7 +359,7 @@ DEF_TAST(build_100k_yyjson, "Performance test for yyjson builder (~100k JSON, n=
 }
 
 // default args: --loop=1000 --items=1000
-DEF_TAST(builder_ex_wwjson, "Performance test for wwjson builder(custom size)")
+DEF_TAST(build_ex_wwjson, "wwjson 构建器性能测试（自定义大小）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -385,7 +385,7 @@ DEF_TAST(builder_ex_wwjson, "Performance test for wwjson builder(custom size)")
     }
 }
 
-DEF_TAST(builder_ex_yyjson, "Performance test for yyjson builder(custom size)")
+DEF_TAST(build_ex_yyjson, "yyjson 构建器性能测试（自定义大小）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -404,7 +404,7 @@ DEF_TAST(builder_ex_yyjson, "Performance test for yyjson builder(custom size)")
     }
 }
 
-DEF_TOOL(data_sample, "Generate JSON samples of different sizes for performance testing")
+DEF_TOOL(build_sample, "生成不同大小的 JSON 样本用于性能测试")
 {
     // Create output directory
     std::filesystem::create_directories("perf/test_data.tmp");
@@ -450,7 +450,7 @@ DEF_TOOL(data_sample, "Generate JSON samples of different sizes for performance 
 }
 
 // Verification tool to compare wwjson and yyjson outputs
-DEF_TOOL(verify_json_builders, "Verify wwjson and yyjson generate identical JSON structures")
+DEF_TOOL(build_verify, "验证 wwjson 和 yyjson 生成相同的 JSON 结构")
 {
     int n = 3;
     std::string wwjson_result;
@@ -475,7 +475,7 @@ DEF_TOOL(verify_json_builders, "Verify wwjson and yyjson generate identical JSON
 }
 
 // Tool to test different n values and their corresponding JSON sizes
-DEF_TOOL(test_json_sizes, "Test JSON sizes for different n values")
+DEF_TOOL(build_size, "测试不同 n 值对应的 JSON 大小")
 {
     DESC("Testing JSON sizes for different item counts (each item has array + nested object):");
     DESC("");

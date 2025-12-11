@@ -3,7 +3,7 @@
 #include "test_util.h"
 #include <string>
 
-DEF_TAST(scope_ctor_nest, "test build nest json with RAII auto close")
+DEF_TAST(scope_ctor_nest, "RAII 自动关闭的嵌套 JSON 构建")
 {
     wwjson::RawBuilder builder;
     {
@@ -45,7 +45,7 @@ DEF_TAST(scope_ctor_nest, "test build nest json with RAII auto close")
     COUT(test::IsJsonValid(builder.json), true);
 }
 
-DEF_TAST(scope_auto_nest, "test build nest json with auto close using scope methods")
+DEF_TAST(scope_auto_nest, "使用 scope 方法自动关闭的嵌套 JSON 构建")
 {
     wwjson::RawBuilder builder;
     {
@@ -87,7 +87,7 @@ DEF_TAST(scope_auto_nest, "test build nest json with auto close using scope meth
     COUT(test::IsJsonValid(builder.json), true);
 }
 
-DEF_TAST(scope_vs_constructor, "test scope methods vs constructor approach")
+DEF_TAST(scope_vs_constructor, "scope 方法与构造方法对比")
 {
     // Test using scope methods (new approach)
     wwjson::RawBuilder scopeBuilder;
@@ -129,7 +129,7 @@ DEF_TAST(scope_vs_constructor, "test scope methods vs constructor approach")
     COUT(scopeBuilder.json == ctorBuilder.json, true);
 }
 
-DEF_TAST(scope_if_bool_operator, "test operator bool in if statements for scope variables")
+DEF_TAST(scope_if_bool_operator, "scope 变量的 if 语句中 operator bool 测试")
 {
     wwjson::RawBuilder builder;
     
@@ -160,7 +160,7 @@ DEF_TAST(scope_if_bool_operator, "test operator bool in if statements for scope 
     COUT(test::IsJsonValid(builder.json), true);
 }
 
-DEF_TAST(scope_if_bool_vs_constructor, "test if bool syntax with constructor approach")
+DEF_TAST(scope_if_bool_vs_constructor, "构造方法中的 if bool 语法测试")
 {
     // Test if syntax with scope methods
     wwjson::RawBuilder ifBuilder;

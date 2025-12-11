@@ -4,7 +4,7 @@
 #include <string>
 #include <functional>
 
-DEF_TAST(advance_reopen, "test Reopen method for objects and arrays")
+DEF_TAST(advance_reopen, "对象和数组的 Reopen 方法测试")
 {
     // Test Reopen for object
     wwjson::RawBuilder builder1;
@@ -54,7 +54,7 @@ DEF_TAST(advance_reopen, "test Reopen method for objects and arrays")
     COUT(result4, false);
 }
 
-DEF_TAST(advance_merge_instance, "test Merge instance method for objects and arrays")
+DEF_TAST(advance_merge_instance, "对象和数组的 Merge 实例方法测试")
 {
     // Test object merge
     wwjson::RawBuilder obj1;
@@ -118,7 +118,7 @@ DEF_TAST(advance_merge_instance, "test Merge instance method for objects and arr
     COUT(nonEmpty.json, nonEmpty.json); // Should remain unchanged
 }
 
-DEF_TAST(advance_merge_static, "test Merge static method for objects and arrays")
+DEF_TAST(advance_merge_static, "对象和数组的 Merge 静态方法测试")
 {
     // Test object merge
     std::string obj1 = R"({"a":1})";
@@ -174,7 +174,7 @@ DEF_TAST(advance_merge_static, "test Merge static method for objects and arrays"
     COUT(result8, true); // Should succeed because valid ends with '}' and invalid2 starts with '{'
 }
 
-DEF_TAST(advance_merge_complex, "test complex merge scenarios")
+DEF_TAST(advance_merge_complex, "复杂合并场景测试")
 {
     // Test multiple merges
     wwjson::RawBuilder base;
@@ -231,7 +231,7 @@ DEF_TAST(advance_merge_complex, "test complex merge scenarios")
     COUT(arrBase.json, expectArr);
 }
 
-DEF_TAST(advance_putsub, "test PutSub method for adding JSON sub-strings")
+DEF_TAST(advance_putsub, "添加 JSON 子串的 PutSub 方法测试")
 {
     // Test PutSub with basic JSON strings
     wwjson::RawBuilder builder1;
@@ -273,7 +273,7 @@ DEF_TAST(advance_putsub, "test PutSub method for adding JSON sub-strings")
     COUT(test::IsJsonValid(builder3.json), true);
 }
 
-DEF_TAST(advance_additemsub, "test AddItemSub method for adding JSON sub-strings as array items")
+DEF_TAST(advance_additemsub, "将 JSON 子串作为数组项添加的 AddItemSub 方法测试")
 {
     // Test AddItemSub with basic JSON strings
     wwjson::RawBuilder builder1;
@@ -313,7 +313,7 @@ DEF_TAST(advance_additemsub, "test AddItemSub method for adding JSON sub-strings
     COUT(test::IsJsonValid(builder3.json), true);
 }
 
-DEF_TAST(advance_addmembersub, "test AddMemberSub method for adding JSON sub-strings as member values")
+DEF_TAST(advance_addmembersub, "将 JSON 子串作为成员值添加的 AddMemberSub 方法测试")
 {
     // Test AddMemberSub with basic JSON strings
     wwjson::RawBuilder builder1;
@@ -353,7 +353,7 @@ DEF_TAST(advance_addmembersub, "test AddMemberSub method for adding JSON sub-str
     COUT(test::IsJsonValid(builder3.json), true);
 }
 
-DEF_TAST(advance_sub_with_scope, "test AddItemSub/AddMemberSub with scope objects")
+DEF_TAST(advance_sub_with_scope, "AddItemSub/AddMemberSub 与 scope 对象结合测试")
 {
     // Test AddItemSub with scope array
     wwjson::RawBuilder builder1;
@@ -396,7 +396,7 @@ DEF_TAST(advance_sub_with_scope, "test AddItemSub/AddMemberSub with scope object
     COUT(test::IsJsonValid(builder3.json), true);
 }
 
-DEF_TAST(advance_sub_complex, "test complex scenarios with JSON sub-strings")
+DEF_TAST(advance_sub_complex, "JSON 子串的复杂场景测试")
 {
     // Test building complex nested structure using sub-strings
     wwjson::RawBuilder builder1;
@@ -438,7 +438,7 @@ DEF_TAST(advance_sub_complex, "test complex scenarios with JSON sub-strings")
     COUT(test::IsJsonValid(builder3.json), true);
 }
 
-DEF_TAST(advance_function_lambda, "test AddItem with lambda functions")
+DEF_TAST(advance_function_lambda, "AddItem 与 lambda 函数测试")
 {
     // Test lambda with no parameters, capturing builder by reference
     wwjson::RawBuilder builder1;
@@ -524,7 +524,7 @@ void buildComplexObject(wwjson::RawBuilder& builder)
     builder.EndObject();
 }
 
-DEF_TAST(advance_function_free, "test AddItem with free functions")
+DEF_TAST(advance_function_free, "AddItem 与自由函数测试")
 {
     // Test free function that returns a builder (no parameter version)
     wwjson::RawBuilder builder1;
@@ -584,7 +584,7 @@ private:
     int id_;
 };
 
-DEF_TAST(advance_function_class, "test AddItem with class methods")
+DEF_TAST(advance_function_class, "AddItem 与类方法测试")
 {
     // Test static method
     wwjson::RawBuilder builder1;
@@ -613,7 +613,7 @@ DEF_TAST(advance_function_class, "test AddItem with class methods")
     COUT(test::IsJsonValid(builder2.json), true);
 }
 
-DEF_TAST(advance_function_with_addmember, "test AddMember with callable functions")
+DEF_TAST(advance_function_with_addmember, "AddMember 与可调用函数测试")
 {
     // Test AddMember with lambda (no parameters)
     wwjson::RawBuilder builder1;
@@ -662,7 +662,7 @@ DEF_TAST(advance_function_with_addmember, "test AddMember with callable function
     COUT(test::IsJsonValid(builder3.json), true);
 }
 
-DEF_TAST(advance_function_nested, "test nested callable functions")
+DEF_TAST(advance_function_nested, "嵌套可调用函数测试")
 {
     // Test deeply nested callable functions
     wwjson::RawBuilder builder;
@@ -705,7 +705,7 @@ DEF_TAST(advance_function_nested, "test nested callable functions")
     COUT(test::IsJsonValid(builder.json), true);
 }
 
-DEF_TAST(advance_function_scope_with_callable, "test scope objects with callable functions")
+DEF_TAST(advance_function_scope_with_callable, "scope 对象与可调用函数结合测试")
 {
     // Test ScopeArray with callable functions
     wwjson::RawBuilder builder1;

@@ -10,7 +10,7 @@
 #include <cmath>
 #include <chrono>
 
-DEF_TOOL(to_chars, "test std::to_chars")
+DEF_TOOL(ext_to_chars, "test std::to_chars")
 {
     std::string json;
     std::array<char, 32> buffer;
@@ -296,44 +296,9 @@ void test_decimal_detection(floatT value)
     COUTF(std::abs(value - restored) < std::numeric_limits<floatT>::epsilon() * 100.0f, true);
 }
 
-template<typename floatT>
-void performance_test(int scale)
-{
-    DESC("Performance test for %s with scale %d (processing %d values)", 
-         typeid(floatT).name(), scale, scale * scale);
-    
-    auto start = std::chrono::high_resolution_clock::now();
-    
-    volatile floatT sum = 0.0f; // volatile to prevent optimization
-    for (int i = 0; i < scale; ++i)
-    {
-        for (int j = 0; j < scale; ++j)
-        {
-            floatT f = i + static_cast<floatT>(j) / static_cast<floatT>(scale);
-            
-            // Separate integer and fractional parts
-            floatT int_part;
-            floatT frac_part = std::modf(f, &int_part);
-            
-            // Scale and restore only the fractional part
-            floatT scaled_frac = frac_part * static_cast<floatT>(scale);
-            floatT restored_frac = std::round(scaled_frac) / static_cast<floatT>(scale);
-            floatT restored = int_part + restored_frac;
-            
-            sum += restored; // Use the result to prevent optimization
-        }
-    }
-    
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    
-    DESC("Completed in %ld ms", duration.count());
-    DESC("Sum (to prevent optimization): %g", sum);
-}
-
 } // namespace tool
 
-DEF_TOOL(double_view, "analyze double binary representation")
+DEF_TOOL(ext_double_view, "分析 double 类型的二进制编码")
 {
     double value = 0.0;
     BIND_ARGV(value);
@@ -352,7 +317,7 @@ DEF_TOOL(double_view, "analyze double binary representation")
     }
 }
 
-DEF_TOOL(float_view, "analyze float binary representation")
+DEF_TOOL(ext_float_view, "分析 float 类型的二进制编码")
 {
     float value = 0.0f;
     BIND_ARGV(value);
@@ -371,38 +336,38 @@ DEF_TOOL(float_view, "analyze float binary representation")
     }
 }
 
-// Test cases for fixed-point experiments
-DEF_TOOL(fixed_point_2decimals, "test 2-decimal place precision")
+// 定点浮点数实验用例
+DEF_TOOL(ext_2decimals, "测试两位小数精度")
 {
     tool::test_decimal_precision<double>(100, "double");
 }
 
-DEF_TOOL(fixed_point_4decimals, "test 4-decimal place precision")
+DEF_TOOL(ext_4decimals, "测试四位小数精度")
 {
     tool::test_decimal_precision<double>(10000, "double");
 }
 
-DEF_TOOL(fixed_point_8decimals, "test 8-decimal place precision")
+DEF_TOOL(ext_8decimals, "测试八位小数精度")
 {
     tool::test_decimal_precision<double>(100000000, "double");
 }
 
-DEF_TOOL(fixed_point_2decimals_float, "test 2-decimal place precision with float")
+DEF_TOOL(ext_2decimals_float, "使用 float 测试两位小数精度")
 {
     tool::test_decimal_precision<float>(100, "float");
 }
 
-DEF_TOOL(fixed_point_4decimals_float, "test 4-decimal place precision with float")
+DEF_TOOL(ext_4decimals_float, "使用 float 测试四位小数精度")
 {
     tool::test_decimal_precision<float>(10000, "float");
 }
 
-DEF_TOOL(fixed_point_8decimals_float, "test 8-decimal place precision with float")
+DEF_TOOL(ext_8decimals_float, "使用 float 测试八位小数精度")
 {
     tool::test_decimal_precision<float>(100000000, "float");
 }
 
-DEF_TOOL(fixed_point_generic, "generic fixed-point test with command-line parameters")
+DEF_TOOL(ext_generic_float, "通用定点浮点数测试，支持命令行参数")
 {
     std::string type_str = "double";
     int scale = 10000;
@@ -422,7 +387,7 @@ DEF_TOOL(fixed_point_generic, "generic fixed-point test with command-line parame
     }
 }
 
-DEF_TOOL(fixed_point_detect, "detect decimal places of a floating-point number")
+DEF_TOOL(ext_float_place, "检测浮点数的小数位数")
 {
     std::string type_str = "double";
     double value = 0.0;
@@ -439,26 +404,6 @@ DEF_TOOL(fixed_point_detect, "detect decimal places of a floating-point number")
     else
     {
         tool::test_decimal_detection<double>(value);
-    }
-}
-
-DEF_TOOL(fixed_point_performance, "performance test for large number of fixed-point operations")
-{
-    int scale = 10000;
-    std::string type_str = "double";
-    
-    BIND_ARGV(scale);
-    BIND_ARGV(type_str);
-    
-    DESC("Running performance test with scale=%d, type=%s", scale, type_str.c_str());
-    
-    if (type_str == "float")
-    {
-        tool::performance_test<float>(scale);
-    }
-    else
-    {
-        tool::performance_test<double>(scale);
     }
 }
 

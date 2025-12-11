@@ -8,7 +8,7 @@
 #include <limits>
 #include <iostream>
 
-DEF_TAST(number_integer_member, "test serialization of 8 standard integer types")
+DEF_TAST(number_integer_member, "8 种标准整数类型的序列化测试")
 {
     wwjson::RawBuilder builder;
     builder.BeginRoot();
@@ -66,7 +66,7 @@ DEF_TAST(number_integer_member, "test serialization of 8 standard integer types"
     COUT(test::IsJsonValid(builder.json), true);
 }
 
-DEF_TAST(number_integer_item, "test serialization of integers in arrays")
+DEF_TAST(number_integer_item, "数组中整数的序列化测试")
 {
     wwjson::RawBuilder builder;
     builder.BeginRoot('[');
@@ -107,7 +107,7 @@ DEF_TAST(number_integer_item, "test serialization of integers in arrays")
     COUT(test::IsJsonValid(builder.json), true);
 }
 
-DEF_TAST(number_float_serialization, "test various floating-point serialization scenarios")
+DEF_TAST(number_float_serialization, "多种浮点数序列化场景测试")
 {
     wwjson::RawBuilder builder;
     builder.BeginRoot();
@@ -154,7 +154,7 @@ DEF_TAST(number_float_serialization, "test various floating-point serialization 
     COUT(test::IsJsonValid(builder.json), true);
 }
 
-DEF_TAST(number_std_support, "check current runtime support for std::to_chars")
+DEF_TAST(number_std_support, "检查当前运行时对 std::to_chars 的支持")
 {
     // Use std::cout instead of COUT or DESC to ensure output even with --cout=silent
     std::cout << "=== std::to_chars Support Check ===" << std::endl;
@@ -179,7 +179,7 @@ DEF_TAST(number_std_support, "check current runtime support for std::to_chars")
     std::cout << "=== End Support Check ===" << std::endl;
 }
 
-DEF_TAST(float_opt_basic, "test basic floating-point optimization")
+DEF_TAST(number_float_basic, "浮点数优化基本测试")
 {
     // Test integer values
     wwjson::RawBuilder b1;
@@ -203,7 +203,7 @@ DEF_TAST(float_opt_basic, "test basic floating-point optimization")
     COUT(b3.GetResult(), R"({"value":123.5})");
 }
 
-DEF_TAST(float_opt_edge_cases, "test edge cases for floating-point optimization")
+DEF_TAST(number_float_edge, "浮点数优化的边界情况测试")
 {
     // Test small values
     wwjson::RawBuilder b1;
@@ -218,12 +218,6 @@ DEF_TAST(float_opt_edge_cases, "test edge cases for floating-point optimization"
     b2.AddMember("value", 9999.9999);
     b2.EndObject();
     COUT(b2.GetResult(), R"({"value":9999.9999})");
-//  if (::wwjson::use_simple_float_format) {
-//      COUT(b2.GetResult(), R"({"value":10000})");
-//  }
-//  else {
-//      COUT(b2.GetResult(), R"({"value":9999.9999})");
-//  }
     
     // Test large integer that should use the optimization
     wwjson::RawBuilder b3;
@@ -233,7 +227,7 @@ DEF_TAST(float_opt_edge_cases, "test edge cases for floating-point optimization"
     COUT(b3.GetResult(), R"({"value":123456789})");
 }
 
-DEF_TAST(float_opt_negative_numbers, "test negative numbers")
+DEF_TAST(number_float_negative, "负数浮点数优化测试")
 {
     // Test negative integers
     wwjson::RawBuilder b1;
@@ -257,7 +251,7 @@ DEF_TAST(float_opt_negative_numbers, "test negative numbers")
     COUT(b3.GetResult(), R"({"value":0})");
 }
 
-DEF_TAST(float_opt_special_values, "test special floating-point values")
+DEF_TAST(number_float_special, "特殊浮点数值优化测试")
 {
     // Test NaN and infinity
     wwjson::RawBuilder b1;
@@ -270,7 +264,7 @@ DEF_TAST(float_opt_special_values, "test special floating-point values")
 }
 
 // --value=0 --full=0
-DEF_TOOL(check_fast_double, "test a double value to WriteSmall path")
+DEF_TAST(number_small_double, "测试 double 值是否走 WriteSmall 路径")
 {
     double value = 0.0;
     BIND_ARGV(value);
@@ -347,7 +341,7 @@ DEF_TOOL(check_fast_double, "test a double value to WriteSmall path")
 
 // --ipart=0
 // when set tolerance=e-8, all double number 9999.xxxx pass fast path.
-DEF_TAST(rate_fast_double, "check the rate of miss WriteSmall path")
+DEF_TAST(number_miss_double, "检查 WriteSmall 路径的错过率")
 {
     int ipart = 9999;
     BIND_ARGV(ipart);
