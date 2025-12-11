@@ -1120,7 +1120,7 @@ perf/p_design.cpp 有个测试用例比较大整数序列化时每次除 10000 �
 
 ### DONE:20251211-211924
 
-## TODO: 测试使用 wwjson 不同 api 的相对性能
+## TODO:2025-12-11/5 测试使用 wwjson 不同 api 的相对性能
 
 wwjson 提供了几种风格来构建 json 。新增 perf/p_api.cpp 来测试不同 api 的使用性
 能差异，利用 RelativeTimer 的静态多态派生子类模式。
@@ -1167,8 +1167,9 @@ wwjson 提供了几种风格来构建 json 。新增 perf/p_api.cpp 来测试不
 以上方法要求能生成相同的 json:
 - json 需要有多层嵌套，不低于 p_builder.cpp 中生成的层数，可以再多一两层
 - 可复用接收 --start 与 --itmes 命令行参数控制生成的内容与规模大小
-- 额外加个 DEF_TOOL 工具用例验证它们能生成相同的 json，可用 yyjson api 解析验
-  证它们是合法 json
+
+### DONE:20251211-234645
+性能测试结果都差不多，在 5% 范围内浮动。
 
 ## TODO: 优化 wwjson.hpp 英文注释
 
