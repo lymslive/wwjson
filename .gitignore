@@ -20,6 +20,7 @@ CODEBUDDY.md
 .tool/
 .iflow/
 IFLOW.md
+last_log.md
 
 # ide helper fiels
 .clangd
