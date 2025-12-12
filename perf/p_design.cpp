@@ -378,6 +378,143 @@ class StringLiteralOptimizationTest : public RelativeTimer<StringLiteralOptimiza
     }
 };
 
+// ========== 测试5: 字符串转义优化验证 ==========
+
+/**
+ * @brief 字符串转义优化测试
+ * 对比两种字符串转义方法的性能差异
+ */
+class StringEscapeOptimizationTest : public RelativeTimer<StringEscapeOptimizationTest>
+{
+  public:
+    int items;
+    int size_multiplier;  // 字符串大小倍数
+    uint32_t seed;       // 随机种子
+    std::string result;
+    std::string base_string;  // 基本样例字符串 {"key":"value"}
+    std::vector<std::string> test_strings;
+
+    StringEscapeOptimizationTest(int count, int size, uint32_t s) : items(count), size_multiplier(size), seed(s)
+    {
+        generateTestStrings();
+    }
+
+    void generateTestStrings()
+    {
+        // 基本样例字符串 {"key":"value"}
+        base_string = R"({"key":"value"})";
+        
+        // 扩展字符串到指定大小
+        std::string extended_string;
+        extended_string = base_string;
+        for (int i = 1; i < size_multiplier; ++i) {
+            extended_string += base_string;
+        }
+        
+        // 随机将部分字符改为需要转义的字符
+        if (extended_string.size() > 10) {
+            std::mt19937 gen(seed);  // 使用提供的种子以确保可重复性
+            std::uniform_int_distribution<> pos_dis(0, extended_string.size() - 1);
+            std::uniform_int_distribution<> char_dis(0, 5);
+            
+            // 随机替换一些字符为需要转义的字符
+            for (size_t i = 0; i < extended_string.size() / 10; ++i) {
+                size_t pos = pos_dis(gen);
+                char replacement_chars[] = {'\n', '\t', '\r', '\\', '"', '\0'};
+                char replacement = replacement_chars[char_dis(gen)];
+                extended_string[pos] = replacement;
+            }
+        }
+        
+        test_strings.clear();
+        test_strings.resize(items, extended_string);
+    }
+
+    // 方法A: 临时申请两倍长度的堆内存缓冲区，写入转义后的字符串，再一次性调用 string::append
+    void methodA()
+    {
+        result.clear();
+        for (const auto& str : test_strings)
+        {
+            // 预分配两倍长度的缓冲区
+            std::vector<char> buffer;
+            buffer.reserve(str.size() * 2);
+            
+            // 在缓冲区中写入转义后的字符串
+            for (size_t i = 0; i < str.size(); ++i)
+            {
+                unsigned char c = static_cast<unsigned char>(str[i]);
+                
+                if (c >= 128) {
+                    // 可能是UTF-8字节流，直接追加
+                    buffer.push_back(c);
+                } else {
+                    // ASCII字符，检查转义表
+                    uint8_t escape_char = wwjson::BasicConfig<std::string>::kEscapeTable[c];
+                    if (escape_char != 0) {
+                        buffer.push_back('\\');
+                        buffer.push_back(escape_char);
+                    } else {
+                        buffer.push_back(c);
+                    }
+                }
+            }
+            
+            // 一次性追加到目标字符串
+            result.append(buffer.data(), buffer.size());
+        }
+    }
+
+    // 方法B: 直接遍历每个字符判断是否需要转义，调用 string::push_back 写入目标字符串
+    void methodB()
+    {
+        result.clear();
+        for (const auto& str : test_strings)
+        {
+            // 预分配内存以减少重新分配
+            result.reserve(result.size() + str.size() + str.size() / 4);
+            
+            // 直接写入目标字符串
+            for (size_t i = 0; i < str.size(); ++i)
+            {
+                unsigned char c = static_cast<unsigned char>(str[i]);
+                
+                if (c >= 128) {
+                    // 可能是UTF-8字节流，直接追加
+                    result.push_back(c);
+                } else {
+                    // ASCII字符，检查转义表
+                    uint8_t escape_char = wwjson::BasicConfig<std::string>::kEscapeTable[c];
+                    if (escape_char != 0) {
+                        result.push_back('\\');
+                        result.push_back(escape_char);
+                    } else {
+                        result.push_back(c);
+                    }
+                }
+            }
+        }
+    }
+
+    bool methodVerify()
+    {
+        methodA();
+        std::string resultA = result;
+        methodB();
+        std::string resultB = result;
+        
+        // 比较两个方法产生的输出是否一致
+        return resultA == resultB;
+    }
+
+    const char* getSizeDescription() const
+    {
+        if (size_multiplier <= 1) return "Small (~15 chars)";
+        if (size_multiplier <= 5) return "Medium (~75 chars)";
+        return "Large (150+ chars)";
+    }
+};
+
 } // namespace perf
 } // namespace test
 
@@ -462,6 +599,26 @@ DEF_TAST(design_string_literal, "字符串字面量拷贝优化验证")
         test::perf::StringLiteralOptimizationTest tester(argv.items, 2); // 2 = 长字符串
         std::string test_name = std::string("String Literal Optimization - ") + tester.getLiteralTypeName();
         tester.runAndPrint(test_name, "Compile-time Length", "Runtime strlen", argv.loop, 10);
+    }
+}
+
+// 测试5: 字符串转义优化验证
+DEF_TAST(design_string_escape, "字符串转义优化方案预测试")
+{
+    test::CArgv argv;
+    
+    DESC("Args: --items=%d --loop=%d --size=%d --start=%d", argv.items, argv.loop, argv.size, argv.start);
+    
+    test::perf::StringEscapeOptimizationTest tester(argv.items, argv.size, static_cast<uint32_t>(argv.start));
+    std::string test_name = std::string("String Escape Optimization - ") + tester.getSizeDescription();
+    
+    // 运行测试并打印结果
+    double ratio = tester.runAndPrint(test_name, "Method A: Buffer+Append", "Method B: Direct PushBack", argv.loop, 10);
+    
+    // 检查验证结果
+    if (std::isnan(ratio))
+    {
+        DESC("WARNING: Verification failed - methods produce different output");
     }
 }
 
