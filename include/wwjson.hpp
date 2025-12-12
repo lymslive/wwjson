@@ -31,6 +31,7 @@
 #include <array>
 #include <charconv>
 #include <cmath>
+#include <memory>
 
 #include <string.h>
 #include <stdint.h>
@@ -380,8 +381,21 @@ struct BasicConfig
     {
         if (wwjson_unlikely(src == nullptr)) { return; }
         
-        // Pre-allocate memory to reduce reallocations
-        dst.reserve(dst.size() + len + len / 4);
+        // Allocate temporary buffer on stack for small strings, heap for large ones
+        constexpr size_t stack_buffer_size = 256;
+        char stack_buffer[stack_buffer_size];
+        char* buffer = stack_buffer;
+        std::unique_ptr<char[]> heap_buffer;
+        
+        size_t buffer_capacity = len * 2;
+        if (wwjson_unlikely(buffer_capacity > stack_buffer_size))
+        {
+            heap_buffer = std::make_unique<char[]>(buffer_capacity);
+            buffer = heap_buffer.get();
+        }
+        
+        char* ptr = buffer;
+        const char* const buffer_end = buffer + buffer_capacity;
         
         for (size_t i = 0; i < len; ++i)
         {
@@ -389,24 +403,24 @@ struct BasicConfig
             
             if (wwjson_unlikely(c >= 128))
             {
-                // May UTF-8 byte stream, append directly
-                dst.push_back(c);
+                *ptr++ = c;
             }
             else
             {
-                // ASCII character, check escape table once
                 uint8_t escape_char = kEscapeTable[c];
                 if (wwjson_unlikely(escape_char != 0))
                 {
-                    dst.push_back('\\');
-                    dst.push_back(escape_char);
+                    *ptr++ = '\\';
+                    *ptr++ = escape_char;
                 }
                 else
                 {
-                    dst.push_back(c);
+                    *ptr++ = c;
                 }
             }
         }
+        
+        dst.append(buffer, ptr - buffer);
     }
     
     template<typename numberT>

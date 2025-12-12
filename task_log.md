@@ -2321,3 +2321,33 @@ builder.EndRoot('}'); // 不加逗号
 **结论**：
 临时缓冲区+一次性append的方法在性能上明显优于直接push_back的方法，特别是对于中等长度的字符串。这主要是由于减少了频繁的字符串扩容和内存重分配操作。
 
+## TASK:20251212-150800
+-----------------------
+
+优化了 wwjson 中的字符串转义功能，使用临时缓冲区算法减少频繁的 string::push_back 调用开销。
+
+### 性能对比
+
+**优化前**：
+- items=10: yyjson 比 wwjson 快 32.9%
+- items=50: yyjson 比 wwjson 快 82.3%
+- items=100: yyjson 比 wwjson 快 142.5%
+- items=500: yyjson 比 wwjson 快 315.8%
+- items=1000: yyjson 比 wwjson 快 605.2%
+
+**优化后**：
+- items=10: wwjson 比 yyjson 快 22.8%
+- items=50: wwjson 比 yyjson 快 14.8%
+- items=100: wwjson 比 yyjson 快 10.4%
+- items=500: 性能基本持平
+- items=1000: wwjson 比 yyjson 快 11.0%
+
+### 实现细节
+
+使用栈分配的临时缓冲区（256字节），对于大字符串自动切换到堆内存。
+直接操作裸指针避免了频繁的边界检查，大幅提升了转义性能。
+
+### 测试结果
+
+所有单元测试通过，功能保持完全一致。
+

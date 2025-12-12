@@ -1225,6 +1225,22 @@ wwjson::GenericBuilder::PutKey 在接收 `const char*` 参数时丢失了长度�
 
 ### DONE: 20251212-141952
 
+## TODO:2025-12-12/4 字符串转义优化为临时缓冲区一次 append
+
+之前观察到性能测试用例 string_object_relative 拼装普通字符串时 wwjson 略快，但
+string_escape_relative 涉及字符串转义时慢很多。
+
+因此提出一种优化方案，已在 perf/p_design.cpp 中经过验证，可使用
+StringEscapeOptimizationTest::methodA 的算法
+重构 include/wwjson.hpp 中的 BasicConfig::EscapeString 方法。
+
+先将 ./build-release/perf/pfwwjson 备份重命名为 pfwwjson.last ，重构后再比较
+string_escape_relative 的测试结果。
+
+不要破坏单元测试的回归测试 make test.
+
+### DONE: 20251212-150800
+
 ## TODO: 优化 wwjson.hpp 英文注释
 
 ## TODO: 完善项目文档
