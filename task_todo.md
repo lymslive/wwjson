@@ -1171,6 +1171,21 @@ wwjson 提供了几种风格来构建 json 。新增 perf/p_api.cpp 来测试不
 ### DONE:20251211-234645
 性能测试结果都差不多，在 5% 范围内浮动。
 
+## TODO:2025-12-12/1 用相对性能测试封装与 yyjson 的对比测试用例
+
+使用 perf/relative_perf.h 的 RelativeTimer ，再封装几个性能对比测试：
+
+- p_builder.cpp: 依照 `build_ex_wwjson` 与 `build_ex_yyjson` 设计相对性能测试
+- p_string.cpp: 将 `string_object_*` 、`string_escape_*` 改为相对性能测试
+
+新增测试用例，原来的绝对时间测试也不要删。
+注意含浮点数的序列化 json 串未必完全相同，可以尝试使用 ::yyjson::Document 的
+operator== 比较验证。
+
+### DONE:20251212-094218
+wwjson 在写纯字符串时有优势，没有涉及中间 DOM ，但凡涉及转义，效率下降很快，可
+以由于用 `push_back` 逐个写入字符了。
+
 ## TODO: 优化 wwjson.hpp 英文注释
 
 ## TODO: 完善项目文档

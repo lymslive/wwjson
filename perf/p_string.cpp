@@ -1,4 +1,5 @@
 #include "couttast/tinytast.hpp"
+#include "relative_perf.h"
 
 #include "argv.h"
 
@@ -7,6 +8,7 @@
 
 #include <string>
 #include <type_traits>
+#include <vector>
 
 // String serialization functions for performance testing
 namespace test
@@ -465,5 +467,153 @@ DEF_TOOL(string_compare, "比较 wwjson 和 yyjson 字符串函数输出")
         COUT(wwjson_output);
         COUT(yyjson_output);
         COUT(wwjson_output == yyjson_output, true);
+    }
+}
+
+// Relative performance tests using RelativeTimer
+namespace test::perf
+{
+
+// Relative performance test for string object building
+struct StringObjectRelativeTest : public test::perf::RelativeTimer<StringObjectRelativeTest>
+{
+    int start;
+    int count;
+    int size_kb;
+    std::string wwjson_result;
+    std::string yyjson_result;
+
+    StringObjectRelativeTest(int s, int n, int size = 1) : start(s), count(n), size_kb(size) 
+    {
+        // Auto-estimate size if default (1)
+        if (size_kb == 1)
+        {
+            std::string temp;
+            test::wwjson::BuildStringObject(temp, start, count, 1);
+            size_kb = (temp.size() / 1024) + 1; // Convert to KB, round up
+        }
+    }
+
+    // Method A: wwjson build
+    void methodA()
+    {
+        test::wwjson::BuildStringObject(wwjson_result, start, count, size_kb);
+    }
+
+    // Method B: yyjson build
+    void methodB()
+    {
+        test::yyjson::BuildStringObject(yyjson_result, start, count);
+    }
+
+    // Verify the outputs are functionally equivalent
+    bool methodVerify()
+    {
+        // Generate outputs first
+        methodA();
+        methodB();
+
+        // For string objects without floating-point values, we can directly compare the strings
+        // This is stricter and simpler than JSON document comparison
+        return wwjson_result == yyjson_result;
+    }
+
+    static const char* testName() { return "StringObject Relative Test"; }
+    static const char* labelA() { return "wwjson"; }
+    static const char* labelB() { return "yyjson"; }
+};
+
+// Relative performance test for escaped string object building
+struct EscapeObjectRelativeTest : public test::perf::RelativeTimer<EscapeObjectRelativeTest>
+{
+    int start;
+    int count;
+    int size_kb;
+    std::string wwjson_result;
+    std::string yyjson_result;
+
+    EscapeObjectRelativeTest(int s, int n, int size = 1) : start(s), count(n), size_kb(size) 
+    {
+        // Auto-estimate size if default (1)
+        if (size_kb == 1)
+        {
+            std::string temp;
+            test::wwjson::BuildEscapeObject(temp, start, count, 1);
+            size_kb = (temp.size() / 1024) + 1; // Convert to KB, round up
+        }
+    }
+
+    // Method A: wwjson build
+    void methodA()
+    {
+        test::wwjson::BuildEscapeObject(wwjson_result, start, count, size_kb);
+    }
+
+    // Method B: yyjson build
+    void methodB()
+    {
+        test::yyjson::BuildEscapeObject(yyjson_result, start, count);
+    }
+
+    // Verify the outputs are functionally equivalent
+    bool methodVerify()
+    {
+        // Generate outputs first
+        methodA();
+        methodB();
+
+        // For escaped string objects, we can directly compare the strings
+        // This is stricter and simpler than JSON document comparison
+        return wwjson_result == yyjson_result;
+    }
+
+    static const char* testName() { return "EscapeObject Relative Test"; }
+    static const char* labelA() { return "wwjson"; }
+    static const char* labelB() { return "yyjson"; }
+};
+
+} // namespace test::perf
+
+// Relative performance test for string object building
+DEF_TAST(string_object_relative, "字符串对象构建相对性能测试（wwjson vs yyjson）")
+{
+    test::CArgv argv;
+
+    // Test with predefined item counts and also include argv.items
+    std::vector<int> test_counts = {10, 50, 100, 500}; // Different object sizes
+    test_counts.push_back(argv.items); // Add user-specified items
+
+    for (int n : test_counts)
+    {
+        test::perf::StringObjectRelativeTest test(argv.start, n, 1); // size will be auto-estimated
+        double ratio = test.runAndPrint(
+            "String Object Test (items=" + std::to_string(n) + ")",
+            "wwjson", "yyjson", 
+            argv.loop, 10
+        );
+        
+        DESC("");
+    }
+}
+
+// Relative performance test for escaped string object building
+DEF_TAST(string_escape_relative, "转义字符串对象构建相对性能测试（wwjson vs yyjson）")
+{
+    test::CArgv argv;
+
+    // Test with predefined item counts and also include argv.items
+    std::vector<int> test_counts = {10, 50, 100, 500}; // Different object sizes
+    test_counts.push_back(argv.items); // Add user-specified items
+
+    for (int n : test_counts)
+    {
+        test::perf::EscapeObjectRelativeTest test(argv.start, n, 1); // size will be auto-estimated
+        double ratio = test.runAndPrint(
+            "Escape Object Test (items=" + std::to_string(n) + ")",
+            "wwjson", "yyjson", 
+            argv.loop, 10
+        );
+        
+        DESC("");
     }
 }
