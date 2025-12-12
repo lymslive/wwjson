@@ -200,3 +200,59 @@ DEF_TAST(scope_if_bool_vs_constructor, "构造方法中的 if bool 语法测试"
     COUT(ctorBuilder.json, expect);
     COUT(ifBuilder.json == ctorBuilder.json, true);
 }
+
+DEF_TAST(scope_addmember_split, "ScopeArray/Object 拆分测试 - AddMember + Scope 的组合用法")
+{
+    // 合并用法：直接使用 ScopeObject("key") 和 ScopeArray("key")
+    wwjson::RawBuilder builder_merge;
+    {
+        auto root = builder_merge.ScopeObject();
+        root.AddMember("name", "merge");
+
+        // 直接使用 ScopeObject("config")
+        if (auto config = builder_merge.ScopeObject("config"))
+        {
+            config.AddMember("debug", true);
+            config.AddMember("timeout", 30);
+        }
+
+        // 直接使用 ScopeArray("items")
+        if (auto items = builder_merge.ScopeArray("items"))
+        {
+            items.AddItem("item1");
+            items.AddItem("item2");
+            items.AddItem(123);
+        }
+    }
+
+    // 拆分用法：先 AddMember(key) 再 ScopeObject()/ScopeArray()
+    wwjson::RawBuilder builder_split;
+    {
+        auto root = builder_split.ScopeObject();
+        root.AddMember("name", "split");
+
+        // 拆分为 AddMember("config") + ScopeObject()
+        builder_split.AddMember("config");
+        if (auto config = builder_split.ScopeObject())
+        {
+            config.AddMember("debug", true);
+            config.AddMember("timeout", 30);
+        }
+
+        // 拆分为 AddMember("items") + ScopeArray()
+        builder_split.AddMember("items");
+        if (auto items = builder_split.ScopeArray())
+        {
+            items.AddItem("item1");
+            items.AddItem("item2");
+            items.AddItem(123);
+        }
+    }
+
+    std::string expect_merge = R"({"name":"merge","config":{"debug":true,"timeout":30},"items":["item1","item2",123]})";
+    std::string expect_split = R"({"name":"split","config":{"debug":true,"timeout":30},"items":["item1","item2",123]})";
+    COUT(builder_merge.GetResult(), expect_merge);
+    COUT(builder_split.GetResult(), expect_split);
+    COUT(test::IsJsonValid(builder_merge.json), true);
+    COUT(test::IsJsonValid(builder_split.json), true);
+}

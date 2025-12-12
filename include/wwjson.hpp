@@ -846,11 +846,20 @@ struct GenericBuilder
     /// Note: The key not support (pszKey, len) argument, as len will match into
     /// args.
     template <typename keyT, typename... Args>
-    std::enable_if_t<is_key_v<keyT>, void> AddMember(keyT &&key,
-                                                     Args &&... args)
+    std::enable_if_t<is_key_v<keyT>, void> AddMember(keyT &&key, Args &&... args)
     {
         PutKey(std::forward<keyT>(key));
         AddItem(std::forward<Args>(args)...);
+    }
+
+    /// Add member to object with only key name.
+    /// This overload enables the pattern: AddMember(key) + BeginObject()
+    /// which is equivalent to BeginObject(key) but allows separating key
+    /// setting from object creation for better readability.
+    template <typename keyT>
+    std::enable_if_t<is_key_v<keyT>, void> AddMember(keyT &&key)
+    {
+        PutKey(std::forward<keyT>(key));
     }
 
     /// M5: String Escaping Methods

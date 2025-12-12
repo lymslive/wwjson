@@ -18,6 +18,7 @@
 - `basic_moveresult` - MoveResult 方法测试
 - `basic_null_string` - 字符串边界情况中的空指针安全测试
 - `basic_empty_string` - 非空但空字符串的边界情况测试
+- `basic_addmember_key` - AddMember 单键名重载测试 - 支持拆分键名设置
 
 ## t_scope.cpp
 
@@ -28,6 +29,7 @@ Scope 相关功能测试文件，测试自动关闭容器功能。
 - `scope_vs_constructor` - scope 方法与构造方法对比
 - `scope_if_bool_operator` - scope 变量的 if 语句中 operator bool 测试
 - `scope_if_bool_vs_constructor` - 构造方法中的 if bool 语法测试
+- `scope_addmember_split` - ScopeArray/Object 拆分测试 - AddMember + Scope 的组合用法
 
 ## t_escape.cpp
 

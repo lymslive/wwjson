@@ -540,3 +540,40 @@ DEF_TAST(basic_empty_string, "非空但空字符串的边界情况测试")
     COUT(test::IsJsonValid(builder3.json),
          true); // JSON is actually valid even with empty key
 }
+
+DEF_TAST(basic_addmember_key, "AddMember 单键名重载测试 - 支持拆分键名设置")
+{
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+
+    // 用法1：AddMember(key) + BeginObject() 等价于 BeginObject(key)
+    builder.AddMember("config");
+    builder.BeginObject();
+    builder.AddMember("debug", true);
+    builder.AddMember("timeout", 30);
+    builder.EndObject();
+
+    // 用法2：AddMember(key) + BeginArray() 等价于 BeginArray(key)
+    builder.AddMember("items");
+    builder.BeginArray();
+    builder.AddItem("item1");
+    builder.AddItem("item2");
+    builder.AddItem(123);
+    builder.EndArray();
+
+    // 用法3：AddMember(key) + AddItem(val) 等价于 AddMember(key, val)
+    // 虽然不推荐这样拆分，但功能上等价
+    builder.AddMember("name");
+    builder.AddItem("wwjson");
+
+    builder.AddMember("version");
+    builder.AddItem(1.0);
+
+    builder.EndObject();
+    builder.GetResult();
+
+    std::string expect =
+        R"({"config":{"debug":true,"timeout":30},"items":["item1","item2",123],"name":"wwjson","version":1})";
+    COUT(builder.json, expect);
+    COUT(test::IsJsonValid(builder.json), true);
+}

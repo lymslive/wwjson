@@ -2351,3 +2351,45 @@ builder.EndRoot('}'); // 不加逗号
 
 所有单元测试通过，功能保持完全一致。
 
+## TASK:20251212-222100
+-----------------------
+
+### 需求概述 (2025-12-12/5)
+
+增加了 AddMember 重载方法，只接收单参数 key 。
+根据用户反馈完善了 AddMember API 易用性测试用例，移除了不合适的测试名称和内容。
+
+用户的反馈指出：
+1. `basic_addmember_new_usage` 用例名不当，使用了"new"这种时效短的词汇
+2. `basic_addmember_comparison` 用例设计不够好，基本重复基本用法
+3. 需要在 t_scope.cpp 中展示 ScopeArray/Object 的拆分用法
+
+### 完善内容
+
+1. **重命名和内容修改**：
+   - 将 `basic_addmember_new_usage` 重命名为 `basic_addmember_key`
+   - 删除 `basic_addmember_comparison` 测试用例
+   - 完善 `basic_addmember_key` 测试，添加了 `AddMember(key) + AddItem(val)` 的用法测试
+
+2. **新增 t_scope.cpp 测试用例**：
+   - 添加 `scope_addmember_split` 测试用例
+   - 展示 `ScopeArray("key")` 拆分为 `AddMember("key") + ScopeArray()` 的组合用法
+   - 验证两种用法产生完全相同的 JSON 输出
+
+3. **更新文档**：
+   - 在 `utest/cases.md` 中添加两个新的测试用例条目
+   - 保持现有的格式和描述风格
+
+### 测试结果
+
+- 新增测试用例：`basic_addmember_key` 和 `scope_addmember_split`
+- 所有 72 个单元测试全部通过
+- JSON 输出格式完全一致，功能无任何破坏
+- 验证了 AddMember 单键名重载的完整功能范围
+
+### 代码变更
+
+- `utest/t_basic.cpp`：修改和重命名测试用例
+- `utest/t_scope.cpp`：新增测试用例
+- `utest/cases.md`：更新文档列表
+

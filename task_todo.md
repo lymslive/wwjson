@@ -1248,6 +1248,34 @@ push_back 的问题，该直接用裸内存缓冲区。
 优化后 wwjson 的性能反超 yyjson ，也有可能测试用例都是短字符串，少于 128 ，没
 有申请堆内存做缓冲，只用栈内存缓冲，那性能更佳。
 
+## TODO:2025-12-12/5 扩展 AddMember 易用性 api
+
+往对象添加字段的 AddMember 方法可能是 wwjson 最常用的 api 了，另一个是向数组添
+加元素的 AddItem ，但数组使用如何不如对象广泛。比如麻烦的是创建子结构，有多种
+选择，除了使用 lambda 这种略显高级的用法，最直观的是 BeginObject ，以及与之等
+效的 ScopeObject （只相当于自动 EndObject）。
+
+但是往对象中添加子对象的用法有点意外，需要在 BeginObject（或子数组 BeginArray
+）方法调用时传入键名。这不同与另一情况，向数组中添加子元素，直接
+BeginObject/Array 就很自然。尤其是用在另一层 {} 内用 ScopeObject 创建局部变量
+时，将键名放在内层就反直觉了。
+
+之前也另有个用法建议，在外层手动调用 PutKey ，先只写入键层，然后在下一层 {} 或
+分发调用其他方法内的 {} 中再调用不带键名参数的 BeginObject 。但是 PutKey 属于
+低层方法，一般不应该建议使用。
+
+因此，想给 AddMember 再加个重载版本，当只传一个字符串参数时，就相当于调用
+PueKey 。希望这样的写法更符合直觉：
+AddMember(key) + BeginObject() = BeginObject(key)
+
+当需要拆分 {} 作用域时，AddMember 与 BeginObject 与分开写，想简单点在同一层就
+用合起来的 BeginObject(key) 。
+
+可以用测试驱动开发 TDD 流程，先在 utest/t_basic.cpp 中添加用例，使用这种用法，
+那应该是编译不过的，再添加实现支持。
+
+### DONE: 20251212-222100
+
 ## TODO: 优化 wwjson.hpp 英文注释
 
 ## TODO: 完善项目文档
