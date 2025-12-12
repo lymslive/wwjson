@@ -1182,9 +1182,46 @@ wwjson 提供了几种风格来构建 json 。新增 perf/p_api.cpp 来测试不
 注意含浮点数的序列化 json 串未必完全相同，可以尝试使用 ::yyjson::Document 的
 operator== 比较验证。
 
-### DONE:20251212-094218
+### DONE: 20251212-09421 20251212-094218
 wwjson 在写纯字符串时有优势，没有涉及中间 DOM ，但凡涉及转义，效率下降很快，可
 以由于用 `push_back` 逐个写入字符了。
+
+## TODO:2025-12-12/2 测试字面量拷由优化能否提升性能
+
+使用 perf/relative_perf.h 的 RelativeTimer 类，设计测试用例对比向 std::string
+追加字符串字面量时的方法：
+
+- 方法 A: 接收参数用模板匹配字符串字面量，在编译期获得字符串长度，再调用
+  append 方法传入指针与长度两个参数
+- 方法 B: 接口参数只接收 `const char *` ，用 ::strlen 取长度后，调用 append 传
+  这两个参数；
+
+可能的应用目标场景：json 键名如果固定，可能是字符串字面量，
+wwjson::GenericBuilder::PutKey 在接收 `const char*` 参数时丢失了长度信息。想验
+证能否用字面量模板做优化。
+
+测试用例的方法A/B 都不要调用现在的 GenericBuilder 实现方法，只作更一般化的字符
+串拼接技术对比，预设几个长度不同的字面量，复用 perf/argv.h 支持的命令参数控制
+拼接量。新用例写在 perf/p_design.cpp 中。
+
+### DONE: 20251212-134602
+
+## TODO: 字符串转义优化方案预测试
+
+在 perf/p_design.cpp 增加测试用例，测试两种不同字符串转义方法：
+- 方法A: 临时申请两倍长度的堆内存缓冲区，在缓冲区写入转义后的字符串，再一次调
+  用 string::append 方法添加到目标字符串；
+- 方法B：类似现在 BasicConfig::EscapeString 方法，直接遍历每个字符判断是否需要
+  转义，调用 string::push_back 写入目标字符串。
+
+不要直接在方法 B 中调用 BasicConfig::EscapeString （因为后面可能修改），而是复
+刻类似的算法，但可以复用 kEscapeTable 转义表常量。
+
+其他想法 tips:
+- 可以使用 `{"key":"value"}` 基本样例字符串，它需要转义引号。
+- 支持 --items 命令行参数控制每个 loop 调用方法 A/B 时转义多少次这个样例字符串。
+- 支持 --size 自定义每个 item 的大小，即每次转义字符串的大小，可以用基本样例字
+  符串扩充 size 倍长，也可以再随机将其中部分字符改为特殊需要转义的字符。
 
 ## TODO: 优化 wwjson.hpp 英文注释
 

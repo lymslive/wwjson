@@ -280,6 +280,104 @@ class SmallFloatOptimizationTest
     }
 };
 
+// ========== 测试4: 字面量拷贝优化验证 ==========
+
+/**
+ * @brief 字符串字面量拷贝优化测试
+ * 对比编译期长度获取 vs 运行期 strlen 的性能差异
+ */
+class StringLiteralOptimizationTest : public RelativeTimer<StringLiteralOptimizationTest>
+{
+  public:
+    int items;
+    int literal_length; // 字面量长度类型: 0=短, 1=中, 2=长
+    std::string result;
+    
+    // 预定义的不同长度的字符串字面量
+    static constexpr const char short_literal[] = "name";
+    static constexpr const char medium_literal[] = "username";
+    static constexpr const char long_literal[] = "authentication_token";
+
+    StringLiteralOptimizationTest(int count, int length_type) : items(count), literal_length(length_type)
+    {
+    }
+
+    // 方法A: 编译期获取长度
+    template<size_t N>
+    void append_literal_optimized(std::string& target, const char(&literal)[N])
+    {
+        target.append(literal, N-1); // N包含null终止符，所以长度为N-1
+    }
+
+    void methodA()
+    {
+        result.clear();
+        for (int i = 0; i < items; ++i)
+        {
+            switch (literal_length)
+            {
+            case 0:
+                append_literal_optimized(result, short_literal);
+                break;
+            case 1:
+                append_literal_optimized(result, medium_literal);
+                break;
+            case 2:
+                append_literal_optimized(result, long_literal);
+                break;
+            }
+            result += ":"; // 模拟JSON键值分隔符
+        }
+    }
+
+    // 方法B: 运行期strlen
+    void append_literal_traditional(std::string& target, const char* str)
+    {
+        target.append(str, ::strlen(str));
+    }
+
+    void methodB()
+    {
+        result.clear();
+        for (int i = 0; i < items; ++i)
+        {
+            switch (literal_length)
+            {
+            case 0:
+                append_literal_traditional(result, short_literal);
+                break;
+            case 1:
+                append_literal_traditional(result, medium_literal);
+                break;
+            case 2:
+                append_literal_traditional(result, long_literal);
+                break;
+            }
+            result += ":"; // 模拟JSON键值分隔符
+        }
+    }
+
+    bool methodVerify()
+    {
+        methodA();
+        std::string resultA = result;
+        methodB();
+        std::string resultB = result;
+        return resultA == resultB;
+    }
+
+    const char* getLiteralTypeName() const
+    {
+        switch (literal_length)
+        {
+        case 0: return "Short (5 chars)";
+        case 1: return "Medium (8 chars)";
+        case 2: return "Long (21 chars)";
+        default: return "Unknown";
+        }
+    }
+};
+
 } // namespace perf
 } // namespace test
 
@@ -337,5 +435,33 @@ DEF_TAST(design_small_float, "NumberWriter 小范围浮点数优化验证")
     tester.runAndPrint("Small Float Optimization",
                        "NumberWriter::WriteSmall(double)", methodB_name,
                        argv.loop, 10);
+}
+
+// 测试4: 字面量拷贝优化验证
+DEF_TAST(design_string_literal, "字符串字面量拷贝优化验证")
+{
+    test::CArgv argv;
+    DESC("Args: --items=%d --loop=%d", argv.items, argv.loop);
+    
+    // 短字符串测试
+    {
+        test::perf::StringLiteralOptimizationTest tester(argv.items, 0); // 0 = 短字符串
+        std::string test_name = std::string("String Literal Optimization - ") + tester.getLiteralTypeName();
+        tester.runAndPrint(test_name, "Compile-time Length", "Runtime strlen", argv.loop, 10);
+    }
+    
+    // 中等长度字符串测试
+    {
+        test::perf::StringLiteralOptimizationTest tester(argv.items, 1); // 1 = 中等长度字符串
+        std::string test_name = std::string("String Literal Optimization - ") + tester.getLiteralTypeName();
+        tester.runAndPrint(test_name, "Compile-time Length", "Runtime strlen", argv.loop, 10);
+    }
+    
+    // 长字符串测试
+    {
+        test::perf::StringLiteralOptimizationTest tester(argv.items, 2); // 2 = 长字符串
+        std::string test_name = std::string("String Literal Optimization - ") + tester.getLiteralTypeName();
+        tester.runAndPrint(test_name, "Compile-time Length", "Runtime strlen", argv.loop, 10);
+    }
 }
 
