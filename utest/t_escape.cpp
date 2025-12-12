@@ -19,10 +19,11 @@ struct EscapeKeyConfig : wwjson::BasicConfig<std::string>
 {
     static constexpr bool kEscapeKey = true;
     static constexpr bool kEscapeValue = false;
-    static void EscapeKey(std::string &dst, const char *src, size_t len)
-    {
-        EscapeString(dst, src, len);
-    }
+    // The BasicConfig already has EscapeKey implemented
+ // static void EscapeKey(std::string &dst, const char *src, size_t len)
+ // {
+ //     EscapeString(dst, src, len);
+ // }
 };
 
 struct EscapeValueConfig : wwjson::BasicConfig<std::string>
@@ -148,6 +149,48 @@ DEF_TAST(escape_builder_api, "构建器中的转义方法测试")
     json.AddItemEscape(str);
     expect = R"("test\\path",)";
     COUT(json.json, expect);
+}
+
+DEF_TAST(escape_member_key_only, "AddMemberEscape 单参数键转义测试")
+{
+    wwjson::RawBuilder json;
+    
+    // Test AddMemberEscape with single parameter (key only)
+    json.BeginObject();
+    json.AddMemberEscape("key\"with\"quotes");
+    json.BeginObject();
+    json.AddMember("inner", "value");
+    json.EndObject();
+    json.EndObject();
+    
+    std::string expect = R"({"key\"with\"quotes":{"inner":"value"}})";
+    COUT(json.GetResult(), expect);
+    
+    // Test with std::string key
+    json.Clear();
+    json.BeginObject();
+    std::string strKey = "key\"with\"quotes";
+    json.AddMemberEscape(strKey);
+    json.BeginObject();
+    json.AddMember("value", "test");
+    json.EndObject();
+    json.EndObject();
+    
+    expect = R"({"key\"with\"quotes":{"value":"test"}})";
+    COUT(json.GetResult(), expect);
+    
+    // Test with string_view key
+    json.Clear();
+    json.BeginObject();
+    std::string_view viewKey = "key\"with\"quotes";
+    json.AddMemberEscape(viewKey);
+    json.BeginObject();
+    json.AddMember("value", "test");
+    json.EndObject();
+    json.EndObject();
+    
+    expect = R"({"key\"with\"quotes":{"value":"test"}})";
+    COUT(json.GetResult(), expect);
 }
 
 DEF_TAST(escape_always_config, "自定义配置：始终转义测试")

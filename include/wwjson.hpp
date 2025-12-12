@@ -430,11 +430,10 @@ template <typename stringT> struct BasicConfig
         return table;
     }();
 
-    /// Not Escape object key by default, but can customize.
+    /// Escape object key using the same implementation as EscapeString.
     static void EscapeKey(stringT &dst, const char *key, size_t len)
     {
-        if (wwjson_unlikely(key == nullptr)) { return; }
-        dst.append(key, len);
+        EscapeString(dst, key, len);
     }
 
     /// Escape string using the compile-time escape table.
@@ -899,6 +898,27 @@ struct GenericBuilder
     {
         PutKey(std::forward<keyT>(key));
         AddItemEscape(std::forward<Args>(args)...);
+    }
+
+    /// Force to escape key and add to object without value.
+    /// This enables pattern: AddMemberEscape(key) + BeginObject()
+    /// which escapes the key name before creating nested object.
+    template <typename keyT>
+    std::enable_if_t<is_key_v<keyT>, void> AddMemberEscape(keyT&& key)
+    {
+        PutChar('"');
+        if constexpr (std::is_pointer_v<std::decay_t<keyT>>)
+        {
+            // const char*
+            configT::EscapeKey(json, std::forward<keyT>(key), ::strlen(key));
+        }
+        else
+        {
+            // std::string or std::string_view
+            configT::EscapeKey(json, key.data(), key.length());
+        }
+        PutChar('"');
+        PutChar(':');
     }
 
     /// M6: Special Member Functions and Operator Overloads

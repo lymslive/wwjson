@@ -2393,3 +2393,42 @@ builder.EndRoot('}'); // 不加逗号
 - `utest/t_scope.cpp`：新增测试用例
 - `utest/cases.md`：更新文档列表
 
+## TASK:20251212-230542
+-----------------------
+
+### 任务概述
+优化 AddMemberEscape 键名转义支持，支持单参数用法并完善 BasicConfig 的默认转义行为。
+
+### 实现内容
+
+**BasicConfig::EscapeKey 修改**
+- 将原本的空实现修改为转发调用 EscapeString
+- 解决了继承 BasicConfig 时需要同时覆盖 kEscapeKey 常量与 EscapeKey 方法的问题
+- 简化了自定义配置实现，只需覆盖 kEscapeKey 常量即可
+
+**AddMemberEscape 单参数支持**
+- 新增单参数重载版本，仅转义并写入键名，支持以下模式：
+```cpp
+AddMemberEscape(key) + BeginObject()  // 等效于 BeginObject(key) 但键名会被转义
+```
+- 支持所有 is_key_v 限定的字符串类型：const char*, std::string, std::string_view
+- 针对不同字符串类型使用正确的长度计算方式
+- 保留了原有的双参数 AddMemberEscape(key, value) 功能
+- 保持了 GenericObject 和 GenericArray 中的转发展示方法
+
+**单元测试扩展**
+- 在 `utest/t_escape.cpp` 中添加 `escape_member_key_only` 测试用例
+- 测试三种字符串类型的键名转义：const char*, std::string, std::string_view
+- 验证转义后的键名能正确与嵌套对象配合使用
+
+### 测试结果
+
+- 新增测试用例 `escape_member_key_only` 通过
+- 全部 73 个单元测试通过，无回归问题
+- 验证了单参数 AddMemberEscape 与 BeginObject 的组合用法正确性
+
+### 代码变更
+
+- `include/wwjson.hpp`：修改 BasicConfig::EscapeKey 实现，新增 AddMemberEscape 单参数重载
+- `utest/t_escape.cpp`：添加 escape_member_key_only 测试用例
+

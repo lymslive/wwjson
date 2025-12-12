@@ -39,6 +39,7 @@ Scope 相关功能测试文件，测试自动关闭容器功能。
 - `escape_table_utf8` - UTF-8 字符不被转义测试
 - `escape_table_mapping` - 转义表映射优化测试
 - `escape_builder_api` - 构建器中的转义方法测试
+- `escape_member_key_only` - AddMemberEscape 单参数键转义测试
 - `escape_always_config` - 自定义配置：始终转义测试
 - `escape_key_config` - 自定义配置：仅转义键测试
 - `escape_value_config` - 自定义配置：仅转义值测试

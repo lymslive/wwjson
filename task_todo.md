@@ -1276,6 +1276,26 @@ AddMember(key) + BeginObject() = BeginObject(key)
 
 ### DONE: 20251212-222100
 
+## TODO:2025-12-12/6 键名转义支持优化
+
+目前，显式指定转义的 AddMemberEscape 方法，只会转义值部分，却暂无方法指定转义
+键部分（虽然这种需求应该较少）。如果 AddMember 允许单参数写入键，那
+AddMemberEscape 单参数时也应该是对键名转义写入的意思。
+
+但还有个问题，现在 BasicConfig 的默认配置中，kEscapeKey 常量是 false ，
+EscapeKey 方法也是空实现。AddMemberEscape 即使调用 EscapeKey 也不会转义。
+
+EscapeKey 空实现对继承 BasicConfig 自定义配置也有困扰，需要同时覆盖 kEscapeKey
+常量与 EscapeKey 方法才生效。现在反思一下，之前对不转义 key 的默认设定过于严格
+了。因此要将 BasicConfig::EscapeKey 也添加默认实现支持，其实也简单只要转发调用
+EscapeString 。
+
+只不过这个改变默认行为的修改，有可能影响原来的单元测试，需要检查同步修改。并增
+加 AddMemberEscape 单参数的用例，不一定要增加 DEF_TAST 用例，如果在
+t_escape.cpp 中有合适的用例，直接扩展用例也行。
+
+### DONE: 20251212-230542
+
 ## TODO: 优化 wwjson.hpp 英文注释
 
 ## TODO: 完善项目文档
