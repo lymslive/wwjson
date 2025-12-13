@@ -577,3 +577,81 @@ DEF_TAST(basic_addmember_key, "AddMember 单键名重载测试 - 支持拆分键
     COUT(builder.json, expect);
     COUT(test::IsJsonValid(builder.json), true);
 }
+
+DEF_TAST(builder_prefix_constructor, "测试带前缀的构造函数")
+{
+    // Test with const stringT& prefix
+    std::string log_prefix = "[LOG] ";
+    wwjson::RawBuilder builder1(log_prefix, 1024);
+    builder1.BeginRoot();
+    builder1.AddMember("event", "startup");
+    builder1.AddMember("timestamp", "2025-01-01T00:00:00Z");
+    builder1.EndRoot();
+    
+    std::string result1 = builder1.GetResult();
+    std::string expect1 = "[LOG] {\"event\":\"startup\",\"timestamp\":\"2025-01-01T00:00:00Z\"}";
+    COUT(result1, expect1);
+    
+    // Test with stringT&& prefix
+    wwjson::RawBuilder builder2(std::move(log_prefix), 1024);
+    builder2.BeginRoot();
+    builder2.AddMember("event", "shutdown");
+    builder2.EndRoot();
+    
+    std::string result2 = builder2.GetResult();
+    std::string expect2 = "[LOG] {\"event\":\"shutdown\"}";
+    COUT(result2, expect2);
+    
+    // Test Reserve method
+    wwjson::RawBuilder builder3;
+    builder3.Reserve(1000);
+    COUT(builder3.json.capacity() >= 1000, true);
+}
+
+DEF_TAST(builder_multiple_json_with_endline, "测试使用 EndLine 构建多个 JSON")
+{
+    std::string log_data;
+    wwjson::RawBuilder builder("log_start: ", 2048);
+    
+    // First JSON
+    builder.BeginRoot();
+    builder.AddMember("id", 1);
+    builder.AddMember("message", "First event");
+    builder.EndRoot();
+    builder.EndLine();
+    
+    // Second JSON
+    builder.BeginRoot();
+    builder.AddMember("id", 2);
+    builder.AddMember("message", "Second event");
+    builder.EndRoot();
+    builder.EndLine();
+    
+    // Third JSON
+    builder.BeginRoot();
+    builder.AddMember("id", 3);
+    builder.AddMember("message", "Third event");
+    builder.EndRoot();
+    
+    std::string result = builder.GetResult();
+    
+    // Verify it contains valid JSON strings separated by newlines
+    COUT(result.find("log_start:") == 0, true);
+    COUT(result.find('\n') != std::string::npos, true);
+    
+    // Check individual lines
+    size_t pos = 0;
+    size_t next_pos = result.find('\n', pos);
+    
+    std::string line1 = result.substr(0, next_pos);
+    COUT(test::IsJsonValid(line1.substr(line1.find('{'))), true);
+    
+    pos = next_pos + 1;
+    next_pos = result.find('\n', pos);
+    std::string line2 = result.substr(pos, next_pos - pos);
+    COUT(test::IsJsonValid(line2), true);
+    
+    pos = next_pos + 1;
+    std::string line3 = result.substr(pos);
+    COUT(test::IsJsonValid(line3), true);
+}

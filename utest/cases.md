@@ -19,6 +19,8 @@
 - `basic_null_string` - 字符串边界情况中的空指针安全测试
 - `basic_empty_string` - 非空但空字符串的边界情况测试
 - `basic_addmember_key` - AddMember 单键名重载测试 - 支持拆分键名设置
+- `builder_prefix_constructor` - 测试带前缀的构造函数
+- `builder_multiple_json_with_endline` - 测试使用 EndLine 构建多个 JSON
 
 ## t_scope.cpp
 

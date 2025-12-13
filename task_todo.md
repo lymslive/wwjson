@@ -1306,6 +1306,26 @@ t_escape.cpp 中有合适的用例，直接扩展用例也行。
 
 ### DONE: 20251213-081652
 
+## TODO:2025-12-13/2 扩展 GenericBuilder 构造函数
+
+wwjson 不仅用于构建一个完整合法的 json ，也想设计可以将 json 附加到已有字符串
+后面，如日志打印串等合适的场景。因此，需要重载构造函数以支持这种用法：
+
+- 增加构造函数 (const stringT& prefix, size_t capacity = 1024)
+- 增加构造函数 (stringT&& prefix, size_t capacity = 1024)
+- 增加 Reserve(size_t) 方法，表示在原来 size 基础上额外预留多少容量，与 string
+  的 reserve 方法略有不同。新增的构造函数用可选参数调用 Reserve 预留容量。
+
+以上都放在 M0 方法组。
+
+再在 utest/t_basic.cpp 补充单元测试用例，覆盖新增方法。
+另外测试场景也包含 EndLine ，构建多个 json ，用换行符分隔，
+每行是一个合法 json 。
+
+同步更新 utest/cases.md 用例表文档。
+
+### DONE: 20251213-093137
+
 ## TODO: 优化 wwjson.hpp 英文注释
 
 ## TODO: 完善项目文档

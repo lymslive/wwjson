@@ -2498,3 +2498,33 @@ AddMemberEscape(key) + BeginObject()  // 等效于 BeginObject(key) 但键名会
 - 定期更新性能基准，跟踪优化效果
 - 保持测试用例文档与代码同步更新
 - 可考虑添加更多边界条件和异常场景测试
+
+## TASK:20251213-093137
+-----------------------
+
+扩展 GenericBuilder 构造函数以支持前缀字符串，增加相关方法和测试用例。
+
+### 主要变更
+
+1. **新增构造函数**：
+   - 添加 `GenericBuilder(const stringT& prefix, size_t capacity = 1024)` 构造函数
+   - 添加 `GenericBuilder(stringT&& prefix, size_t capacity = 1024)` 移动构造函数
+
+2. **新增 Reserve 方法**：
+   - 在 M0 方法组中添加 `Reserve(size_t additional_capacity)` 方法
+   - 该方法在当前字符串大小基础上额外预留指定容量
+   - 使用 `wwjson_unlikely` 优化分支预测，提前返回处理零容量情况
+
+3. **单元测试**：
+   - 在 `utest/t_basic.cpp` 中添加 `builder_prefix_constructor` 测试用例
+   - 在 `utest/t_basic.cpp` 中添加 `builder_multiple_json_with_endline` 测试用例
+   - 测试覆盖新增构造函数、Reserve 方法和 EndLine 功能
+
+4. **文档更新**：
+   - 更新 `utest/cases.md` 文档，添加新增测试用例描述
+
+### 测试结果
+
+- 所有 75 个测试用例通过，包括 2 个新增测试用例
+- 新功能支持将 JSON 附加到已有字符串（如日志前缀）
+- EndLine 功能支持构建多个换行符分隔的 JSON 字符串

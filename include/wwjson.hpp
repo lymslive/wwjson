@@ -502,9 +502,31 @@ struct GenericBuilder
     /// M0: Basic Methods
     /* ---------------------------------------------------------------------- */
 
-    GenericBuilder(size_t capacity = 1024) { json.reserve(capacity); }
     GenericBuilder(const GenericBuilder &other) = default;
     GenericBuilder(GenericBuilder &&other) noexcept = default;
+
+    GenericBuilder(size_t capacity = 1024) { json.reserve(capacity); }
+    
+    /// Constructor with prefix string.
+    GenericBuilder(const stringT& prefix, size_t capacity = 1024) 
+        : json(prefix) 
+    { 
+        Reserve(capacity); 
+    }
+    
+    /// Constructor with movable prefix string.
+    GenericBuilder(stringT&& prefix, size_t capacity = 1024) 
+        : json(std::move(prefix)) 
+    { 
+        Reserve(capacity); 
+    }
+    
+    /// Reserve additional capacity beyond current size.
+    void Reserve(size_t additional_capacity) 
+    { 
+        if (wwjson_unlikely(additional_capacity == 0)) return;
+        json.reserve(json.size() + additional_capacity); 
+    }
 
     /// Get built json string.
     const stringT &GetResult() const { return json; }
@@ -547,19 +569,13 @@ struct GenericBuilder
 
     void Append(const char *str)
     {
-        if (wwjson_unlikely(str == nullptr))
-        {
-            return;
-        }
+        if (wwjson_unlikely(str == nullptr)) { return; }
         json.append(str);
     }
 
     void Append(const char *str, size_t len)
     {
-        if (wwjson_unlikely(str == nullptr))
-        {
-            return;
-        }
+        if (wwjson_unlikely(str == nullptr)) { return; }
         json.append(str, len);
     }
 
