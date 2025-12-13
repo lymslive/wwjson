@@ -1326,17 +1326,30 @@ wwjson 不仅用于构建一个完整合法的 json ，也想设计可以将 jso
 
 ### DONE: 20251213-093137
 
-## TODO: 优化 wwjson.hpp 英文注释
+## TODO:2025-12-13/3 优化 wwjson.hpp 英文注释
 
-## TODO: 完善项目文档
+- 可使用 Doxygen 风格注释
+- 但没必要对显而易而的简单函数添加冗余注释
+
+### DONE: 20251213-111947
+
+## TODO:2025-12-13/4 完善项目文档
 
 新建两个文档：
 
-- README.md 中文说明
-- README-en.md 英文版翻译
-- docs/usage.md 用户指南
+- README.md 中文说明，包含标准的 github 项目要素
+- README-en.md 英文版翻译，也可先写英文版再翻译为中文
+- docs/usage.md 用户指南，仅维护中文版
 
 README 只包含少量能展示项目特色的示例，usage 中需要详细、系统地介绍 wwjson 功
-能、用法及配套示例。
+能、用法及配套示例。usage 的示例尽量保持前后一贯的延续性，用相同的示例数据展示
+功能。但 usage 文档不能只罗列功能与示例，需要有承前启后的描叙文字。
+
+可参考现有的文档，包括核心头文件 wwjson.hpp 的注释，utest/ 单元测试用例，perf/
+性能测试用例，task_todo.md 与 task_log.md 需求与任务管理文档。其中 task_log.md
+日志文档是 AI Agent 记录，可能有些琐碎，而 task_todo.md 是用户手写的原始需求，
+在提需求时有时也会涉及设计思路，可供参考。
 
 ## TODO: 同步文档示例与单元测试
+
+## TODO: v1.0 封版
