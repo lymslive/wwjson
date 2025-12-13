@@ -281,7 +281,8 @@ private:
             item_obj.AddMember("value", value * 1.5);
             item_obj.AddMember("name", ("item_" + std::to_string(value)));
 
-            builder.PutKey("tags");
+            // builder.PutKey("tags");
+            item_obj.AddMember("tags");
             BuildTags(builder, value);
         }
 
@@ -302,9 +303,12 @@ public:
         builder.BeginRoot();
         DataManager manager;
 
-        builder.PutKey("data");
+        // prefer AddMember to PutKey
+        // builder.PutKey("data");
+        builder.AddMember("data");
         manager.BuildDataArray(builder, start, items);
-        builder.PutKey("metadata");
+        // builder.PutKey("metadata");
+        builder.AddMember("metadata");
         manager.BuildMetadata(builder);
 
         builder.EndRoot();

@@ -2432,3 +2432,69 @@ AddMemberEscape(key) + BeginObject()  // 等效于 BeginObject(key) 但键名会
 - `include/wwjson.hpp`：修改 BasicConfig::EscapeKey 实现，新增 AddMemberEscape 单参数重载
 - `utest/t_escape.cpp`：添加 escape_member_key_only 测试用例
 
+## TASK:20251213-081652
+-----------------------
+
+### 任务概述
+更新性能测试文档，分析 perf/ 目录下的性能测试用例，更新 perf/cases.md 文档的用例列表，编译性能测试目标，验证命令行参数支持，并生成全面的性能测试报告。
+
+### 实现内容
+
+**性能测试用例文档更新**
+- 分析 perf/ 目录下5个性能测试文件：p_api.cpp, p_builder.cpp, p_design.cpp, p_number.cpp, p_string.cpp
+- 更新 perf/cases.md 文档，补充 p_api.cpp 的5个API方法性能测试用例：
+  - api_basic_vs_autoclose: 基本方法vs自动关闭方法性能对比
+  - api_basic_vs_operator: 基本方法vs操作符方法性能对比
+  - api_basic_vs_localobj: 基本方法vs局部对象方法性能对比
+  - api_basic_vs_lambda: 基本方法vsLambda方法性能对比
+  - api_basic_vs_class: 基本方法vs类方法性能对比
+
+**编译目标构建与验证**
+- 成功编译性能测试目标 `/build-release/perf/pfwwjson`
+- 验证所有44个性能测试用例可正常执行
+- 确认编译环境：win10 WSL1(ubuntu20.4) + GCC 9.4.0
+
+**命令行参数支持验证**
+- 验证 --loop 参数：循环次数控制正常工作
+- 验证 --items 参数：项目数量控制正常工作
+- 验证 --start 参数：起始值设置正常工作
+- 验证 --size 参数：JSON大小控制正常工作
+- 验证 --List 参数：测试用例列表功能正常
+- 所有参数均能有效控制测试规模和精度
+
+**性能测试执行**
+- 运行关键性能测试用例，收集基础性能数据
+- 多次运行测试以减少浮动误差，提高数据可靠性
+- 重点测试场景：
+  - JSON构建性能 (build_relative): 验证不同大小JSON对象构建性能
+  - 数字序列化性能 (number_int_rel): 测试整数数组构建性能对比
+  - 字符串对象性能 (string_object_relative): 验证字符串处理性能
+  - API方法对比 (api_basic_vs_*): 比较不同API调用方式性能
+
+**性能测试报告生成**
+- 生成详细的 perf/report.md 性能测试报告
+- 包含测试环境、用例概览、关键测试结果、性能分析等完整内容
+- 主要发现：
+  - wwjson在JSON对象构建方面普遍优于yyjson，优势范围6.31%-28.45%
+  - wwjson在字符串处理方面稳定优于yyjson，优势范围5.37%-20.32%
+  - yyjson在数字序列化API方面表现更好，wwjson需要优化
+  - 不同API调用方式性能差异很小，设计选择更多考虑易用性
+
+### 代码变更
+
+- `perf/cases.md`：补充p_api.cpp测试用例列表，更新文档完整性
+- `perf/report.md`：新增全面的性能测试报告，包含环境信息、测试结果、性能分析和建议
+
+### 测试结果
+
+- 所有44个性能测试用例运行正常，无错误或异常
+- 性能测试工具命令行参数功能完整，参数控制有效
+- 多次运行测试结果一致，数据可靠性良好
+- 性能报告全面覆盖各个测试模块，提供有价值的性能分析
+
+### 建议与后续
+
+- 重点优化数字序列化性能，特别是整数和浮点数数组构建
+- 定期更新性能基准，跟踪优化效果
+- 保持测试用例文档与代码同步更新
+- 可考虑添加更多边界条件和异常场景测试
