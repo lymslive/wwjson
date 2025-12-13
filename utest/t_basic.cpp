@@ -591,6 +591,7 @@ DEF_TAST(builder_prefix_constructor, "测试带前缀的构造函数")
     std::string result1 = builder1.GetResult();
     std::string expect1 = "[LOG] {\"event\":\"startup\",\"timestamp\":\"2025-01-01T00:00:00Z\"}";
     COUT(result1, expect1);
+    COUT(log_prefix.empty(), false);
     
     // Test with stringT&& prefix
     wwjson::RawBuilder builder2(std::move(log_prefix), 1024);
@@ -601,11 +602,12 @@ DEF_TAST(builder_prefix_constructor, "测试带前缀的构造函数")
     std::string result2 = builder2.GetResult();
     std::string expect2 = "[LOG] {\"event\":\"shutdown\"}";
     COUT(result2, expect2);
+    COUT(log_prefix.empty(), true);
     
     // Test Reserve method
     wwjson::RawBuilder builder3;
-    builder3.Reserve(1000);
-    COUT(builder3.json.capacity() >= 1000, true);
+    builder3.Reserve(2000);
+    COUT(builder3.json.capacity() >= 2000, true);
 }
 
 DEF_TAST(builder_multiple_json_with_endline, "测试使用 EndLine 构建多个 JSON")
