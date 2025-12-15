@@ -1,7 +1,7 @@
 # Makefile for wwjson project
 # Common commands integration for development workflow
 
-.PHONY: build test build/perf install clean clean/perf help release perf
+.PHONY: build test build/perf install clean clean/perf help release perf test/list perf/list
 
 # Default target
 help:
@@ -14,6 +14,8 @@ help:
 	@echo "  release    - Build in release mode (build-release/ directory)"
 	@echo "  build/perf - Build performance test in release mode"
 	@echo "  perf       - Run performance tests (requires BUILD_PERF_TESTS)"
+	@echo "  test/list  - Update utest/cases.md from test program --List output"
+	@echo "  perf/list  - Update perf/cases.md from perf program --List output"
 	@echo "  help       - Show this help message"
 	@echo ""
 	@echo "make <target> -n  Show the command to execute only"
@@ -62,6 +64,16 @@ clean/perf:
 perf: build/perf
 	@echo "Running performance tests..."
 	./build-release/perf/pfwwjson
+
+# Update test cases list
+test/list: build
+	@echo "Updating utest/cases.md..."
+	./build/utest/utwwjson --List | perl .tool/list_case.pl --head="单元测试用例列表" > utest/cases.md
+
+# Update performance test cases list
+perf/list: build/perf
+	@echo "Updating perf/cases.md..."
+	./build-release/perf/pfwwjson --List | perl .tool/list_case.pl --head="性能测试用例列表" > perf/cases.md
 
 # Alias for help target
 .DEFAULT_GOAL := help
