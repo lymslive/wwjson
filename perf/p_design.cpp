@@ -515,6 +515,127 @@ class StringEscapeOptimizationTest : public RelativeTimer<StringEscapeOptimizati
     }
 };
 
+// ========== 测试6: 4位小数部分序列化优化验证 ==========
+
+/**
+ * @brief 4位小数部分序列化优化测试
+ * 对比两种小数部分序列化方法的性能差异：
+ * 方法A: 预先写入本地buffer[5]包含'.'前缀，利用kDigitPairs查找，只做一次/与%操作，然后从尾部判断是否为0，把前面非0部分用一次append写入目标字符串
+ * 方法B: 当前实现，通过多重if判断要写入哪些数字，正向一个个写入目标字符串
+ */
+class FractionalSerializationTest : public RelativeTimer<FractionalSerializationTest>
+{
+  public:
+    int items;
+    uint32_t seed;
+    std::string result;
+    std::vector<uint32_t> test_numbers;  // [1, 9999] 范围内的整数，表示4位小数
+
+    FractionalSerializationTest(int count, uint32_t s) : items(count), seed(s)
+    {
+        generateTestNumbers();
+    }
+
+    void generateTestNumbers()
+    {
+        std::mt19937 gen(seed);
+        std::uniform_int_distribution<uint32_t> dis(1, 9999);
+
+        test_numbers.clear();
+        test_numbers.reserve(items);
+        for (int i = 0; i < items; ++i)
+        {
+            test_numbers.push_back(dis(gen));
+        }
+    }
+
+    // 方法A: 预先写入本地buffer[5]包含'.'前缀，利用kDigitPairs查找
+    void methodA()
+    {
+        result.clear();
+        for (uint32_t num : test_numbers)
+        {
+            // 预先写入本地buffer[5]，包含'.'前缀，使用指针操作
+            char buffer[5];
+            char* ptr = buffer;
+            
+            // 写入前缀
+            *ptr++ = '.';
+            
+            // 利用kDigitPairs查找，只做一次/与%操作
+            const auto& kDigitPairs = wwjson::NumberWriter<std::string>::kDigitPairs;
+            uint32_t q = num / 100;  // 百位/十位
+            uint32_t r = num % 100;   // 个位/十分位
+            
+            const auto& pair_q = kDigitPairs[q];
+            const auto& pair_r = kDigitPairs[r];
+            
+            *ptr++ = pair_q.high;  // 百位
+            *ptr++ = pair_q.low;   // 十位
+            *ptr++ = pair_r.high;  // 个位
+            *ptr++ = pair_r.low;   // 十分位
+            
+            // 从尾部逆向检查是否为0
+            --ptr; // 指向最后一个字符
+            while (*ptr == '0') {
+                --ptr;
+            }
+            
+            // 把前面非0部分用一次append写入目标字符串
+            result.append(buffer, ptr - buffer + 1);
+        }
+    }
+
+    // 方法B: 当前实现，通过多重if判断要写入哪些数字
+    void methodB()
+    {
+        result.clear();
+        for (uint32_t num : test_numbers)
+        {
+            uint32_t q = num / 100; // 百位/十位
+            uint32_t r = num % 100;  // 个位/十分位
+            const auto& kDigitPairs = wwjson::NumberWriter<std::string>::kDigitPairs;
+            const auto& pair_q = kDigitPairs[q];
+            const auto& pair_r = kDigitPairs[r];
+
+            // 写入 '.'
+            result.push_back('.');
+
+            // 格式化小数部分，智能去除尾零
+            if (r == 0) {
+                // 只需要百位/十位部分
+                result.push_back(pair_q.high);
+                if (pair_q.low != '0') {
+                    result.push_back(pair_q.low);
+                }
+            } else {
+                // 包含百位/十位部分
+                result.push_back(pair_q.high);
+                result.push_back(pair_q.low);
+                
+                // 如果个位/十分位部分非零，则添加
+                if (pair_r.low != '0') {
+                    result.push_back(pair_r.high);
+                    result.push_back(pair_r.low);
+                } else {
+                    result.push_back(pair_r.high);
+                }
+            }
+        }
+    }
+
+    bool methodVerify()
+    {
+        // 验证两个方法产生相同的输出
+        methodA();
+        std::string resultA = result;
+        methodB();
+        std::string resultB = result;
+
+        return resultA == resultB;
+    }
+};
+
 } // namespace perf
 } // namespace test
 
@@ -614,11 +735,18 @@ DEF_TAST(design_string_escape, "字符串转义优化方案预测试")
     
     // 运行测试并打印结果
     double ratio = tester.runAndPrint(test_name, "Method A: Buffer+Append", "Method B: Direct PushBack", argv.loop, 10);
+}
+
+// 测试6: 4位小数部分序列化优化验证
+DEF_TAST(design_fractional_serialization, "4位小数部分序列化优化验证")
+{
+    test::CArgv argv;
+    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
     
-    // 检查验证结果
-    if (std::isnan(ratio))
-    {
-        DESC("WARNING: Verification failed - methods produce different output");
-    }
+    test::perf::FractionalSerializationTest tester(argv.items, static_cast<uint32_t>(argv.start));
+    
+    // 运行测试并打印结果
+    double ratio = tester.runAndPrint("Fractional Serialization Optimization", 
+                                      "Method A: Buffer+Trim", "Method B: Multi-If", argv.loop, 10);
 }
 

@@ -337,7 +337,7 @@ template <typename stringT> struct NumberWriter
 
         // Scale fractional part by 10,000 for fixed-point processing
         double scaled_fractional = fractional_part * 10000.0;
-        uint64_t scaled_int = static_cast<uint64_t>(scaled_fractional + 0.5);
+        uint32_t scaled_int = static_cast<uint32_t>(scaled_fractional + 0.5);
         
         // Validate exact representability within tolerance
         double error_check = scaled_fractional - static_cast<double>(scaled_int);
@@ -355,43 +355,22 @@ template <typename stringT> struct NumberWriter
             return true;
         }
 
-        // Format the fixed-point number using digit pair optimization
         WriteUnsigned(dst, integer_part);
-        dst.push_back('.');
 
-        uint32_t frac_part = static_cast<uint32_t>(scaled_int);
-        uint32_t q = static_cast<uint32_t>(frac_part / 100); // Hundreds/tens
-        uint32_t r = static_cast<uint32_t>(frac_part % 100); // Ones/tenths
-        const DigitPair &pair_q = kDigitPairs[q];
-        const DigitPair &pair_r = kDigitPairs[r];
-
-        // Format fractional part with intelligent trailing zero removal
-        if (r == 0)
-        {
-            // Only hundreds/tens part needed
-            dst.push_back(pair_q.high);
-            if (pair_q.low != '0')
-            {
-                dst.push_back(pair_q.low);
-            }
-        }
-        else
-        {
-            // Include hundreds/tens part
-            dst.push_back(pair_q.high);
-            dst.push_back(pair_q.low);
-            
-            // Add ones/tenths part if non-zero
-            if (pair_r.low != '0')
-            {
-                dst.push_back(pair_r.high);
-                dst.push_back(pair_r.low);
-            }
-            else
-            {
-                dst.push_back(pair_r.high);
-            }
-        }
+        const DigitPair &pair_q = kDigitPairs[scaled_int / 100];
+        const DigitPair &pair_r = kDigitPairs[scaled_int % 100];
+        
+        char buffer[5];
+        char* ptr = buffer;
+        *ptr++ = '.';
+        *ptr++ = pair_q.high;  // Thousands
+        *ptr++ = pair_q.low;   // Hundreds
+        *ptr++ = pair_r.high;  // Tens
+        *ptr++ = pair_r.low;   // Ones
+        
+        --ptr;
+        while (*ptr == '0') { --ptr; }
+        dst.append(buffer, ptr - buffer + 1);
 
         return true;
     }

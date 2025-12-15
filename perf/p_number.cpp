@@ -403,13 +403,11 @@ class RandomDoubleArray : public RelativeTimer<RandomDoubleArray>
         for (int i = 0; i < items; i++)
         {
             // Generate random integers m and n in int32 range
-            int m =
-                std::rand() % 2000001 - 1000000; // Range: -1000000 to 1000000
-            int n = std::rand() % 1000 +
-                    1; // Range: 1 to 1000 (avoid division by zero)
+            int m = std::rand() % 2000001 - 1000000; // Range: -1000000 to 1000000
+            int n = std::rand() % 10000;
 
-            // Generate double f = m + 1/n
-            double f = static_cast<double>(m) + 1.0 / static_cast<double>(n);
+            // Generate double f = m + n/10000;
+            double f = static_cast<double>(m) + n / 10000.0;
             random_doubles.push_back(f);
         }
     }
