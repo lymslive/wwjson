@@ -27,5 +27,6 @@ echo "  docs/build/usage.html     - User guide"
 echo "  docs/build/api/           - API reference (Doxygen)"
 
 echo ""
-echo "You can view the documentation by opening:"
-echo "  docs/build/index.html"
+echo "To start a local HTTP server for testing, run:"
+echo "  cd docs/build && python3 -m http.server 8000"
+echo "Then open http://localhost:8000 in your browser"

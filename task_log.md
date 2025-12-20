@@ -2722,3 +2722,67 @@ docs/build/
 - GitHub Actions 工作流配置正确
 
 文档系统现已就绪，将在推送到 main 分支时自动部署到 GitHub Pages。
+
+## TASK:20251221-011034
+-----------------------
+
+### TOC 侧边栏优化
+
+1. **实现需求**
+   - 目录表字体比正文小
+   - 目录表放左侧，独立滚动（内容较长时）
+   - 监听滚动条，自动定位当前章节
+
+2. **技术实现**：
+   - 使用 JavaScript 动态生成目录结构
+   - 实现滚动事件节流优化性能
+   - 添加当前章节高亮显示
+   - CSS sticky 定位实现固定侧边栏
+
+### 代码块渲染问题修复
+
+1. **缩进问题**：
+   - 原因：Pandoc 生成的 `.sourceLine` 元素有默认缩进
+   - 解决：添加 CSS 覆盖默认样式
+   ```css
+   .sourceLine {
+       text-indent: 0 !important;
+       padding-left: 0 !important;
+   }
+   ```
+
+2. **语法高亮问题**：
+   - 原因：缺少 Pandoc 语法高亮类（.kw, .dt, .st 等）
+   - 解决：添加 kate 主题的 CSS 类定义
+   ```css
+   pre.sourceCode .kw { color: #0000ff; font-weight: bold; } /* 关键字 */
+   pre.sourceCode .dt { color: #008000; } /* 数据类型 */
+   pre.sourceCode .st { color: #008000; } /* 字符串 */
+   ```
+
+3. **行距过大问题**：
+   - 原因：`.sourceLine` 被设为 `display: block`，每个元素独占一行
+   - 解决：改回 `display: inline`，并为空行设置特殊高度
+   ```css
+   .sourceLine {
+       display: inline; /* 恢复默认，避免额外间距 */
+   }
+   .sourceLine:empty {
+       display: block;
+       height: 0.4em; /* 空行高度 */
+   }
+   ```
+
+### 代码清理
+
+- 删除模板中重复的 CSS 定义
+- 合并相同元素的样式规则
+- 统一代码块的行高为 1.4
+
+### 其他改进
+
+- 在 `docs/build.sh` 末尾添加本地 HTTP 服务器启动提示
+- 优化目录表的字体大小和间距
+
+所有问题已解决，文档渲染效果正常。
+

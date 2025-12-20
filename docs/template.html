@@ -49,7 +49,9 @@
             flex-shrink: 0;
             position: sticky;
             top: 20px;
-            height: fit-content;
+            height: calc(100vh - 40px);
+            overflow-y: auto;
+            padding-right: 10px;
         }
 
         header {
@@ -118,6 +120,16 @@
             margin-top: 30px;
         }
 
+        pre {
+            background: var(--code-background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            margin: 20px 0;
+            line-height: 1.4; /* 减小行距 */
+        }
+
         code {
             background: var(--code-background);
             padding: 0.2em 0.4em;
@@ -127,21 +139,12 @@
             border: 1px solid var(--border-color);
         }
 
-        pre {
-            background: var(--code-background);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-            overflow-x: auto;
-            margin: 20px 0;
-        }
-
         pre code {
             background: none;
             padding: 0;
             border: none;
             font-size: 0.9em;
-            line-height: 1.5;
+            line-height: 1.4; /* 保持与 pre 一致的行距 */
             display: block;
             white-space: pre;
         }
@@ -149,13 +152,22 @@
         /* Fix pandoc code block indentation */
         pre.sourceCode {
             padding: 0;
+            margin: 20px 0; /* 添加外边距 */
+            background: var(--code-background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow-x: auto;
+            line-height: 1.4; /* 减小行距 */
         }
         
         pre.sourceCode code {
             padding: 20px;
-            background: var(--code-background);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
+            background: none;
+            border: none;
+            border-radius: 0; /* 父元素已经有圆角 */
+            display: block;
+            white-space: pre;
+            text-indent: 0 !important;
         }
         
         /* Remove indentation from pandoc line numbers */
@@ -163,7 +175,7 @@
             text-indent: 0 !important;
             padding-left: 0 !important;
         }
-
+        
         blockquote {
             border-left: 4px solid var(--primary-color);
             padding: 15px 20px;
@@ -272,28 +284,46 @@
         }
         
         .toc li {
-            margin: 8px 0;
+            margin: 4px 0;
         }
         
         .toc li a {
             color: var(--text-color);
             text-decoration: none;
-            transition: color 0.2s;
+            transition: all 0.2s ease;
             display: block;
-            padding: 4px 0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
         }
         
         .toc li a:hover {
+            background-color: var(--hover-background);
             color: var(--primary-color);
         }
         
-        .toc-level2 {
-            padding-left: 25px;
-            border-left: 2px solid var(--border-color);
-            margin-left: 10px;
+        .toc .toc-level2 {
+            padding-left: 16px;
+            margin-left: 0;
+        }
+        
+        .toc .toc-level3 {
+            padding-left: 32px;
+            margin-left: 0;
+        }
+        
+        .toc .toc-level4 {
+            padding-left: 48px;
+            margin-left: 0;
+        }
+        
+        .toc .active {
+            background-color: var(--primary-color);
+            color: white;
         }
         
         /* Code Syntax Highlighting */
+        /* Deprecated - kept for backward compatibility */
         pre code .tok-keyword { color: #0000ff; font-weight: bold; }
         pre code .tok-string { color: #008000; }
         pre code .tok-number { color: #ff0000; }
@@ -302,6 +332,32 @@
         pre code .tok-function { color: #795e26; }
         pre code .tok-operator { color: #000000; }
         pre code .tok-variable { color: #001080; }
+        
+        /* Pandoc syntax highlighting classes (main) */
+        pre.sourceCode .kw { color: #0000ff; font-weight: bold; }    /* keyword */
+        pre.sourceCode .dt { color: #2b91af; }                      /* data type */
+        pre.sourceCode .dv { color: #ff0000; }                      /* number value */
+        pre.sourceCode .bn { color: #ff0000; }                      /* number base */
+        pre.sourceCode .fl { color: #ff0000; }                      /* float */
+        pre.sourceCode .ch { color: #008000; }                      /* char */
+        pre.sourceCode .st { color: #008000; }                      /* string */
+        pre.sourceCode .co { color: #808080; font-style: italic; }  /* comment */
+        pre.sourceCode .ot { color: #8b0000; }                      /* other token */
+        pre.sourceCode .al { color: #ff4500; font-weight: bold; }  /* alert */
+        pre.sourceCode .fu { color: #795e26; }                      /* function */
+        pre.sourceCode .er { color: #ff0000; font-weight: bold; }  /* error */
+        pre.sourceCode .wa { color: #ffa500; font-weight: bold; }  /* warning */
+        pre.sourceCode .cn { color: #0000ff; }                      /* constant */
+        pre.sourceCode .sc { color: #a31515; }                      /* special char */
+        pre.sourceCode .im { color: #008000; }                      /* import/include */
+        pre.sourceCode .pp { color: #0000ff; }                      /* preprocessor */
+        pre.sourceCode .op { color: #000000; }                      /* operator */
+        pre.sourceCode .bu { color: #795e26; }                      /* builtin */
+        pre.sourceCode .ex { color: #d73a49; }                      /* exception */
+        pre.sourceCode .cf { color: #0000ff; font-weight: bold; }  /* control flow */
+        pre.sourceCode .do { color: #458; }                        /* doxygen */
+        pre.sourceCode .cv { color: #0e84b5; }                      /* class variable */
+        pre.sourceCode .in { color: #6a6a6a; }                      /* initializer */
     </style>
     <script>
     // Generate TOC for non-index pages
@@ -310,7 +366,7 @@
         const generateToc = '$generate-toc$';
         if (generateToc !== 'true') return;
         
-        const headers = document.querySelectorAll('main h2, main h3');
+        const headers = document.querySelectorAll('main h2, main h3, main h4, main h5, main h6');
         if (headers.length === 0) return;
         
         // Create TOC container
@@ -337,9 +393,8 @@
             }
             
             const tocItem = document.createElement('li');
-            if (header.tagName === 'H3') {
-                tocItem.className = 'toc-level2';
-            }
+            const level = parseInt(header.tagName.substring(1));
+            tocItem.className = 'toc-level' + Math.min(level - 1, 4);
             
             const tocLink = document.createElement('a');
             tocLink.href = '#' + id;
@@ -356,7 +411,74 @@
         if (sidebar) {
             sidebar.appendChild(tocContainer);
         }
+        
+        // Setup TOC scrolling and active state
+        setupTOCScrolling();
     });
+    
+    function setupTOCScrolling() {
+        const tocLinks = document.querySelectorAll('.toc a');
+        const headings = document.querySelectorAll('main h2, main h3, main h4, main h5, main h6');
+        
+        if (tocLinks.length === 0) return;
+        
+        // 点击目录项时的处理
+        tocLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                
+                if (targetElement) {
+                    const offset = targetElement.getBoundingClientRect().top + window.pageYOffset - 100;
+                    window.scrollTo({ top: offset, behavior: 'smooth' });
+                    
+                    // 更新活动状态
+                    tocLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                }
+            });
+        });
+        
+        // 滚动时更新目录高亮
+        function updateActiveTOC() {
+            const scrollPosition = window.pageYOffset + 150;
+            
+            let activeHeading = null;
+            headings.forEach(heading => {
+                if (heading.offsetTop <= scrollPosition) {
+                    activeHeading = heading;
+                }
+            });
+            
+            if (activeHeading) {
+                tocLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.getAttribute('href') === '#' + activeHeading.id) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+        }
+        
+        // 节流函数
+        function throttle(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+        
+        window.addEventListener('scroll', throttle(updateActiveTOC, 100));
+        
+        // 初始化时也更新一次活动状态
+        setTimeout(updateActiveTOC, 100);
+    }
     </script>
 </head>
 <body>
@@ -373,13 +495,13 @@
         </header>
         
         <div class="content-wrapper">
-            <main class="main-content">
-                $body$
-            </main>
-            
             <div class="sidebar" id="toc-sidebar">
                 <!-- TOC will be inserted here by JavaScript -->
             </div>
+            
+            <main class="main-content">
+                $body$
+            </main>
         </div>
         
         <footer>
