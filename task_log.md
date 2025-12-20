@@ -2689,6 +2689,9 @@ AddMemberEscape(key) + BeginObject()  // 等效于 BeginObject(key) 但键名会
    - 解决 Pandoc 代码块缩进问题
    - 完善导航栏，添加首页链接
    - 确保跨页面导航一致性
+   - 添加中文段落空白删除：使用Lua过滤器去除相邻汉字间的空格
+   - 生成标题侧边栏，使用CSS sticky定位实现固定在侧边
+   - 添加C++语法高亮：使用Pandoc内置的kate高亮主题
 
 6. **更新项目文档**
    - 修改 README.md 和 README-en.md

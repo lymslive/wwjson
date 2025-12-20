@@ -29,6 +29,27 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-wrapper {
+            display: flex;
+            gap: 30px;
+            flex: 1;
+        }
+
+        .main-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sidebar {
+            width: 250px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 20px;
+            height: fit-content;
         }
 
         header {
@@ -211,6 +232,15 @@
                 padding: 15px;
             }
             
+            .content-wrapper {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                position: static;
+            }
+            
             .nav-links {
                 flex-direction: column;
                 gap: 10px;
@@ -220,13 +250,120 @@
                 grid-template-columns: 1fr;
             }
         }
+        
+        /* TOC Styles */
+        .toc-container {
+            background: var(--code-background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .toc-container h3 {
+            margin-top: 0;
+            color: var(--primary-color);
+            font-size: 1.1em;
+        }
+        
+        .toc {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+        }
+        
+        .toc li {
+            margin: 8px 0;
+        }
+        
+        .toc li a {
+            color: var(--text-color);
+            text-decoration: none;
+            transition: color 0.2s;
+            display: block;
+            padding: 4px 0;
+        }
+        
+        .toc li a:hover {
+            color: var(--primary-color);
+        }
+        
+        .toc-level2 {
+            padding-left: 25px;
+            border-left: 2px solid var(--border-color);
+            margin-left: 10px;
+        }
+        
+        /* Code Syntax Highlighting */
+        pre code .tok-keyword { color: #0000ff; font-weight: bold; }
+        pre code .tok-string { color: #008000; }
+        pre code .tok-number { color: #ff0000; }
+        pre code .tok-comment { color: #808080; font-style: italic; }
+        pre code .tok-type { color: #2b91af; }
+        pre code .tok-function { color: #795e26; }
+        pre code .tok-operator { color: #000000; }
+        pre code .tok-variable { color: #001080; }
     </style>
+    <script>
+    // Generate TOC for non-index pages
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if this page should have TOC
+        const generateToc = '$generate-toc$';
+        if (generateToc !== 'true') return;
+        
+        const headers = document.querySelectorAll('main h2, main h3');
+        if (headers.length === 0) return;
+        
+        // Create TOC container
+        const tocContainer = document.createElement('div');
+        tocContainer.className = 'toc-container';
+        
+        const tocTitle = document.createElement('h3');
+        tocTitle.textContent = '目录';
+        tocContainer.appendChild(tocTitle);
+        
+        const tocList = document.createElement('ul');
+        tocList.className = 'toc';
+        
+        // Generate TOC items
+        headers.forEach((header, index) => {
+            // Generate unique ID if not present
+            let id = header.id;
+            if (!id) {
+                const text = header.textContent.trim();
+                id = text.toLowerCase()
+                    .replace(/\s+/g, '-')
+                    .replace(/[^\w\-]/g, '');
+                header.id = id;
+            }
+            
+            const tocItem = document.createElement('li');
+            if (header.tagName === 'H3') {
+                tocItem.className = 'toc-level2';
+            }
+            
+            const tocLink = document.createElement('a');
+            tocLink.href = '#' + id;
+            tocLink.textContent = header.textContent;
+            
+            tocItem.appendChild(tocLink);
+            tocList.appendChild(tocItem);
+        });
+        
+        tocContainer.appendChild(tocList);
+        
+        // Insert TOC into sidebar
+        const sidebar = document.getElementById('toc-sidebar');
+        if (sidebar) {
+            sidebar.appendChild(tocContainer);
+        }
+    });
+    </script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>$title$</h1>
-            <div class="subtitle">$subtitle$</div>
+            <h1>WWJSON</h1>
+            <div class="subtitle">高性能C++ JSON构建库</div>
             <nav class="nav-links">
                 <a href="index.html" class="nav-link">🏠 首页</a>
                 <a href="usage.html" class="nav-link">📖 用户指南</a>
@@ -235,9 +372,15 @@
             </nav>
         </header>
         
-        <main>
-            $body$
-        </main>
+        <div class="content-wrapper">
+            <main class="main-content">
+                $body$
+            </main>
+            
+            <div class="sidebar" id="toc-sidebar">
+                <!-- TOC will be inserted here by JavaScript -->
+            </div>
+        </div>
         
         <footer>
             <p>© 2025 WWJSON - 高性能C++ JSON构建库</p>
