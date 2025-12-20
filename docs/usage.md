@@ -51,6 +51,7 @@ make install
 
 ### 2.2 第一个示例
 
+<!-- example:usage_2_2_first_example -->
 ```cpp
 #include "wwjson.hpp"
 #include <iostream>
@@ -89,7 +90,7 @@ int main() {
 假设要写一个很简单的 json ，可以不借用任务三方 json 库，直接用 `snprintf` 或
 `sstream` 甚至 `string` 拼接就可以：
 
-<!-- example: -->
+<!-- example:usage_3_1_json_concatenation -->
 ```cpp
 int code = 0;
 std::string message = "OK";
@@ -141,6 +142,7 @@ std::string json;
 WWJSON 的底层原理，其实就与上例代码的方法 3 一样，直接往目标字符串中添料，但是
 提供了高层抽象的 api ：
 
+<!-- example:usage_3_2_wwjson_encapsulation -->
 ```cpp
 wwjson::RawBuilder builder;
 builder.BeginObject()
@@ -327,7 +329,7 @@ wwjson 进行灵活而高性能的 json 序列化输出。
 ```json
 {
   "name":"wwjson","version":1.01,"author":"lymslive","url":null,
-  "feature":{"standar":"C++17","dom":false,"cofig":"compile-time"},
+  "feature":{"standar":"C++17","dom":false,"config":"compile-time"},
   "refer":["rapidjson","nlohmann/json",{"name":"yyjson","lang":"C"}]
 }
 ```
@@ -340,6 +342,7 @@ wwjson 进行灵活而高性能的 json 序列化输出。
 这是对 wwjson 的基本 API 的简单扩展复用，只要记得 Begin/End 配对即可。手写时一
 般建议写完 Begin 语句后，立即写 End 语句，再往中间插语句。
 
+<!-- example:usage_4_1_flat_construction -->
 ```cpp
 wwjson::RawBuilder builder;
 builder.BeginRoot();
@@ -394,6 +397,7 @@ builder.EndRoot();
 如果觉得平铺直叙型的构建方式，在源码视觉效果上层次不明显，首先可以尝试对源码格
 式作重排，加些裸 `{}` 增加层次缩进，例如：
 
+<!-- example:usage_4_2_brace_indentation -->
 ```cpp
 wwjson::RawBuilder builder;
 builder.BeginRoot();
@@ -437,6 +441,7 @@ builder.EndRoot();
 与最后一条语句。对于这另一种缩进风格，wwjson 还特地设计了方法支持，使之可以省
 略 `{}` 内最后一条 `EndObject` 语句。例如：
 
+<!-- example:usage_4_2_scope_variables -->
 ```cpp
 wwjson::RawBuilder builder;
 {
@@ -483,6 +488,7 @@ builder.GetResult();
 这两个方法返回的局部变量也是可以使用的，能代替当前 `builder` 变量调用
 `AddMember` 或 `AddItem` 。取合适的变量名，或能进一步增加代码可读性，例如：
 
+<!-- example:usage_4_2_named_scope_variables -->
 ```cpp
 wwjson::RawBuilder builder;
 {
@@ -521,6 +527,7 @@ builder.GetResult();
 如果觉得裸加 `{}` 很奇怪，有强行划分作用域的生硬感，那么还可以将 `auto` 变量的
 创建再提到上面的一条 `if` 语句中，在 `if` 后面接一对大括号就很标准了吧：
 
+<!-- example:usage_4_2_if_statement_scope -->
 ```cpp
 wwjson::RawBuilder builder;
 if (auto root = builder.ScopeObject())
@@ -581,6 +588,7 @@ if (auto root = builder.ScopeObject(); root)
 
 `AddItem` 与 `AddMember` 的值参数，允许传一个 lambda ，表达构建子结构的意图。
 
+<!-- example:usage_4_3_lambda_substructure -->
 ```cpp
 wwjson::RawBuilder builder;
 builder.BeginRoot();
@@ -647,6 +655,7 @@ builder.EndRoot();
 
 下例展示了各种混合用法：
 
+<!-- example:usage_4_4_operator_overloading -->
 ```cpp
 wwjson::RawBuilder builder;
 builder.BeginRoot();
@@ -689,6 +698,7 @@ builder.EndRoot();
 在实践中，以上构建 json 的示例代码片断推荐封装在一个单独的函数，不宜与其他业务
 代码混在一起。总体模式类似以下函数写法：
 
+<!-- example:usage_4_5_step_entrance -->
 ```cpp
 std::string BuildJson()
 {
@@ -710,6 +720,7 @@ std::string BuildJson()
 
 假设上述示例 json 数据，在 C++ 程序中被存于如下结构体，及其构建方法：
 
+<!-- example:usage_4_5_struct_builder -->
 ```cpp
 struct Project
 {
@@ -839,6 +850,7 @@ WWJSON 的主要功能与应用场景是从基本类型的原子数据开始构�
 一个 json 中，它们也接收字符串参数，与 `AddMember` 或 `AddItem` 的区别在于不会
 将字符串值加引号括起来，以及可能需要的转义。例如：
 
+<!-- example:usage_5_1_add_substring -->
 ```cpp
 // 假设先构建子串
 std::string feature;
@@ -899,6 +911,7 @@ std::string project;
 假设已有两个完整 json 子串，当它们是相同类型的容器（对象或数组时），可以用
 `Merge` 方法合并；已构建完整 json 的两个 `builder` 也能合并。例如：
 
+<!-- example:usage_5_2_merge_substrings -->
 ```cpp
 // 子串1
 wwjson::RawBuilder basic;
@@ -1010,6 +1023,7 @@ using RawArray = GenericArray<std::string>;   // 自动关闭数组类型
 转义键的需求较少。但是对于来自外部输入的值，无法预测是否有特殊字符，如果安全要
 求高的项目，可以覆盖 `kEscapeValue` 的值。例如：
 
+<!-- example:usage_6_2_1_safe_config -->
 ```cpp
 struct SafeConfig : wwjson::BasicConfig<std::string>
 {
@@ -1044,6 +1058,7 @@ builder.EndRoot();
 与转义控制常量一样，数字引号也有手动挡的调用方法，只是通过在 `AddItem` 或
 `AddMember` 参数表中额外传个 `true` 来表示。例如：
 
+<!-- example:usage_6_2_1_quote_numbers -->
 ```cpp
 wwjson::RawBuilder builder;
 builder.BeginRoot();
@@ -1091,6 +1106,7 @@ builder.EndRoot();
 方法（也可以对个别值自行先转义再按当成普通字符串添加）。另一方面，也可以将方法
 覆盖为空操作，完全禁止转义，即使调用 `AddMemberEscape` 也实际上不转义，例如：
 
+<!-- example:usage_6_2_2_unsafe_config -->
 ```cpp
 struct UnsafeConfig : wwjson::BasicConfig<std::string>
 {
@@ -1176,6 +1192,7 @@ WWJSON 不一定用于只构建完整的 json 字符串，它也允许在已有�
 组装 json 。在下面示例中，为简便起见，直接让它空继承 `std::string` 了，但实践
 中可以为它增加更复杂的功能：
 
+<!-- example:usage_6_3_1_log_line_target -->
 ```cpp
 struct LogLine : public std::string {};
 using LogLineBuilder = wwjson::GenericBuilder<LogLine>;
@@ -1204,6 +1221,7 @@ std::cout << fullLine.c_str() << std::endl;
 字符串写入的接口，就能作为 wwjson 的序列化目标。在下面的示例中，仍然以空继承
 `std::string` 省略实际的复杂性：
 
+<!-- example:usage_6_3_2_message_stream_target -->
 ```cpp
 struct MessageBuffer : public std::string {};
 using MessageBuilder = wwjson::GenericBuilder<MessageBuffer>;

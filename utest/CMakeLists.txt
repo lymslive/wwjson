@@ -44,6 +44,9 @@ add_executable(utwwjson
     # not test file, but used by other test file
     custom_string.cpp
     test_util.cpp
+
+    # test sample from docs
+    t_usage.cpp
 )
 
 # Add compile definition for simple float format in development
