@@ -56,7 +56,8 @@ make install
 #include "wwjson.hpp"
 #include <iostream>
 
-int main() {
+int main()
+{
     // 创建JSON构建器
     wwjson::RawBuilder builder;
     
@@ -94,13 +95,12 @@ int main() {
 ```cpp
 int code = 0;
 std::string message = "OK";
-std::string json;
 
 // 1. 使用 C printf
 {
     char buff[64];
-    snprintf(buff, sizeof(buff), R"({"code":%d,"messge":"%s")", code, message.c_str());
-    json = buffer;
+    snprintf(buff, sizeof(buff), R"({"code":%d,"message":"%s"})", code, message.c_str());
+    std::string json = buff;
 }
 
 // 2. 使用 C++ stream
@@ -110,11 +110,12 @@ std::string json;
         << R"("code":)" << code << ','
         << R"("message":)" << "\"" << message << "\""
         << '}';
-    json = oss.str();
+    std::string json = oss.str();
 }
 
 // 3. 直接使用 std::string
 {
+    std::string json;
     json.reserve(1024);
     json.push_back('{');
     json.push_back('"');
@@ -122,6 +123,7 @@ std::string json;
     json.push_back('"');
     json.push_back(':');
     json.append(std::to_string(code));
+    json.push_back(',');
     json.push_back('"');
     json.append("message");
     json.push_back('"');
@@ -145,10 +147,10 @@ WWJSON 的底层原理，其实就与上例代码的方法 3 一样，直接往�
 <!-- example:usage_3_2_wwjson_encapsulation -->
 ```cpp
 wwjson::RawBuilder builder;
-builder.BeginObject()
+builder.BeginObject();
 builder.AddMember("code", code);
 builder.AddMember("message", message);
-builder.EndObject()
+builder.EndObject();
 
 std::cout << builder.json << std::endl;
 //^ 输出：{"code":0,"message":"OK"},
@@ -156,7 +158,7 @@ std::cout << builder.GetResult() << std::endl;
 //^ 输出：{"code":0,"message":"OK"}
 ```
 
-这里的 5 行代码与前例直接使用 `std::string` 类型的 `json` 变量的 15 行代码几乎
+这里的 5 行代码与前例直接使用 `std::string` 类型的 `json` 变量的 17 行代码几乎
 做相同的事情。而且 `builder` 对象只有一个唯一的公开成员就叫 `json` ，这是特意
 开放暴露底层的，因为它没有什么特别的技术含量。虽然可能不常见，但如有需求，完全
 可以在构建 json 之前添加一些前缀字符串，或构建之后附加一些后缀字符串，或者调用
@@ -357,7 +359,7 @@ builder.AddMember("url", nullptr);  // null值
 builder.BeginObject("feature");
 builder.AddMember("standar", "C++17");
 builder.AddMember("dom", false);
-builder.AddMember("cofig", "compile-time");
+builder.AddMember("config", "compile-time");
 builder.EndObject();
 
 // 数组 refer
@@ -413,7 +415,7 @@ builder.BeginRoot();
     {
         builder.AddMember("standar", "C++17");
         builder.AddMember("dom", false);
-        builder.AddMember("cofig", "compile-time");
+        builder.AddMember("config", "compile-time");
     }
     builder.EndObject();
 
@@ -457,7 +459,7 @@ wwjson::RawBuilder builder;
         auto _close = builder.ScopeObject("feature");
         builder.AddMember("standar", "C++17");
         builder.AddMember("dom", false);
-        builder.AddMember("cofig", "compile-time");
+        builder.AddMember("config", "compile-time");
     }
 
     // 数组 refer
@@ -474,7 +476,7 @@ wwjson::RawBuilder builder;
         }
     }
 }
-builder.GetResult();
+std::string json = builder.GetResult();
 ```
 
 注意到 `ScopeObject` 方法返回一个（C++）对象，其类型也不必记，用 `auto` 接收就
@@ -504,7 +506,7 @@ wwjson::RawBuilder builder;
         auto feature = root.ScopeObject("feature");
         feature.AddMember("standar", "C++17");
         feature.AddMember("dom", false);
-        feature.AddMember("cofig", "compile-time");
+        feature.AddMember("config", "compile-time");
     }
 
     // 数组 refer
@@ -521,7 +523,7 @@ wwjson::RawBuilder builder;
         }
     }
 }
-builder.GetResult();
+std::string json = builder.GetResult();
 ```
 
 如果觉得裸加 `{}` 很奇怪，有强行划分作用域的生硬感，那么还可以将 `auto` 变量的
@@ -543,7 +545,7 @@ if (auto root = builder.ScopeObject())
     {
         feature.AddMember("standar", "C++17");
         feature.AddMember("dom", false);
-        feature.AddMember("cofig", "compile-time");
+        feature.AddMember("config", "compile-time");
     }
 
     // 数组 refer
@@ -560,7 +562,7 @@ if (auto root = builder.ScopeObject())
         }
     }
 }
-builder.GetResult();
+std::string json = builder.GetResult();
 ```
 
 在 C++ 中，`if` 语句的小括号内也可以像 `for` 语句一样创建局部变量，然后写第二
@@ -604,7 +606,7 @@ builder.AddMember("feature", [&builder]() {
     auto feature = builder.ScopeObject();
     feature.AddMember("standar", "C++17");
     feature.AddMember("dom", false);
-    feature.AddMember("cofig", "compile-time");
+    feature.AddMember("config", "compile-time");
 });
 
 // 数组 refer
@@ -670,7 +672,7 @@ builder["url"] = nullptr;
 builder.AddMember("feature", [&builder]() {
     auto feature = builder.ScopeObject();
     feature << "standar"<< "C++17";
-    feature << "dom"<< false << "cofig" << "compile-time";
+    feature << "dom"<< false << "config" << "compile-time";
 });
 
 // 数组 refer
@@ -859,9 +861,9 @@ std::string feature;
     builder.BeginRoot();
     builder.AddMember("standar", "C++17");
     builder.AddMember("dom", false);
-    builder.AddMember("cofig", "compile-time");
+    builder.AddMember("config", "compile-time");
     builder.EndRoot();
-    subJson = builder.MoveResult();
+    feature = builder.MoveResult();
 }
 
 std::string refer;
@@ -884,7 +886,7 @@ std::string project;
     builder.AddMember("author", "lymslive");
     builder.AddMember("url", nullptr);
 
-    builder.AddMemberSub("feature", subJson);
+    builder.AddMemberSub("feature", feature);
 
     builder.BeginArray("refer");
     builder.AddItem("rapidjson");
@@ -919,7 +921,7 @@ basic.BeginRoot();
 basic["name"] = "wwjson";
 basic["version"] = 1.01;
 basic.EndRoot();
-std::string strBasic = basic.MoveResult();
+std::string strBasic = basic.GetResult();
 
 // 子串2
 wwjson::RawBuilder feature;
@@ -927,7 +929,7 @@ feature.BeginRoot();
 feature["standar"] = "C++17";
 feature["dom"] = false;
 feature.EndRoot();
-std::string strFeature = feature.MoveResult();
+std::string strFeature = feature.GetResult();
 
 // 将子串2到子串1
 basic.Merge(feature);
@@ -1197,14 +1199,15 @@ WWJSON 不一定用于只构建完整的 json 字符串，它也允许在已有�
 struct LogLine : public std::string {};
 using LogLineBuilder = wwjson::GenericBuilder<LogLine>;
 
-LogLine prefix("[Log] ");
-LogLineBuilder builder(std::move(prefix)); // 建议用移动的性能更高
+LogLine fullLine;
+fullLine.append("[Log] "); // 前缀部分
+LogLineBuilder builder(std::move(fullLine)); // 建议用移动的性能更高
 builder.BeginRoot();
 builder.AddMember("name", "wwjson");
 builder.AddMember("version", 1.01);
 builder.EndRoot();
 
-LogLine fullLine = builder.MoveResult();
+fullLine = builder.MoveResult();
 fullLine.append(" [End]"); // 可能的后缀部分
 std::cout << fullLine.c_str() << std::endl;
 // 结果：[Log] {"name":"wwjson","version":1.01} [End]

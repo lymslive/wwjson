@@ -128,9 +128,9 @@ DEF_TAST(usage_3_2_wwjson_encapsulation, "example from docs/usage.md")
     COUT(builder.json, R"({"code":0,"message":"OK"},)");
 //+ std::cout << builder.GetResult() << std::endl;
     //^ 输出：{"code":0,"message":"OK"}
+#endif
     std::string json = builder.GetResult();
     COUT(json, R"({"code":0,"message":"OK"})");
-#endif
 }
 
 DEF_TAST(usage_4_1_flat_construction, "example from docs/usage.md")
@@ -593,13 +593,13 @@ DEF_TAST(usage_5_2_merge_substrings, "example from docs/usage.md")
     
     // 将子串2到子串1
     basic.Merge(feature);
-    std::string merged = basic.GetResult();
-    COUT(merged, R"({"name":"wwjson","version":1.01,"standar":"C++17","dom":false})");
     
     // 用静态方法合并子串
     wwjson::RawBuilder::Merge(strBasic, strFeature);
-    COUT(strBasic, R"({"name":"wwjson","version":1.01,"standar":"C++17","dom":false})");
 #endif
+    std::string merged = basic.GetResult();
+    COUT(merged, R"({"name":"wwjson","version":1.01,"standar":"C++17","dom":false})");
+    COUT(strBasic, R"({"name":"wwjson","version":1.01,"standar":"C++17","dom":false})");
 }
 
 struct SafeConfig : wwjson::BasicConfig<std::string>
