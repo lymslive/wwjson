@@ -121,9 +121,9 @@ wwjson::GenericBuilder<std::string, MyConfig> builder;
 
 ## 📚 Documentation
 
-- [Complete User Guide](docs/usage.md) - Detailed feature introduction and examples
-- [API Reference](include/wwjson.hpp) - Complete API documentation in headers
-- [Performance Report](perf/report.md) - Detailed performance analysis
+- [📖 Complete User Guide](docs/usage.md) - Detailed feature introduction and examples
+- [🔧 API Reference](https://lymslive.github.io/wwjson/api/) - Doxygen-generated complete API documentation
+- [📊 Performance Report](perf/report.md) - Detailed performance analysis
 
 ## 🤝 Contributing
 

@@ -1398,4 +1398,12 @@ wwjson.hpp 文件，再分析探索其他优化方法。
 
 ### DONE:20251220~114230
 
+## TODO:2025-12-20/2 部署文档至 github page 
+
+网页内容目前主要有两部分：
+- include/wwjson.hpp 的注释由 Doxygen 生成 api 参考
+- docs/usage.md 生成的用户指南
+
+### DONE: 20251220-183849
+
 ## TODO: v1.0 封版

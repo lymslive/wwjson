@@ -2611,6 +2611,7 @@ AddMemberEscape(key) + BeginObject()  // 等效于 BeginObject(key) 但键名会
 - **专业性**: Doxygen 风格文档提升了项目的专业形象
 
 ## TASK:20251215-113942
+-----------------------
 
 ### 任务描述(2025-12-15/1)
 在 perf/p_design.cpp 文件中增加一个相对性能测试用例，测试四位小数的定点小数的小数部分的去除尾部零的方法如何实现具有更好的性能。
@@ -2655,3 +2656,66 @@ AddMemberEscape(key) + BeginObject()  // 等效于 BeginObject(key) 但键名会
 
 任务成功完成！方法A确实比多重if判断的方法B性能更优，平均提升约20%。优化后的代码特别适合处理包含4位小数的JSON数据，如价格、坐标、测量值等常见场景，将带来显著的性能提升。
 
+## TASK:20251220-183849
+-----------------------
+
+完成文档自动化部署系统的搭建，实现了从源代码到在线文档的完整工作流。
+
+### 主要工作内容
+
+1. **创建 Doxygen 配置** (`Doxyfile`)
+   - 配置生成 API 参考文档到 `docs/build/api` 目录
+   - 启用 HTML 输出、源码浏览和图表生成功能
+   - 针对 WWJSON 项目优化设置
+
+2. **设计文档结构**
+   - 创建首页 `docs/index.md` 提供项目完整介绍
+   - 设计统一的 HTML 模板 `docs/template.html`
+   - 使用现代化 CSS 和响应式设计
+   - 支持中文内容和代码高亮
+
+3. **编写构建脚本**
+   - `docs/pandoc-gen.sh` - 负责将 Markdown 转换为 HTML
+   - `docs/build.sh` - 一键构建所有文档（Doxygen + Pandoc）
+   - 支持本地测试和 CI/CD 自动化
+
+4. **配置 GitHub Actions 工作流**
+   - 创建 `.github/workflows/docs.yml` 部署流水线
+   - 支持推送时自动触发和手动触发
+   - 安装必要依赖：doxygen、graphviz、pandoc
+   - 自动部署到 GitHub Pages
+
+5. **修复显示问题**
+   - 解决 Pandoc 代码块缩进问题
+   - 完善导航栏，添加首页链接
+   - 确保跨页面导航一致性
+
+6. **更新项目文档**
+   - 修改 README.md 和 README-en.md
+   - 添加在线文档链接：`https://lymslive.github.io/wwjson/api/`
+   - 保持本地文档链接的可用性
+
+### 生成的文档结构
+
+```
+docs/build/
+├── index.html    # 项目首页
+├── usage.html    # 用户指南
+└── api/          # API 参考文档（Doxygen 生成）
+```
+
+### 技术亮点
+
+- 统一的 HTML 模板确保文档风格一致性
+- 使用 Pandoc 模板支持元数据定制
+- 自动化部署减少人工操作
+- 响应式设计适配不同设备
+
+### 测试验证
+
+- 本地成功运行构建脚本，生成完整文档
+- 代码块缩进问题已修复
+- 导航链接正常工作
+- GitHub Actions 工作流配置正确
+
+文档系统现已就绪，将在推送到 main 分支时自动部署到 GitHub Pages。

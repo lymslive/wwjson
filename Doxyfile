@@ -1,0 +1,75 @@
+# Doxygen configuration for WWJSON project
+
+PROJECT_NAME           = "WWJSON"
+PROJECT_NUMBER         = "v1.0"
+PROJECT_BRIEF          = "High-performance JSON string construction library for C++"
+
+OUTPUT_DIRECTORY       = docs/build
+
+# Generate HTML output
+GENERATE_HTML          = YES
+HTML_OUTPUT            = api
+HTML_FILE_EXTENSION    = .html
+
+# Don't generate other output formats
+GENERATE_LATEX         = NO
+GENERATE_RTF           = NO
+GENERATE_MAN           = NO
+GENERATE_XML           = NO
+
+# Input source files
+INPUT                  = include/wwjson.hpp
+INPUT_ENCODING         = UTF-8
+RECURSIVE              = NO
+
+# Extract documentation from source comments
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = NO
+EXTRACT_LOCAL_CLASSES  = NO
+EXTRACT_LOCAL_METHODS  = NO
+
+# Language settings
+OPTIMIZE_FOR_C_OR_CXX  = YES
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+
+# Appearance
+QT_AUTOBRIEF           = YES
+JAVADOC_AUTOBRIEF      = YES
+BRIEF_MEMBER_DESC      = YES
+REPEAT_BRIEF           = YES
+ALWAYS_DETAILED_SEC    = NO
+FULL_PATH_NAMES        = NO
+STRIP_FROM_PATH        = 
+
+# Navigation
+TOC_INCLUDE_HEADINGS   = 5
+GENERATE_TREEVIEW      = YES
+TREEVIEW_WIDTH         = 250
+
+# Source code browsing
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+STRIP_CODE_COMMENTS    = YES
+REFERENCED_BY_RELATION = NO
+REFERENCES_RELATION    = NO
+
+# HTML customization
+HTML_STYLESHEET        = 
+HTML_EXTRA_STYLESHEET  = 
+HTML_EXTRA_FILES       = 
+
+# Layout
+LAYOUT_FILE            = 
+
+# Disabling warnings about undocumented elements
+QUIET                  = NO
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
+
+# Search engine
+SEARCHENGINE           = YES
+SERVER_BASED_SEARCH    = NO

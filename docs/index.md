@@ -1,14 +1,12 @@
 # WWJSON - 高性能C++ JSON构建库
 
-[![CI Status](https://github.com/lymslive/wwjson/workflows/CI/badge.svg)](https://github.com/lymslive/wwjson/actions)
-[![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B17)
-[![Header-only](https://img.shields.io/badge/Header--only-✓-green.svg)](https://en.wikipedia.org/wiki/Header-only)
-
-**语言:** [简体中文](README.md) | [English](README-en.md)
+![CI Status](https://github.com/lymslive/wwjson/workflows/CI/badge.svg)
+![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)
+![Header-only](https://img.shields.io/badge/Header--only-✓-green.svg)
 
 WWJSON是一个**仅头文件**的C++ JSON构建库，专注于**高性能JSON字符串生成**而无需DOM树构造。该库提供了简单、轻量级的JSON序列化方式，通过直接字符串操作实现高性能，特别适合需要快速构建JSON响应的应用场景。
 
-## ✨ 核心特性
+## 🚀 核心特性
 
 - 🚀 **高性能**: 直接字符串操作，无需DOM树构建开销
 - 🎯 **轻量级**: 头文件only设计，无运行时依赖
@@ -25,9 +23,7 @@ WWJSON是一个**仅头文件**的C++ JSON构建库，专注于**高性能JSON�
 - **编译器**: GCC 7+, Clang 6+, MSVC 2017+
 - **构建系统**: CMake 3.15+
 
-### 使用方式
-
-#### 1. 直接包含头文件
+### 基本用法
 
 ```cpp
 #include "wwjson.hpp"
@@ -51,7 +47,7 @@ int main() {
 }
 ```
 
-#### 2. CMake集成
+### CMake集成
 
 ```cmake
 # 查找包
@@ -61,19 +57,18 @@ find_package(wwjson 1.0 REQUIRED)
 target_link_libraries(your_target PRIVATE wwjson::wwjson)
 ```
 
-### 构建与测试
+## 📊 性能特点
 
-```bash
-# Debug构建 + 单元测试
-make build
-./build/utest/utwwjson --cout=silent
+- **小整数优化**: 0-99范围使用查表法，显著提升序列化速度
+- **小范围浮点优化**: [0, 9999.9999]范围内快速序列化
+- **智能转义**: 仅在必要时进行字符转义，减少开销
+- **内存预分配**: 支持预估大小，减少内存重分配
 
-# Release构建 + 性能测试
-make release
-./build-release/perf/pfwwjson
-```
+## 📚 文档
 
-更多构建选项请查看 [docs/usage.md](docs/usage.md)。
+- [📖 用户指南](usage.html) - 详细的功能介绍和使用示例
+- [🔧 API参考](api/) - Doxygen生成的完整API文档
+- [📊 性能测试报告](https://github.com/lymslive/wwjson/blob/main/perf/report.md) - 详细的性能分析
 
 ## 🎯 适用场景
 
@@ -83,34 +78,6 @@ make release
 - **消息队列**: 序列化数据传输格式
 - **数据导出**: 将内存数据转换为JSON格式
 
-## 📊 性能特点
-
-- **小整数优化**: 0-99范围使用查表法，显著提升序列化速度
-- **小范围浮点优化**: [0, 9999.9999]范围内快速序列化
-- **智能转义**: 仅在必要时进行字符转义，减少开销
-- **内存预分配**: 支持预估大小，减少内存重分配
-
-## 🏗️ 架构设计
-
-### 核心组件
-
-- **GenericBuilder**: 主构建器，支持定制字符串类型作为序列化目标
-- **GenericObject/GenericArray**: 作用域管理的对象和数组
-- **BasicConfig**: 可配置序列化选项（转义、逗号等）
-- **StringConcept**: 字符串类型接口规范（std::string 小子集）
-
-### 配置选项
-
-```cpp
-struct MyConfig : wwjson::BasicConfig<std::string> {
-    static constexpr bool kEscapeKey = true;     // 总是转义键名
-    static constexpr bool kQuoteNumber = false;  // 数字不加引号
-    static constexpr bool kTailComma = false;    // 不允许尾逗号
-};
-
-wwjson::GenericBuilder<std::string, MyConfig> builder;
-```
-
 ## 🔬 质量保证
 
 - ✅ **单元测试**: 完备的测试用例，覆盖所有API
@@ -118,12 +85,6 @@ wwjson::GenericBuilder<std::string, MyConfig> builder;
 - ✅ **CI/CD**: GitHub Actions自动化测试
 - ✅ **内存安全**: 无内存泄漏，RAII模式
 - ✅ **类型安全**: 编译期类型检查
-
-## 📚 文档
-
-- [📖 完整用户指南](docs/usage.md) - 详细的功能介绍和使用示例
-- [🔧 API参考文档](https://lymslive.github.io/wwjson/api/) - Doxygen生成的完整API文档
-- [📊 性能测试报告](perf/report.md) - 详细的性能分析
 
 ## 🤝 贡献
 
@@ -137,7 +98,7 @@ wwjson::GenericBuilder<std::string, MyConfig> builder;
 
 ## 📄 许可证
 
-本项目采用 [MIT License](LICENSE) 开源协议。
+本项目采用 [MIT License](https://github.com/lymslive/wwjson/blob/main/LICENSE) 开源协议。
 
 ## 👥 致谢
 
