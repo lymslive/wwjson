@@ -1438,4 +1438,32 @@ utest perf 两个子目录的 README.md 及其用例列表 cases.md 又是否值
 
 ### DONE: 20251221~191430
 
+## TODO:2025-12-21/3 优化网页构建脚本
+
+将 docs/template.html 模板文件中的 style 与 js 代码分离为独立文件：
+- style.css : 所有样式
+- toc.js : 目前的 js 代码都是处理目录表的
+
+新建 docs/template/ 子目录，将以上拆分的三个文件都放在该子目录下：
+- template.html 改名 default.html
+- style.css, toc.js
+- 内嵌生成的 docs/build/remove-chinese-whitespace.lua 也拆分放到该目录
+
+新建 docs/makefile ，配置依赖规则只在有更新时才重新生成网页：
+- docs/build/api 依赖 include
+- docs/build/*.html 依赖 docs/*.md，目前只有 index.md 与 usage.md
+- 静态 .css .js 脚本更新到 docs/build 目录
+- pandoc 的通用参数可使用变量简化复用
+- docs/pandoc-gen.sh 脚本可以删除了
+
+docs/build.sh 入口脚本保留，精简执行以下工作：
+- 创建 docs/build 目录准备构建文档网页
+- 打印 doxygen 与 pandoc 的版本等信息
+- 调用 make
+- 打印些提示信息
+
+根目录的 makefile 增加快捷命令封装 make docs 调用 docs/build.sh
+
+### DONE: 20251221-220800
+
 ## TODO: v1.0 封版

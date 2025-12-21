@@ -4,7 +4,7 @@
 ![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)
 ![Header-only](https://img.shields.io/badge/Header--only-✓-green.svg)
 
-[WWJSON](https://github.com/lymslive/wyjson)是一个**仅头文件**的C++ JSON构建库，专注于**高性能JSON字符串生成**而无需DOM树构造。该库提供了简单、轻量级的JSON序列化方式，通过直接字符串操作实现高性能，特别适合需要快速构建JSON响应的应用场景。
+[WWJSON](https://github.com/lymslive/wwjson)是一个**仅头文件**的C++ JSON构建库，专注于**高性能JSON字符串生成**而无需DOM树构造。该库提供了简单、轻量级的JSON序列化方式，通过直接字符串操作实现高性能，特别适合需要快速构建JSON响应的应用场景。
 
 ## 🚀 核心特性
 

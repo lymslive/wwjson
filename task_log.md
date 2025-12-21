@@ -2786,3 +2786,42 @@ docs/build/
 
 所有问题已解决，文档渲染效果正常。
 
+## TASK:20251221-220800
+-----------------------
+
+### 优化文档构建脚本结构
+
+本任务完成 docs/ 目录下构建脚本的优化，将原本单一的 template.html 文件拆分为模块化结构，并增加 Makefile 支持依赖跟踪。
+
+### 文件结构重组
+
+1. **创建 docs/template/ 子目录**
+   - 将 template.html 重构为 default.html，引用外部 CSS/JS
+   - 将样式代码提取到 style.css
+   - 将 JavaScript 代码提取到 toc.js
+   - 将 Lua 过滤器移到 remove-chinese-whitespace.lua
+
+2. **Makefile 依赖跟踪**
+   - 创建 docs/makefile 用于精确依赖管理
+   - 使用 doxygen 标记文件 (.doxygen-stamp) 跟踪 API 文档更新
+   - 明确区分 HTML 生成依赖模板文件，但不依赖静态资源
+
+3. **简化构建脚本**
+   - 重构 build.sh 为入口脚本，仅调用 make
+   - 添加运行目录检查（通过 .git 目录存在性判断）
+   - 删除不再需要的 pandoc-gen.sh 脚本
+
+### 技术改进点
+
+1. **依赖精确化**：
+   - HTML 文件仅依赖 default.html 模板和源 Markdown
+   - 静态资源（CSS/JS）独立复制
+   - API 文档通过标记文件跟踪，避免不必要重建
+
+2. **构建优化**：
+   - Makefile 确保只在必要时重建目标
+   - 从项目根目录运行，使用 -f 参数指定 Makefile 路径
+   - 保留原有的文档功能不变
+
+使用验证：运行 `./docs/build.sh` 验证新系统正常工作，生成的文档完整。
+
