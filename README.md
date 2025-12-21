@@ -3,7 +3,6 @@
 [![CI Status](https://github.com/lymslive/wwjson/workflows/CI/badge.svg)](https://github.com/lymslive/wwjson/actions)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B17)
 [![Header-only](https://img.shields.io/badge/Header--only-✓-green.svg)](https://en.wikipedia.org/wiki/Header-only)
-
 **语言:** [简体中文](README.md) | [English](README-en.md)
 
 WWJSON是一个**仅头文件**的C++ JSON构建库，专注于**高性能JSON字符串生成**而无需DOM树构造。该库提供了简单、轻量级的JSON序列化方式，通过直接字符串操作实现高性能，特别适合需要快速构建JSON响应的应用场景。
@@ -119,7 +118,7 @@ wwjson::GenericBuilder<std::string, MyConfig> builder;
 - ✅ **内存安全**: 无内存泄漏，RAII模式
 - ✅ **类型安全**: 编译期类型检查
 
-## 📚 文档
+## 📚 参考文档
 
 - [📖 完整用户指南](docs/usage.md) - 详细的功能介绍和使用示例
 - [🔧 API参考文档](https://lymslive.github.io/wwjson/api/) - Doxygen生成的完整API文档

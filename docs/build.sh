@@ -8,10 +8,12 @@ echo "Building WWJSON documentation..."
 
 # Step 1: Generate API documentation with Doxygen
 echo "Step 1: Generating API documentation with Doxygen..."
+doxygen --version
 doxygen Doxyfile
 
 # Step 2: Convert markdown to HTML with Pandoc
 echo "Step 2: Converting markdown to HTML..."
+pandoc --version
 ./docs/pandoc-gen.sh
 
 # Show result

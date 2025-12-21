@@ -127,7 +127,6 @@
             padding: 20px;
             overflow-x: auto;
             margin: 20px 0;
-            line-height: 1.4; /* 减小行距 */
         }
 
         code {
@@ -144,36 +143,8 @@
             padding: 0;
             border: none;
             font-size: 0.9em;
-            line-height: 1.4; /* 保持与 pre 一致的行距 */
             display: block;
             white-space: pre;
-        }
-        
-        /* Fix pandoc code block indentation */
-        pre.sourceCode {
-            padding: 0;
-            margin: 20px 0; /* 添加外边距 */
-            background: var(--code-background);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            overflow-x: auto;
-            line-height: 1.4; /* 减小行距 */
-        }
-        
-        pre.sourceCode code {
-            padding: 20px;
-            background: none;
-            border: none;
-            border-radius: 0; /* 父元素已经有圆角 */
-            display: block;
-            white-space: pre;
-            text-indent: 0 !important;
-        }
-        
-        /* Remove indentation from pandoc line numbers */
-        .sourceLine {
-            text-indent: 0 !important;
-            padding-left: 0 !important;
         }
         
         blockquote {
@@ -362,10 +333,6 @@
     <script>
     // Generate TOC for non-index pages
     document.addEventListener('DOMContentLoaded', function() {
-        // Check if this page should have TOC
-        const generateToc = '$generate-toc$';
-        if (generateToc !== 'true') return;
-        
         const headers = document.querySelectorAll('main h2, main h3, main h4, main h5, main h6');
         if (headers.length === 0) return;
         
@@ -500,7 +467,7 @@
             </div>
             
             <main class="main-content">
-                $body$
+$body$
             </main>
         </div>
         

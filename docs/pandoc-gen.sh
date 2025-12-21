@@ -23,23 +23,21 @@ EOF
 
 # Convert index.md to HTML using template
 pandoc docs/index.md \
+  -o docs/build/index.html \
   --template docs/template.html \
   --metadata title="WWJSON - 高性能C++ JSON构建库" \
-  --metadata generate-toc="false" \
   --lua-filter=docs/build/remove-chinese-whitespace.lua \
   --highlight-style=kate \
-  -o docs/build/index.html \
-  --standalone
+  --standalone --verbose
 
 # Convert usage.md to HTML using template
 pandoc docs/usage.md \
+  -o docs/build/usage.html \
   --template docs/template.html \
   --metadata title="WWJSON 用户指南" \
-  --metadata generate-toc="true" \
   --lua-filter=docs/build/remove-chinese-whitespace.lua \
   --highlight-style=kate \
-  -o docs/build/usage.html \
-  --standalone
+  --standalone --verbose
 
 echo "HTML generation completed!"
 echo "Generated files:"

@@ -4,7 +4,7 @@
 ![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)
 ![Header-only](https://img.shields.io/badge/Header--only-✓-green.svg)
 
-WWJSON是一个**仅头文件**的C++ JSON构建库，专注于**高性能JSON字符串生成**而无需DOM树构造。该库提供了简单、轻量级的JSON序列化方式，通过直接字符串操作实现高性能，特别适合需要快速构建JSON响应的应用场景。
+[WWJSON](https://github.com/lymslive/wyjson)是一个**仅头文件**的C++ JSON构建库，专注于**高性能JSON字符串生成**而无需DOM树构造。该库提供了简单、轻量级的JSON序列化方式，通过直接字符串操作实现高性能，特别适合需要快速构建JSON响应的应用场景。
 
 ## 🚀 核心特性
 
@@ -57,19 +57,6 @@ find_package(wwjson 1.0 REQUIRED)
 target_link_libraries(your_target PRIVATE wwjson::wwjson)
 ```
 
-## 📊 性能特点
-
-- **小整数优化**: 0-99范围使用查表法，显著提升序列化速度
-- **小范围浮点优化**: [0, 9999.9999]范围内快速序列化
-- **智能转义**: 仅在必要时进行字符转义，减少开销
-- **内存预分配**: 支持预估大小，减少内存重分配
-
-## 📚 文档
-
-- [📖 用户指南](usage.html) - 详细的功能介绍和使用示例
-- [🔧 API参考](api/) - Doxygen生成的完整API文档
-- [📊 性能测试报告](https://github.com/lymslive/wwjson/blob/main/perf/report.md) - 详细的性能分析
-
 ## 🎯 适用场景
 
 - **Web API响应**: 快速生成JSON API响应
@@ -86,15 +73,18 @@ target_link_libraries(your_target PRIVATE wwjson::wwjson)
 - ✅ **内存安全**: 无内存泄漏，RAII模式
 - ✅ **类型安全**: 编译期类型检查
 
-## 🤝 贡献
+## 📊 性能特点
 
-欢迎贡献代码、报告问题或提出改进建议！
+- **小整数优化**: 0-99范围使用查表法，显著提升序列化速度
+- **小范围浮点优化**: [0, 9999.9999]范围内快速序列化
+- **智能转义**: 仅在必要时进行字符转义，减少开销
+- **内存预分配**: 支持预估大小，减少内存重分配
 
-1. Fork本仓库
-2. 创建功能分支 (`git checkout -b feature/amazing-feature`)
-3. 提交改动 (`git commit -m 'Add amazing feature'`)
-4. 推送分支 (`git push origin feature/amazing-feature`)
-5. 提交Pull Request
+## 📚 文档列表
+
+- [📖 用户指南](usage.html) - 详细的功能介绍和使用示例
+- [🔧 API参考](api/) - Doxygen生成的完整API文档
+- [📊 性能测试报告](https://github.com/lymslive/wwjson/blob/main/perf/report.md) - 详细的性能分析
 
 ## 📄 许可证
 
