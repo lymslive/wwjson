@@ -636,6 +636,133 @@ class FractionalSerializationTest : public RelativeTimer<FractionalSerialization
     }
 };
 
+// ========== 测试7: 无符号整数序列化方法对比 ==========
+
+/**
+ * @brief 无符号整数序列化方法对比测试
+ * 对比两种字符写入方法：
+ * 方法A: 使用 ::memcpy(ptr -= 2, src, 2) 拷贝两个字符
+ * 方法B: 当前实现，使用两次 *(--ptr) 赋值
+ */
+class WriteUnsignedCompare : public RelativeTimer<WriteUnsignedCompare>
+{
+  public:
+    int items;
+    uint32_t seed;
+    std::string result;
+    std::vector<uint32_t> test_numbers;
+
+    WriteUnsignedCompare(int count, uint32_t s) : items(count), seed(s)
+    {
+        generateTestNumbers();
+    }
+
+    void generateTestNumbers()
+    {
+        std::mt19937 gen(seed);
+        // 测试大整数，确保会进入循环部分
+        std::uniform_int_distribution<uint32_t> dis(10000, UINT32_MAX);
+
+        test_numbers.clear();
+        test_numbers.reserve(items);
+        for (int i = 0; i < items; ++i)
+        {
+            test_numbers.push_back(dis(gen));
+        }
+    }
+
+    // 方法A: 使用 memcpy 拷贝两个字符
+    void methodA()
+    {
+        result.clear();
+        for (uint32_t num : test_numbers)
+        {
+            constexpr int max_len = std::numeric_limits<uint32_t>::digits10 + 1;
+            char buffer[max_len];
+            char *const buffer_end = buffer + max_len;
+            char *ptr = buffer_end;
+
+            while (num >= 100)
+            {
+                uint32_t chunk = num % 100;
+                num /= 100;
+
+                // 使用 memcpy 拷贝两个字符
+                const auto& kDigitPairs = wwjson::NumberWriter<std::string>::kDigitPairs;
+                const char* src = &kDigitPairs[chunk].high;
+                ::memcpy(ptr -= 2, src, 2);
+            }
+
+            // Handle final 1-2 digit chunk
+            if (num < 10)
+            {
+                *(--ptr) = static_cast<char>('0' + num);
+            }
+            else
+            {
+                const auto& kDigitPairs = wwjson::NumberWriter<std::string>::kDigitPairs;
+                const char* src = &kDigitPairs[num].high;
+                ::memcpy(ptr -= 2, src, 2);
+            }
+
+            // Append completed string to destination
+            result.append(ptr, buffer_end - ptr);
+        }
+    }
+
+    // 方法B: 拷贝当前实现，使用两次赋值
+    void methodB()
+    {
+        result.clear();
+        for (uint32_t num : test_numbers)
+        {
+            constexpr int max_len = std::numeric_limits<uint32_t>::digits10 + 1;
+            char buffer[max_len];
+            char *const buffer_end = buffer + max_len;
+            char *ptr = buffer_end;
+
+            while (num >= 100)
+            {
+                uint32_t chunk = num % 100;
+                num /= 100;
+
+                // 当前实现：两次单独赋值
+                const auto& kDigitPairs = wwjson::NumberWriter<std::string>::kDigitPairs;
+                const auto& pair = kDigitPairs[chunk];
+                *(--ptr) = pair.low;
+                *(--ptr) = pair.high;
+            }
+
+            // Handle final 1-2 digit chunk
+            if (num < 10)
+            {
+                *(--ptr) = static_cast<char>('0' + num);
+            }
+            else
+            {
+                const auto& kDigitPairs = wwjson::NumberWriter<std::string>::kDigitPairs;
+                const auto& pair = kDigitPairs[num];
+                *(--ptr) = pair.low;
+                *(--ptr) = pair.high;
+            }
+
+            // Append completed string to destination
+            result.append(ptr, buffer_end - ptr);
+        }
+    }
+
+    bool methodVerify()
+    {
+        // 验证两个方法产生相同的输出
+        methodA();
+        std::string resultA = result;
+        methodB();
+        std::string resultB = result;
+
+        return resultA == resultB;
+    }
+};
+
 } // namespace perf
 } // namespace test
 
@@ -748,5 +875,26 @@ DEF_TAST(design_fractional_serialization, "4位小数部分序列化优化验证
     // 运行测试并打印结果
     double ratio = tester.runAndPrint("Fractional Serialization Optimization", 
                                       "Method A: Buffer+Trim", "Method B: Multi-If", argv.loop, 10);
+}
+
+// 测试7: 无符号整数序列化方法对比
+DEF_TAST(design_write_unsigned_compare, "无符号整数序列化方法对比测试")
+{
+    test::CArgv argv;
+    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items, argv.loop);
+    
+    test::perf::WriteUnsignedCompare tester(argv.items, static_cast<uint32_t>(argv.start));
+    
+    // 运行测试并打印结果
+    double ratio = tester.runAndPrint("WriteUnsigned Compare", 
+                                      "Method A: memcpy", "Method B: Two Assignments", argv.loop, 10);
+    
+    COUTF(std::isnan(ratio), false);
+    
+    // 检查验证结果
+    if (std::isnan(ratio))
+    {
+        DESC("WARNING: Verification failed - methods produce different output");
+    }
 }
 
