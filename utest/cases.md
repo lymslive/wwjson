@@ -110,3 +110,25 @@
 - `scope_if_bool_vs_constructor` - 构造方法中的 if bool 语法测试
 - `scope_addmember_split` - ScopeArray/Object 拆分测试 - AddMember + Scope 的组合用法
 
+## t_usage.cpp
+
+- `usage_2_2_first_example` - example from docs/usage.md
+- `usage_3_1_json_concatenation` - example from docs/usage.md
+- `usage_3_2_wwjson_encapsulation` - example from docs/usage.md
+- `usage_4_1_flat_construction` - example from docs/usage.md
+- `usage_4_2_brace_indentation` - example from docs/usage.md
+- `usage_4_2_scope_variables` - example from docs/usage.md
+- `usage_4_2_named_scope_variables` - example from docs/usage.md
+- `usage_4_2_if_statement_scope` - example from docs/usage.md
+- `usage_4_3_lambda_substructure` - example from docs/usage.md
+- `usage_4_4_operator_overloading` - example from docs/usage.md
+- `usage_4_5_step_entrance` - example from docs/usage.md
+- `usage_4_5_struct_builder_call` - example from docs/usage.md
+- `usage_5_1_add_substring` - example from docs/usage.md
+- `usage_5_2_merge_substrings` - example from docs/usage.md
+- `usage_6_2_1_safe_config` - example from docs/usage.md
+- `usage_6_2_1_quote_numbers` - example from docs/usage.md
+- `usage_6_2_2_unsafe_config` - example from docs/usage.md
+- `usage_6_3_1_log_line_target` - example from docs/usage.md
+- `usage_6_3_2_message_stream_target` - example from docs/usage.md
+

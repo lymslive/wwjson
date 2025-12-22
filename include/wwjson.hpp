@@ -2,8 +2,10 @@
  * @file wwjson.hpp
  * @author lymslive
  * @date 2025-11-21
- * @last_modified 2025-12-13
- * @brief Construrct json in raw string simply and quickly.
+ * @modified 2025-12-22
+ * @version 1.0.0
+ *
+ * @brief Construct json in raw string simply and quickly.
  *
  * @details WWJSON is a header-only C++ library for fast JSON string building
  * without DOM tree construction. It provides a simple, lightweight way to
@@ -539,7 +541,7 @@ template <typename stringT> struct BasicConfig
     ///
     /// @par Escape Strategy:
     /// - **Control Characters (0x01-0x1F)**: Replaced with '.' for readability
-    /// - **Standard Escapes**: Uses C/C++ escape sequences (\0, \a, \b, \t, \n, \v, \f, \r)
+    /// - **Standard Escapes**: Uses C/C++ escape sequences (\\0, \\a, \\b, \\t, \\n, \\v, \\f, \\r)
     /// - **JSON Special**: Properly escapes quotes and backslashes
     /// - **Non-ASCII (≥128)**: Passed through unchanged for UTF-8 compatibility
     /// - **DEL (0x7F)**: Replaced with '.' for consistency

@@ -3,7 +3,6 @@
 [![CI Status](https://github.com/lymslive/wwjson/workflows/CI/badge.svg)](https://github.com/lymslive/wwjson/actions)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B17)
 [![Header-only](https://img.shields.io/badge/Header--only-✓-green.svg)](https://en.wikipedia.org/wiki/Header-only)
-
 **Language:** [简体中文](README.md) | [English](README-en.md)
 
 WWJSON is a **header-only** C++ JSON builder library focused on **high-performance JSON string generation** without DOM tree construction. It provides a simple, lightweight JSON serialization approach through direct string manipulation, ideal for applications requiring fast JSON response generation.
