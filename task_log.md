@@ -131,3 +131,92 @@ WWJSON v1.0.0 版本开发周期：2025-11-25 至 2025-12-22
   - 最佳实践指南
   - 性能调优手册
 
+## TASK:20251222-232501
+-----------------------
+
+### 实现内容
+在 `perf/p_design.cpp` 文件中增加了 `test::perf::WriteUnsignedCompare` 测试类，对比两种字符写入方法的性能差异：
+
+- **方法A**: 使用 `::memcpy(ptr -= 2, src, 2)` 一次拷贝两个字符
+- **方法B**: 当前实现，使用两次 `*(--ptr)` 单独赋值
+
+### 测试结果
+经过多轮测试（10,000-200,000个随机大整数）：
+
+| 测试规模 | 方法A (memcpy) | 方法B (两次赋值) | 性能优势 |
+|---------|---------------|----------------|---------|
+| 10,000项 | 1.2284ms | 1.3167ms | 7.19% 更快 |
+| 100,000项 | 12-14ms | 13-15ms | 3-7% 更快 |
+| 200,000项 | 23.961ms | 25.4978ms | 6.41% 更快 |
+
+### 分析结论
+1. **memcpy方法明显更快**，稳定优势在3-7%之间，超过预期
+2. 性能优势在不同数据规模下都存在，说明memcpy更高效
+3. 优势可能来自：
+   - memcpy使用优化的指令集（如SSE/AVX）
+   - 减少内存操作次数，一次性处理2字节
+   - 编译器对标准库函数的特殊优化
+
+### 关于更快写法的探讨
+当前实现已接近硬件效率极限，进一步优化可能需要：
+- SIMD指令批量处理（增加复杂度）
+- 平台特定汇编（降低可移植性）
+- CPU微架构优化（过度工程化）
+
+### 建议
+**建议采用memcpy方法**，因为：
+- 3-7%的性能提升在实际应用中有意义
+- 保持代码简洁性，使用标准库函数
+- 在性能、可读性和可移植性之间取得良好平衡
+
+## TASK:20251223-000925
+-----------------------
+
+完成 2025-12-22/3 需求：将整数序列化方法改为 memcpy 拷贝缓存表的 2 字符
+
+### 实施内容
+
+1. **备份原性能测试二进制**：已将 `./build-release/perf/pfwwjson` 备份为 `pfwwjson.last`
+
+2. **修改 NumberWriter::WriteUnsigned 方法**：
+   - 在大整数处理循环中（`while (value >= 100)`），将原来两次单独的字符赋值：
+     ```cpp
+     const DigitPair &pair = kDigitPairs[chunk];
+     *(--ptr) = pair.low;
+     *(--ptr) = pair.high;
+     ```
+   - 改为使用 `memcpy` 一次拷贝两个字符：
+     ```cpp
+     const char* digit = &kDigitPairs[chunk].high;
+     ::memcpy(ptr -= 2, digit, 2);
+     ```
+
+3. **修改 WriteSmall 方法的浮点数处理部分**：
+   - 同样将字符对的两步赋值改为 `memcpy` 拷贝：
+     ```cpp
+     const char* digit_q = &kDigitPairs[scaled_int / 100].high;
+     const char* digit_r = &kDigitPairs[scaled_int % 100].high;
+     ::memcpy(ptr, digit_q, 2);
+     ptr += 2;
+     ::memcpy(ptr, digit_r, 2);
+     ```
+
+4. **简化代码结构**：
+   - 移除了 `const DigitPair &pair` 中间变量
+   - 直接使用 `const char* digit` 指针变量进行 memcpy 操作
+
+### 性能测试结果
+
+#### design_large_int 测试
+- **优化前**：NumberWriter::WriteUnsigned 比 std::to_chars = 0.738
+- **优化后**：NumberWriter::WriteUnsigned 比 std::to_chars = 0.725
+
+#### number_int_rel 测试  
+- **优化前**：wwjson builder 比 yyjson API = 1.34756
+- **优化后**：wwjson builder 比 yyjson API = 1.31824
+
+数值比小说明时间短，性能有所提升，但具体数值可能有浮动误差。
+
+### 结论
+
+根据上次任务的测试结果，完成优化并验证有效。

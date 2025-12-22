@@ -55,3 +55,29 @@ WWJSON v1.0.0 已完成发布，主要成果包括：
 
 ### DONE: 20251222-110430
 
+## TODO:2025-12-22/2 再测试探索整数序列化优化方法
+
+疑问：用 memcpy 拷贝 2 个字符更好，还是写两次单字符赋值？
+
+在 `perf/p_design.cpp` 文件中增加一个相对测试类 `test::perf::WriteUnsignedCompare`：
+- 方法 B: 拷贝当前实现 `NumberWriter::WriteUnsigned` 作为测试基准
+- 方法 A: 两次 `*(--ptr)` 赋值改为 `::memcpy(ptr -=2, src, 2)`
+
+如果方法 A 反而更慢，再思考下有没更快的写法？
+
+### DONE: 20251222-232501
+
+## TODO:2025-12-22/3 将整数序列化方法改为 memcpy 拷贝缓存表的 2 字符
+
+根据 `test::perf::WriteUnsignedCompare` 的测试结果显示，应该采用 memcpy 2 字符
+更好些。据此修改 NumberWriter::WriteUnsigned 与 WriteSmall 的相关实现。
+
+同时为简化代码，不必使用 `const DigitPair &pair` 中间变量了，
+直接取 `const char* digit` 指针变量。
+
+修改 wwjson.hpp 前，先备份 ./build-release/perf/pfwwjson 为 pfwwjson.last
+修改后，再对比前后版本的性能测试，重点关注以下两个用例：
+- `design_large_int` 
+- `number_int_rel`
+
+### DONE: 20251223-000925

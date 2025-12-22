@@ -218,14 +218,12 @@ template <typename stringT> struct NumberWriter
         {
             if (value < 10)
             {
-                // Single digit: direct character conversion
                 dst.push_back(static_cast<char>('0' + value));
             }
             else
             {
-                // Two digits: use pre-computed digit pair lookup
-                const DigitPair &pair = kDigitPairs[static_cast<std::size_t>(value)];
-                dst.append(&pair.high, 2);
+                const char* digit = &kDigitPairs[value].high;
+                dst.append(digit, 2);
             }
             return;
         }
@@ -241,11 +239,8 @@ template <typename stringT> struct NumberWriter
         {
             uint32_t chunk = static_cast<uint32_t>(value % 100);
             value /= 100;
-
-            // Use digit pair lookup for each chunk
-            const DigitPair &pair = kDigitPairs[chunk];
-            *(--ptr) = pair.low;
-            *(--ptr) = pair.high;
+            const char* digit = &kDigitPairs[chunk].high;
+            ::memcpy(ptr -= 2, digit, 2);
         }
 
         // Handle final 1-2 digit chunk
@@ -255,12 +250,10 @@ template <typename stringT> struct NumberWriter
         }
         else
         {
-            const DigitPair &pair = kDigitPairs[static_cast<std::size_t>(value)];
-            *(--ptr) = pair.low;
-            *(--ptr) = pair.high;
+            const char* digit = &kDigitPairs[value].high;
+            ::memcpy(ptr -= 2, digit, 2);
         }
 
-        // Append completed string to destination
         dst.append(ptr, buffer_end - ptr);
     }
 
@@ -359,16 +352,16 @@ template <typename stringT> struct NumberWriter
 
         WriteUnsigned(dst, integer_part);
 
-        const DigitPair &pair_q = kDigitPairs[scaled_int / 100];
-        const DigitPair &pair_r = kDigitPairs[scaled_int % 100];
+        const char* digit_q = &kDigitPairs[scaled_int / 100].high;
+        const char* digit_r = &kDigitPairs[scaled_int % 100].high;
         
         char buffer[5];
         char* ptr = buffer;
         *ptr++ = '.';
-        *ptr++ = pair_q.high;  // Thousands
-        *ptr++ = pair_q.low;   // Hundreds
-        *ptr++ = pair_r.high;  // Tens
-        *ptr++ = pair_r.low;   // Ones
+        ::memcpy(ptr, digit_q, 2);
+        ptr += 2;
+        ::memcpy(ptr, digit_r, 2);
+        ptr += 2;
         
         --ptr;
         while (*ptr == '0') { --ptr; }

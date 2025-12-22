@@ -10,6 +10,9 @@
 
 DEF_TAST(number_integer_member, "8 种标准整数类型的序列化测试")
 {
+    // 小整数缓存表
+    COUT(sizeof(wwjson::NumberWriter<std::string>::kDigitPairs), 200);
+
     wwjson::RawBuilder builder;
     builder.BeginRoot();
 
