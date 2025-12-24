@@ -166,7 +166,7 @@ public:
     {
         if (m_begin == nullptr)
         {
-            return nullptr;
+            return "";
         }
         if (m_end < m_cap_end)
         {
@@ -344,6 +344,7 @@ private:
 
         allocate(other.size());
         append(other.data(), other.size());
+        unsafe_end_cstr();
     }
 
     /// @brief Move from another StringBuffer

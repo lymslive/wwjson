@@ -12,6 +12,8 @@ DEF_TAST(jstring_basic_construct, "JString 基础构造测试")
     COUT(buffer1.size(), 0);
     COUT(buffer1.capacity(), 0);
     COUT((void*)buffer1.data(), nullptr);
+    // 未分配内存，但 c_str 返回非 nullptr, 指向静态空串
+    COUT(buffer1.c_str() != nullptr, true);
     
     // 带容量构造
     JString buffer2(100);
@@ -28,18 +30,18 @@ DEF_TAST(jstring_append_string, "JString 字符串追加测试")
     // 追加 C 风格字符串
     buffer.append("hello");
     COUT(buffer.size(), 5);
-    COUT(strncmp(buffer.data(), "hello", 5), 0);
+    COUT(strncmp(buffer.data(), "hello", buffer.size()), 0);
     
     // 按长度追加
     buffer.append(" world", 6);
     COUT(buffer.size(), 11);
-    COUT(strncmp(buffer.data(), "hello world", 11), 0);
+    COUT(strncmp(buffer.data(), "hello world", buffer.size()), 0);
     
     // 多次追加
     buffer.append("!");
     buffer.append(" JSON");
     COUT(buffer.size(), 17);
-    COUT(strncmp(buffer.data(), "hello world! JSON", 17), 0);
+    COUT(strncmp(buffer.data(), "hello world! JSON", buffer.size()), 0);
 }
 
 DEF_TAST(jstring_push_back, "JString 单字符追加测试")
@@ -54,7 +56,7 @@ DEF_TAST(jstring_push_back, "JString 单字符追加测试")
     buffer.push_back('o');
     
     COUT(buffer.size(), 5);
-    COUT(strncmp(buffer.data(), "Hello", 5), 0);
+    COUT(strncmp(buffer.data(), "Hello", buffer.size()), 0);
 }
 
 DEF_TAST(jstring_reserve, "JString 容量预留测试")
@@ -94,12 +96,12 @@ DEF_TAST(jstring_unsafe_operations, "JString 不安全操作测试")
     buffer.unsafe_push_back('a');
     
     COUT(buffer.size(), 7);
-    COUT(strncmp(buffer.data(), "key:\"va", 7), 0);
+    COUT(strncmp(buffer.data(), "key:\"va", buffer.size()), 0);
     
     // 测试 unsafe_set_end
     buffer.unsafe_set_end(3);
     COUT(buffer.size(), 3);
-    COUT(strncmp(buffer.data(), "key", 3), 0);
+    COUT(strncmp(buffer.data(), "key", buffer.size()), 0);
     
     // 测试 unsafe_end_cstr
     buffer.unsafe_set_end(7);
@@ -109,7 +111,7 @@ DEF_TAST(jstring_unsafe_operations, "JString 不安全操作测试")
     buffer.unsafe_push_back('"');
     
     COUT(buffer.size(), 11);
-    COUT(strncmp(buffer.c_str(), "key:\"value\"", 11), 0);
+    COUT(strncmp(buffer.c_str(), "key:\"value\"", buffer.size()), 0);
     
     // 重置并测试正确空字符结尾
     buffer.clear();
@@ -129,8 +131,8 @@ DEF_TAST(jstring_different_unsafe_levels, "不同不安全级别的 StringBuffer
     
     COUT(buffer2.size(), 4);
     COUT(buffer8.size(), 4);
-    COUT(strncmp(buffer2.data(), "test", 4), 0);
-    COUT(strncmp(buffer8.data(), "test", 4), 0);
+    COUT(strncmp(buffer2.data(), "test", buffer2.size()), 0);
+    COUT(strncmp(buffer8.data(), "test", buffer8.size()), 0);
     
     // 测试不同级别的不安全操作
     buffer2.reserve_ex(5);
@@ -188,6 +190,9 @@ DEF_TAST(jstring_edge_cases, "JString 边界情况测试")
     COUT(buffer.empty(), true);
     COUT(buffer.size(), 0);
     
+    buffer.append("test");
+    COUT(buffer.size(), 4);
+
     // 对空缓冲区清空
     buffer.clear();
     COUT(buffer.empty(), true);
@@ -200,10 +205,6 @@ DEF_TAST(jstring_edge_cases, "JString 边界情况测试")
     buffer.reserve_ex(10);
     buffer.unsafe_set_end(0);
     COUT(buffer.size(), 0);
-    
-    // 空缓冲区的 c_str - 使用全新未分配内存的缓冲区
-    JString empty_buffer;
-    COUT(empty_buffer.c_str() == nullptr, true);
 }
 
 DEF_TAST(jstring_json_patterns, "JString JSON 序列化模式测试")
@@ -222,7 +223,7 @@ DEF_TAST(jstring_json_patterns, "JString JSON 序列化模式测试")
     buffer.unsafe_push_back(',');
     
     COUT(buffer.size(), 18);
-    COUT(strncmp(buffer.data(), "\"name\":\"John Doe\",", 19), 0);
+    COUT(strncmp(buffer.data(), "\"name\":\"John Doe\",", buffer.size()), 0);
     
     // 继续添加更多 JSON 内容
     buffer.append("\"age\"");
@@ -247,7 +248,7 @@ DEF_TAST(jstring_buffer_view, "StringBufferView 转换测试")
     
     COUT(view.m_end - view.m_begin, buffer.size());
     COUT(view.m_begin, buffer.data());
-    COUT(strncmp(buffer.data(), "test content", 12), 0);
+    COUT(strncmp(buffer.data(), "test content", buffer.size()), 0);
     
     // 手动计算视图属性
     bool view_empty = (view.m_end == view.m_begin);
@@ -287,7 +288,7 @@ DEF_TAST(jstring_front_back_access, "JString 首尾字符访问测试")
     // 通过 front/back 修改
     buffer.front() = 'h';
     buffer.back() = '!';
-    COUT(strncmp(buffer.data(), "hell!", 5), 0);
+    COUT(strncmp(buffer.data(), "hell!", buffer.size()), 0);
 }
 
 DEF_TAST(jstring_clear_operation, "JString 清空操作测试")
@@ -305,7 +306,7 @@ DEF_TAST(jstring_clear_operation, "JString 清空操作测试")
     // 清空后应该可以正常使用
     buffer.append("new content");
     COUT(buffer.empty(), false);
-    COUT(strncmp(buffer.data(), "new content", 11), 0);
+    COUT(strncmp(buffer.data(), "new content", buffer.size()), 0);
 }
 
 DEF_TAST(jstring_c_str_termination, "JString c_str 空字符结尾测试")
