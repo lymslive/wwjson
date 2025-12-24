@@ -22,6 +22,15 @@
 
 #include <stdint.h>
 
+// Compile-time configuration for memory allocation
+#ifndef JSTRING_MIN_ALLOC_SIZE
+#define JSTRING_MIN_ALLOC_SIZE 256  // Minimum initial allocation size
+#endif
+
+#ifndef JSTRING_MAX_EXP_ALLOC_SIZE
+#define JSTRING_MAX_EXP_ALLOC_SIZE (8 * 1024 * 1024)  // 8MB - max exponential growth
+#endif
+
 namespace wwjson {
 
 /// @brief Concept definition for unsafe string operations in JSON building
@@ -30,12 +39,18 @@ namespace wwjson {
 /// optimized for JSON serialization. The key innovation is the concept of "unsafe level"
 /// which allows a batch of unsafe operations after a safe boundary check.
 /// 
+/// @par Unsafe Level Definition:
+/// kUnsafeLevel defines the number of unsafe operations allowed after a safe check.
+/// Example: kUnsafeLevel=4 means after reserve(n), you can call unsafe_push_back 
+/// 4 times even after write n characters. 
+/// The null terminator space is always additional (+1 byte).
+/// 
 /// @par Required Interface Methods:
 /// - static constexpr uint8_t kUnsafeLevel: Number of unsafe operations allowed
 /// - unsafe_push_back(char c): Add character without boundary check
 /// - unsafe_set_end(size_t new_size): Directly set string length
 /// - unsafe_end_cstr(): Add null terminator at end
-/// - reserve_ex(size_t capacity): Reserve with kUnsafeLevel bytes margin
+/// - reserve(size_t capacity): Reserve with kUnsafeLevel bytes margin
 struct UnsafeStringConcept
 {
 };
@@ -70,29 +85,47 @@ struct StringBufferView
 /// - Deferred null termination until final result is needed
 /// - Support for unsafe character writes after safe capacity checks
 /// 
-/// @par Performance Characteristics:
-/// - O(1) append operations when capacity is available
-/// - Minimal memory allocations through smart capacity management
-/// - Zero-overhead unsafe operations within safety margin
+/// @par Memory Allocation Policy:
+/// - Minimum allocation: 256 bytes (configurable via JSTRING_MIN_ALLOC_SIZE)
+/// - Growth strategy: Exponential (2x) until 8MB, then linear +8MB
+/// - Alignment: Memory is aligned to improve efficiency
+/// - Capacity invariant: capacity() = m_cap_end - m_begin
+/// - Always allocates at least capacity() + 1 bytes for null terminator
+/// 
+/// @par kUnsafeLevel Semantics:
+/// kUnsafeLevel specifies additional bytes beyond user-requested capacity.
+/// Example: For kUnsafeLevel=4, after reserve(100):
+///   - capacity() returns >=104 (100 user + 4 margin)
+///   - Actual allocation: aligned to >= 105 bytes (104 + 1 null terminator)
+///   - You can write upto 100 characters for main content, and then
+///   - allow to call unsafe_push_back 4 times safely
+/// This definition allows kUnsafeLevel=0 to represent behavior similar to std::string.
+/// 
+/// @par Invariants:
+/// - capacity() == m_cap_end - m_begin (includes kUnsafeLevel)
+/// - Actual allocation >= capacity() + 1 (for null terminator)
+/// - m_cap_end is within allocated memory, position reserved for potential null terminator
+/// - The byte at m_cap_end is written with '\0' on allocation for safety
 /// 
 /// @par Usage Examples:
 /// ```cpp
 /// StringBuffer<4> buffer;  // JString alias
-/// buffer.reserve_ex(100);   // Reserve 100 + 4 bytes margin
-/// buffer.append("key");
-/// buffer.unsafe_push_back(':');  // Safe within margin
-/// buffer.unsafe_push_back('"');
-/// buffer.append("value");
-/// buffer.unsafe_push_back('"');
-/// buffer.unsafe_end_cstr();      // Add null terminator
+/// buffer.unsafe_push_back('"');  // Assume has initial margin
+/// buffer.append("key");          // Check and ensure 4 margin
+/// buffer.unsafe_push_back('"');  // Safe within margin (1 of 4)
+/// buffer.unsafe_push_back(':');  // (2 of 4)
+/// buffer.unsafe_push_back('"');  // (3 of 4)
+/// buffer.append("value");        // Check and ensure 4 margin
+/// buffer.unsafe_push_back('"');  // (1 of 4)
+/// buffer.unsafe_push_back(',');  // (1 of 4)
+/// buffer.unsafe_end_cstr();      // Add null terminator at m_end
 /// ```
-template <UnsafeLevel kUnsafeLevel = 4>
+template <UnsafeLevel LEVEL>
 class StringBuffer : private StringBufferView, public UnsafeStringConcept
 {
 public:
-    static constexpr uint8_t kUnsafeLevelValue = kUnsafeLevel;
+    static constexpr uint8_t kUnsafeLevel = LEVEL;
 
-    /// @brief Default constructor
     StringBuffer()
     {
         m_begin = nullptr;
@@ -100,34 +133,23 @@ public:
         m_cap_end = nullptr;
     }
 
-    /// @brief Constructor with initial capacity
-    /// @param capacity Initial capacity to allocate
     explicit StringBuffer(size_t capacity)
     {
-        allocate(capacity);
+        allocate(capacity + kUnsafeLevel + 1);
     }
 
-    /// @brief Copy constructor
-    /// @param other Other StringBuffer to copy from
     StringBuffer(const StringBuffer& other)
     {
         copy_from(other);
     }
 
-    /// @brief Move constructor
-    /// @param other Other StringBuffer to move from
     StringBuffer(StringBuffer&& other) noexcept
     {
         move_from(std::move(other));
     }
 
-    /// @brief Destructor
-    ~StringBuffer()
-    {
-        deallocate();
-    }
+    ~StringBuffer() { deallocate(); }
 
-    /// @brief Copy assignment
     StringBuffer& operator=(const StringBuffer& other)
     {
         if (this != &other)
@@ -138,7 +160,6 @@ public:
         return *this;
     }
 
-    /// @brief Move assignment
     StringBuffer& operator=(StringBuffer&& other) noexcept
     {
         if (this != &other)
@@ -149,19 +170,11 @@ public:
         return *this;
     }
 
-    /// @brief Get current string size
     size_t size() const { return m_end - m_begin; }
-
-    /// @brief Get current capacity
     size_t capacity() const { return m_cap_end - m_begin; }
-
-    /// @brief Check if buffer is empty
     bool empty() const { return m_end == m_begin; }
-
-    /// @brief Get pointer to string content
     const char* data() const { return m_begin; }
 
-    /// @brief Get null-terminated C string (ensures null termination)
     const char* c_str()
     {
         if (m_begin == nullptr)
@@ -175,48 +188,27 @@ public:
         return m_begin;
     }
 
-    /// @brief Get front character
     char& front() { return *m_begin; }
     const char& front() const { return *m_begin; }
-
-    /// @brief Get back character
     char& back() { return *(m_end - 1); }
     const char& back() const { return *(m_end - 1); }
 
-    /// @brief Reserve capacity with unsafe level margin
-    /// @param additional_capacity Additional bytes to reserve
-    /// @details Reserves capacity + kUnsafeLevel bytes to allow safe
-    /// subsequent unsafe operations
-    void reserve_ex(size_t additional_capacity)
-    {
-        size_t required_capacity = size() + additional_capacity + kUnsafeLevel;
-        if (required_capacity > capacity())
-        {
-            reserve(required_capacity);
-        }
-    }
-
-    /// @brief Reserve exact capacity
-    /// @param new_capacity New capacity to allocate
+    void reserve_ex(size_t add_capacity) { reserve(size() + add_capacity); }
     void reserve(size_t new_capacity)
     {
-        if (new_capacity > capacity())
+        size_t total_capacity = new_capacity + kUnsafeLevel;
+        if (total_capacity > capacity())
         {
-            reallocate(new_capacity);
+            reallocate(total_capacity + 1);
         }
     }
 
-    /// @brief Append C-style string
-    /// @param str String to append
     void append(const char* str)
     {
         size_t len = strlen(str);
         append(str, len);
     }
 
-    /// @brief Append string with length
-    /// @param str String to append
-    /// @param len Length of string
     void append(const char* str, size_t len)
     {
         reserve_ex(len);
@@ -224,60 +216,94 @@ public:
         m_end += len;
     }
 
-    /// @brief Append another StringBuffer
-    /// @param other Another StringBuffer to append
     template <UnsafeLevel kOtherLevel>
     void append(const StringBuffer<kOtherLevel>& other)
     {
         append(other.data(), other.size());
     }
 
-    /// @brief Push back single character with boundary check
-    /// @param c Character to append
     void push_back(char c)
     {
         reserve_ex(1);
         *m_end++ = c;
     }
 
-    /// @brief Unsafe push back without boundary check
-    /// @param c Character to append
-    /// @warning Only use after reserve_ex() to ensure capacity
     void unsafe_push_back(char c)
     {
         *m_end++ = c;
     }
 
-    /// @brief Unsafe set string length directly
-    /// @param new_size New string size
-    /// @warning Only use to shrink string or within reserved capacity
     void unsafe_set_end(size_t new_size)
     {
         m_end = m_begin + new_size;
     }
 
-    /// @brief Add null terminator at end (unsafe operation)
-    /// @warning Only use when buffer has capacity for null terminator
     void unsafe_end_cstr()
     {
-        if (m_end < m_cap_end)
+        if (m_end <= m_cap_end)
         {
             *m_end = '\0';
         }
     }
 
-    /// @brief Clear string content
     void clear()
     {
         m_end = m_begin;
+        *m_end = '\0';
     }
 
 private:
-    /// @brief Allocate memory for given capacity
-    /// @param capacity Capacity to allocate
-    void allocate(size_t capacity)
+    static size_t calculate_alloc_size(size_t size)
     {
-        if (capacity == 0)
+        if (size < JSTRING_MIN_ALLOC_SIZE)
+        {
+            return JSTRING_MIN_ALLOC_SIZE;
+        }
+        
+        const size_t alignment = 8;
+        size_t aligned_size = (size + alignment - 1) & ~(alignment - 1);
+        return aligned_size;
+    }
+
+    static size_t calculate_growth_size(size_t cur_size, size_t req_size)
+    {
+        size_t new_size = req_size;
+        if (cur_size > JSTRING_MIN_ALLOC_SIZE)
+        {
+            if (cur_size < JSTRING_MAX_EXP_ALLOC_SIZE)
+            {
+                size_t exp_size = cur_size * 2;
+                if (exp_size > JSTRING_MAX_EXP_ALLOC_SIZE)
+                {
+                    exp_size = JSTRING_MAX_EXP_ALLOC_SIZE;
+                }
+                
+                // Take maximum of requested and exponential growth
+                new_size = (new_size > exp_size) ? new_size : exp_size;
+            }
+            else
+            {
+                // Linear growth: add max_exp_size each time
+                size_t linear_size = cur_size + JSTRING_MAX_EXP_ALLOC_SIZE;
+                new_size = (new_size > linear_size) ? new_size : linear_size;
+            }
+        }
+        
+        // Apply minimum allocation constraint
+        if (new_size < JSTRING_MIN_ALLOC_SIZE)
+        {
+            new_size = JSTRING_MIN_ALLOC_SIZE;
+        }
+        
+        // Align to 8-byte boundary
+        const size_t alignment = 8;
+        size_t aligned_size = (new_size + alignment - 1) & ~(alignment - 1);
+        return aligned_size;
+    }
+
+    void allocate(size_t size)
+    {
+        if (size == 0)
         {
             m_begin = nullptr;
             m_end = nullptr;
@@ -285,13 +311,13 @@ private:
             return;
         }
 
-        // Allocate capacity, space for null terminator included in capacity
-        m_begin = static_cast<char*>(std::malloc(capacity));
+        size_t alloc_size = calculate_alloc_size(size);
+        m_begin = static_cast<char*>(std::malloc(alloc_size));
         m_end = m_begin;
-        m_cap_end = m_begin + capacity;
+        m_cap_end = m_begin + alloc_size - 1;
+        *m_cap_end = '\0';
     }
 
-    /// @brief Deallocate memory
     void deallocate()
     {
         if (m_begin)
@@ -303,14 +329,17 @@ private:
         m_cap_end = nullptr;
     }
 
-    /// @brief Reallocate memory with new capacity
-    /// @param new_capacity New capacity to allocate
-    void reallocate(size_t new_capacity)
+    void reallocate(size_t new_size)
     {
         size_t current_size = size();
-        
-        // Allocate new buffer
-        char* new_begin = static_cast<char*>(std::malloc(new_capacity));
+        size_t current_alloc = capacity() + 1;
+        if (new_size <= current_alloc)
+        {
+            return;
+        }
+
+        size_t alloc_size = calculate_growth_size(current_alloc, new_size);
+        char* new_begin = static_cast<char*>(std::malloc(alloc_size));
         
         // Copy existing content
         if (current_size > 0)
@@ -324,14 +353,12 @@ private:
             std::free(m_begin);
         }
         
-        // Update pointers
         m_begin = new_begin;
         m_end = m_begin + current_size;
-        m_cap_end = m_begin + new_capacity + 1;
+        m_cap_end = m_begin + alloc_size - 1;
+        *m_cap_end = '\0';
     }
 
-    /// @brief Copy from another StringBuffer
-    /// @param other Another StringBuffer to copy from
     void copy_from(const StringBuffer& other)
     {
         if (other.empty())
@@ -347,15 +374,12 @@ private:
         unsafe_end_cstr();
     }
 
-    /// @brief Move from another StringBuffer
-    /// @param other Another StringBuffer to move from
     void move_from(StringBuffer&& other)
     {
         m_begin = other.m_begin;
         m_end = other.m_end;
         m_cap_end = other.m_cap_end;
 
-        // Clear other
         other.m_begin = nullptr;
         other.m_end = nullptr;
         other.m_cap_end = nullptr;
@@ -365,7 +389,7 @@ private:
 /// @brief JSON-optimized string type with kUnsafeLevel=4
 /// @details This is the recommended string type for JSON serialization.
 /// The unsafe level of 4 provides safety margin for common JSON patterns
-/// like `":"`, `","`, `"{"`, `"}"` which may require multiple consecutive
+/// like `":"`, `","`  which may require multiple consecutive
 /// unsafe character writes.
 using JString = StringBuffer<4>;
 

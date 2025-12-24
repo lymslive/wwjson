@@ -282,3 +282,73 @@ WWJSON v1.0.0 版本开发周期：2025-11-25 至 2025-12-22
 - 清空操作 ✓
 - 空字符结尾 ✓
 
+## TASK:20251224-121931
+-----------------------
+
+### 需求内容
+完成 2025-12-24/1 需求：StringBuffer 内存管理优化
+
+主要内容包括：
+1. 澄清 kUnsafeLevel 的语义为定义 2：reserve_ex(n) 后可写入 n 个字符，写入完成后仍可调用 unsafe_push_back kUnsafeLevel 次
+2. 构造函数 `StringBuffer(size_t capacity)` 应申请 `capacity + kUnsafeLevel + 1` 个字节
+3. 在 `allocate(size_t capacity)` 实际申请内存时考虑向上圆整对齐、首次最小申请字节（256）
+4. 扩容时按常规 2 倍指数申请新内存，快速扩张到 8M 后再线性扩展每次 8M
+5. 保证容量不变式：capacity() = m_cap_end - m_begin，实际分配 >= capacity() + 1，m_cap_end 指向实际申请内存最后一个字节
+
+### 实施内容
+
+1. **添加编译宏配置**：
+   - `JSTRING_MIN_ALLOC_SIZE=256`：最小初始分配大小
+   - `JSTRING_MAX_EXP_ALLOC_SIZE=8MB`：最大指数分配大小
+
+2. **新增内存分配计算方法**：
+   - `calculate_alloc_size(size_t requested_capacity)`：计算对齐后的分配大小，应用最小分配约束
+   - `calculate_growth_size(size_t current_capacity, size_t requested_capacity)`：计算扩容大小，支持指数（2x）和线性（+8MB）增长策略
+
+3. **修改 allocate 方法**：
+   - 参数改为 `new_capacity`（包括 kUnsafeLevel）
+   - 使用 `calculate_alloc_size` 计算实际分配大小
+   - m_cap_end 指向 `m_begin + new_capacity`（最后一个可分配字节）
+   - 在 m_cap_end 位置初始化 '\0' 保证安全
+
+4. **修改 reallocate 方法**：
+   - 参数改为 `new_capacity`（包括 kUnsafeLevel）
+   - 使用 `calculate_growth_size` 计算新分配大小
+   - 保持不变式：m_cap_end = m_begin + new_capacity
+
+5. **修改 reserve 方法**：
+   - `reserve_ex(size_t additional_capacity)`：调用 `reserve(size() + additional_capacity)`
+   - `reserve(size_t new_capacity)`：预留 `new_capacity + kUnsafeLevel` 字节
+
+6. **修改 copy_from 方法**：
+   - 添加注释说明分配足够空间容纳其他 StringBuffer 的内容加上自己的 kUnsafeLevel
+
+7. **更新注释和文档**：
+   - 澄清 kUnsafeLevel 定义 2 的语义
+   - 更新 capacity()、reserve_ex()、reserve() 的文档说明
+   - 更新不变式说明
+
+8. **增强单元测试**：
+   - 新增 `jstring_kunsafelevel_semantics` 测试 kUnsafeLevel 语义
+   - 新增 `jstring_memory_alignment` 测试内存对齐和最小分配
+   - 新增 `jstring_invariants` 测试 StringBuffer 不变量
+
+### 修改说明
+
+1. **kUnsafeLevel 语义澄清**：
+   - 旧定义：kUnsafeLevel 指不安全操作次数
+   - 新定义（定义 2）：reserve_ex(n) 后可写入 n 字符，写入完成后仍可调用 unsafe_push_back kUnsafeLevel 次
+   - capacity() = 用户容量 + kUnsafeLevel
+   - 实际分配 = capacity() + 1（null terminator）
+
+2. **内存分配策略**：
+   - 最小分配：256 字节
+   - 对齐：8 字节边界
+   - 扩容：指数（2x）直到 8MB，然后线性（+8MB）
+
+3. **不变式保证**：
+   - capacity() == m_cap_end - m_begin
+   - 实际分配 >= capacity() + 1
+   - m_cap_end 指向实际分配内存的最后一个字节
+   - m_cap_end 位置初始化为 '\0'
+

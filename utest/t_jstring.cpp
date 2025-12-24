@@ -62,16 +62,16 @@ DEF_TAST(jstring_push_back, "JString 单字符追加测试")
 DEF_TAST(jstring_reserve, "JString 容量预留测试")
 {
     JString buffer;
-    
+
     // 初始预留
     buffer.reserve(100);
-    COUT(buffer.capacity() >= 100, true);
+    COUT(buffer.capacity() >= 100 + 4, true); // capacity() should be >= requested
     COUT(buffer.empty(), true);
-    
+
     // 带边界的预留
     buffer.reserve_ex(50);
-    COUT(buffer.capacity() >= 50 + 4, true); // 4 is kUnsafeLevel for JString
-    
+    COUT(buffer.capacity() >= buffer.size() + 50 + 4, true);
+
     // 预留后追加
     buffer.append("This is a test string for reserve operation");
     COUT(buffer.size() > 0, true);
@@ -313,15 +313,94 @@ DEF_TAST(jstring_c_str_termination, "JString c_str 空字符结尾测试")
 {
     JString buffer;
     buffer.append("test");
-    
+
     // c_str 应该返回以空字符结尾的字符串
     const char* cstr = buffer.c_str();
     COUT(strlen(cstr), 4);
     COUT(strcmp(cstr, "test"), 0);
-    
+
     // 修改内容后 c_str 仍应正确
     buffer.push_back('!');
     cstr = buffer.c_str();
     COUT(strlen(cstr), 5);
     COUT(strcmp(cstr, "test!"), 0);
+}
+
+DEF_TAST(jstring_kunsafelevel_semantics, "kUnsafeLevel 语义测试")
+{
+    // 测试 reserve_ex(n) 后可以写入 n 个字符，然后再调用 unsafe_push_back kUnsafeLevel 次
+    {
+        JString buffer(250);
+        std::string fill(buffer.capacity(), 'x');
+        buffer.append(fill.c_str(), fill.size());
+        size_t old_size = buffer.size();
+
+        // 最少申请 256 ，容量 255
+        COUT(old_size, 255);
+
+        buffer.reserve_ex(10);  // 预留 10 个字符的空间 + 4 的 unsafe margin
+        COUT(buffer.capacity());
+        size_t cap1 = buffer.capacity();
+
+        // 写入 10 个安全字符
+        buffer.append("0123456789");
+        COUT(buffer.size(), old_size + 10);
+        size_t cap2 = buffer.capacity();
+
+        // 再调用 unsafe_push_back 4 次 (kUnsafeLevel = 4)
+        buffer.unsafe_push_back('A');
+        buffer.unsafe_push_back('B');
+        buffer.unsafe_push_back('C');
+        buffer.unsafe_push_back('D');
+        size_t cap3 = buffer.capacity();
+
+        COUT(buffer.size(), old_size + 14);
+        COUT(strncmp(buffer.data() + old_size, "0123456789ABCD", 14), 0);
+
+        COUT(buffer.capacity());
+        COUT(buffer.capacity() >= buffer.size(), true);
+
+        COUT(cap1 == cap2, true);
+        COUT(cap1 == cap3, true);
+    }
+}
+
+DEF_TAST(jstring_memory_alignment, "内存对齐和最小分配测试")
+{
+    // 测试最小分配大小 (256 字节)
+    {
+        JString buffer(100);
+        COUT(buffer.capacity(), 255);
+    }
+}
+
+DEF_TAST(jstring_invariants, "StringBuffer 不变量测试")
+{
+    {
+        JString buffer;
+        buffer.reserve(100);
+
+        // 不变量 1: capacity() == m_cap_end - m_begin
+        // 这通过 capacity() 的实现保证
+
+        // 不变量 2: capacity() >= size()
+        COUT(buffer.capacity() >= buffer.size(), true);
+
+        buffer.append("hello");
+        COUT(buffer.capacity() >= buffer.size(), true);
+
+        // 不变量 3: m_end 指向当前内容末尾
+        // 这通过 append 实现
+
+        // 不变量 4: unsafe_end_cstr 可以在 m_end <= m_cap_end 时调用
+        buffer.unsafe_end_cstr();
+        COUT(strcmp(buffer.c_str(), "hello"), 0);
+    }
+
+    // 测试 m_cap_end 初始化为 \0
+    {
+        JString buffer(100);
+        // 分配后 m_cap_end 应该被初始化为 '\0'
+        // 这在 allocate() 中实现
+    }
 }

@@ -142,3 +142,52 @@ json 串构建中有可能出现连续三个 `":"` 或 `","`，kUnsafeLevel 在 
 
 ### DONE:20251223-173539
 
+## TODO:2025-12-24/1 StringBuffer 内存管理优化
+
+首先要澄清 kUnsafeLevel = x 的意义，有两种定义约定：
+1. 使用安全 api 写入后，可以再调用 `unsafe_push_back` x-1 次，与一个空字符
+2. 使用安全 api 写入后，可以再调用 `unsafe_push_back` x  次，与一个空字符
+
+细微差别在于 kUnsafeLevel 的值要不要包含尾封端预留的 `\0` 字符。
+如果按第 1 种定义，那在构造函数传入 capacity = n 时，应该申请 n+x 字节，标准字
+符串相当于 kUnsafeLevel = 1；如果按第 2 种定义，构造函数应该申请 n+x+1 字节，
+标准字符串相当于 kUnsafeLevel = 0.
+
+我上次的想法是按定义 1 ，JString 的 kUnsafeLevel=4 恰好能满足需求。但再想一下，
+按第 2 种定义可能更合适。`-1` 的说明对用户挺拗口，而且若按定义 1 ，就不能实例
+化 kUnsafeLevel=0 的类，需要额外加 assert 保证。unsafe 概念应该与标准字符串
+就有的空字符封端相互独立，所以按定义 2 明确 kUnsafeLevel 的意义。
+
+那么在构建函数 `StringBuffer(size_t capacity)` 就该申请
+`capacity + kUnsafeLevel + 1` 个字节。
+且与默认构造时再 `reserve(capacity)` 或 `reserve_ex(capacity)` 应该是一样的行为。
+
+然后在 `allocate(size_t capacity)` 实际申请内存时，还应考虑多申请一点：
+- 向上圆整对齐，总不好直接按参数申请奇数个字节；
+- 设定个首次最小申请字节，比如 256 ；显然 StringBuffer 不是为小字符串使用的
+
+并且在随后的扩容时应该按常规的 2 倍指数申请新内存，快速扩张到较大内存时如 8M
+再线性扩展，每次多申请 8M 。最小申请内存与最大指数内存这两个值定义为编译宏，允
+许构建时重定义，实现中给出合理默认值。
+
+容量问题要保证不变式：
+- `capacity()` 方法返回的实际容量保证比用户 reserve 的多 kUnsafeLevel ；
+- `capacity()` 就该等于 `m_cap_end - m_begin` 两个指针相减；
+- 向操作系统申请的内存至少是 `capacity() + 1`;
+- `m_cap_end` 指向的位置不属于字符串内容，但属于 StringBuffer 申请管理的内存空
+  间，该位置在申请时应该先写入 `\0` ，保证最坏情况不会读越界，中间大段内存考虑
+  效率不必全清 0 ，假定要写入覆盖的；
+- `unsafe_end_cstr()` 也允许在 `m_cap_end` 处再重复写个 `\0` ，正常情况下是在
+  `m_cap_end` 之前提早封端，但为了健壮性用 `<=` 判断，允许最尾端写。
+
+两个 reserve 方法的关系，扩展的 `reserve_ex(n)` 应该恒等于标准 `reserve(size()+n)`，
+增补的 `+kUnsafeLevel` 逻辑应放在 `reserve` 。
+
+to AI:
+请按以上要求重新 review include/jstring.hpp 的代码与注释，按要求修改。
+也再 review utest/t_jstring.cpp 的单元测试，在原来合适的用例中适当增加测试场景，
+比较长的用例可用裸 `{}` 划分作用域以便使用相同的变量名。可以修改用例名与描叙，
+但不要新加 `DEF_TAST` 用例名了，因为已经比较多了。
+
+### DONE:20251224-121931
+
