@@ -1,6 +1,8 @@
 #include "couttast/tinytast.hpp"
 #include "test_util.h"
 #include "jstring.hpp"
+#include <charconv>  // for std::to_chars
+#include <system_error>  // for std::make_error_code
 
 using namespace wwjson;
 
@@ -203,7 +205,7 @@ DEF_TAST(jstring_edge_cases, "JString 边界情况测试")
     
     // 在空缓冲区上进行不安全操作
     buffer.reserve_ex(10);
-    buffer.unsafe_set_end(0);
+    buffer.unsafe_set_end(static_cast<size_t>(0));
     COUT(buffer.size(), 0);
 }
 
@@ -404,3 +406,108 @@ DEF_TAST(jstring_invariants, "StringBuffer 不变量测试")
         // 这在 allocate() 中实现
     }
 }
+
+DEF_TAST(jstring_to_chars_integration, "std::to_chars 集成测试")
+{
+    // 测试在 JString 原位 buffer 上使用 std::to_chars 转换整数
+    // 先预留足够空间，然后从 end 处写入整数，再更新 end 位置
+
+    {
+        JString buffer;
+        buffer.append("The number is: ");
+
+        // 预留足够空间写入整数
+        buffer.reserve_ex(12);  // 足够存储 INT_MAX (11 chars) + margin
+
+        // 使用 std::to_chars 直接在 buffer 末尾写入整数
+        int value = 12345678;
+        std::to_chars_result result = std::to_chars(buffer.end(), buffer.cap_end(), value);
+
+        COUT(std::make_error_code(result.ec), std::make_error_code(std::errc{}));
+        COUT(result.ptr - buffer.end(), 8);  // "12345678" 的长度
+
+        // 更新 end 位置
+        buffer.set_end(result.ptr);
+
+        COUT(buffer.size(), 23);  // "The number is: " (15) + "12345678" (8) = 23
+
+        // 验证内容
+        buffer.end_cstr();
+        COUT(strcmp(buffer.c_str(), "The number is: 12345678"), 0);
+    }
+
+    // 测试负数
+    {
+        JString buffer;
+        buffer.append("Negative: ");
+
+        buffer.reserve_ex(12);
+        int value = -98765;
+        std::to_chars_result result = std::to_chars(buffer.end(), buffer.cap_end(), value);
+
+        COUT(std::make_error_code(result.ec), std::make_error_code(std::errc{}));
+        buffer.set_end(result.ptr);
+
+        buffer.end_cstr();
+        COUT(strcmp(buffer.c_str(), "Negative: -98765"), 0);
+    }
+
+    // 测试 unsigned int
+    {
+        JString buffer;
+        buffer.append("Unsigned: ");
+
+        buffer.reserve_ex(12);
+        unsigned int value = 4294967295u;
+        std::to_chars_result result = std::to_chars(buffer.end(), buffer.cap_end(), value);
+
+        COUT(std::make_error_code(result.ec), std::make_error_code(std::errc{}));
+        buffer.set_end(result.ptr);
+
+        buffer.end_cstr();
+        COUT(strcmp(buffer.c_str(), "Unsigned: 4294967295"), 0);
+    }
+
+    // 测试使用 begin() end() cap_end() 方法
+    {
+        JString buffer;
+        buffer.append("Prefix:");
+
+        buffer.reserve_ex(16);
+
+        // 使用新增的 begin/end/cap_end 方法
+        char* write_pos = buffer.end();
+        int value = 42;
+        std::to_chars_result result = std::to_chars(write_pos, buffer.cap_end(), value);
+
+        COUT(std::make_error_code(result.ec), std::make_error_code(std::errc{}));
+        buffer.set_end(result.ptr);
+
+        COUT(strcmp(buffer.c_str(), "Prefix:42"), 0);
+
+        // 验证 begin() 返回正确的指针
+        COUT(strncmp(buffer.begin(), "Prefix:42", buffer.size()), 0);
+
+        // 验证 end() 和 cap_end() 的关系
+        COUT(buffer.end() - buffer.begin(), buffer.size());
+        COUT(buffer.cap_end() - buffer.begin(), buffer.capacity());
+    }
+
+    // 测试使用 unsafe_append(char*, size)
+    {
+        JString buffer;
+        buffer.append("Unsafe append: ");
+
+        // 预留足够空间
+        buffer.reserve_ex(20);
+
+        // 手动构造字符串并使用 unsafe_append
+        const char* extra = "test data";
+        size_t len = strlen(extra);
+        buffer.StringBufferView::unsafe_append(extra, len);
+
+        COUT(strncmp(buffer.data() + buffer.size() - len, extra, len), 0);
+        COUT(strncmp(buffer.c_str(), "Unsafe append: test data", buffer.size()), 0);
+    }
+}
+

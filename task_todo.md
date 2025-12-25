@@ -200,6 +200,24 @@ to AI:
 
 ### DONE:20251225-114051
 
+## TODO:2025-12-25/2 StringBuffer 功能设计增强
+
+- StringBufferView 增加 begin() end() 方法，返回对应指针成员，一是符合标准迭代
+  器惯例，二是允许从 end() 处继续写；也为一致性增加 cap_end() 方法；
+- unsafe_set_end 方法增加 char* 指针参数重载，如果易与当前的 size_t 参数混淆，
+  保留指针参数；因为想支持的用法是让外部从 end 处开始写，写到新位置再设置回去。
+- StringBuffer 增加安全版的 set_end ，检查不溢界
+- StringBufferView 增加 unsafe_append(char*, size) 双参数版，StringBuffer 的安
+  全版 append 与 push_back 调用基类的 unsafe 版。
+- 同样地，基类的 unsafe_end_cstr 不作边界检查，增加 end_cstr 做边界检查。
+
+完善单元测试，t_jstring.cpp 增加一个用例，在 JString 原位 buffer 上调用
+std::to_chars 转换整数，先预留足够空间，在从 end 处写入整数，再更新 end 位置。
+
+测试命令用 `./utest/utwwjson t_jstring.cpp --cout=silent`
+
+### DONE:20251225-145239
+
 ## TODO: 设计 StringBuffer 默认构造状态
 为避免空指针的处理，默认构造指向几个字节的静态 buffer[4]
 

@@ -423,3 +423,127 @@ cd build && ./utest/utwwjson t_jstring.cpp --cout=silent
 - `include/jstring.hpp`：StringBufferView 和 StringBuffer 类定义重构
 - `utest/t_jstring.cpp`：更新测试代码以适配新的公共接口
 
+## TASK:20251225-145239
+-----------------------
+
+### 任务概述
+
+完成 2025-12-25/2 需求：StringBuffer 功能设计增强
+
+### 实施内容
+
+#### 1. StringBufferView 增强功能
+
+在 `StringBufferView` 类中添加了迭代器相关方法：
+
+- **begin()**：返回 `char* m_begin` 指针（const 和非 const 版本）
+- **end()**：返回 `char* m_end` 指针（const 和非 const 版本）
+- **cap_end()**：返回 `char* m_cap_end` 指针（const 和非 const 版本）
+
+这些方法：
+- 符合标准容器的迭代器命名惯例
+- 允许用户从 `end()` 处继续写入数据
+- 保持与三指针设计的一致性
+
+#### 2. unsafe_set_end 指针重载
+
+在 `StringBufferView` 中为 `unsafe_set_end` 添加了 `char*` 参数重载：
+
+```cpp
+void unsafe_set_end(char* new_end)
+{
+    m_end = new_end;
+}
+```
+
+支持用法：
+- 用户可以从 `end()` 处开始写入
+- 写到新位置后再设置回去
+- 保留原有的 `size_t` 参数版本，两者不冲突
+
+#### 3. unsafe_append 双参数版本
+
+在 `StringBufferView` 中添加了 `unsafe_append(char*, size)` 方法：
+
+```cpp
+void unsafe_append(const char* str, size_t len)
+{
+    ::memcpy(m_end, str, len);
+    m_end += len;
+}
+```
+
+特点：
+- 不进行边界检查
+- 允许直接在缓冲区末尾追加字符串
+- 供 `StringBuffer` 的安全版本 `append()` 调用
+
+#### 4. StringBuffer 方法优化
+
+修改 `StringBuffer` 中的安全方法调用基类的 unsafe 版本：
+
+- **append(const char* str, size_t len)**：改为调用 `StringBufferView::unsafe_append(str, len)`
+- **push_back(char c)**：改为调用 `StringBufferView::unsafe_push_back(c)`
+
+这样做的优势：
+- 减少代码重复
+- 保持 unsafe 操作在基类统一管理
+- 安全方法专注于边界检查，实际操作委托给基类
+
+#### 5. safe set_end 方法
+#### 6. safe end_cstr 方法
+检查边界，不扩容.
+
+#### 7. 单元测试增强
+
+在 `utest/t_jstring.cpp` 中添加了 `jstring_to_chars_integration` 测试用例：
+
+测试场景包括：
+- 使用 `std::to_chars` 在 `JString` 原位 buffer 上转换整数
+- 先预留足够空间，从 `end()` 处写入整数，再更新 `end` 位置
+- 测试正数、负数、无符号整数
+- 使用新增的 `begin()`、`end()`、`cap_end()` 方法
+- 使用 `unsafe_append(char*, size)` 方法
+
+### 测试结果
+
+运行单元测试验证所有功能正确：
+
+```bash
+./build/utest/utwwjson t_jstring.cpp --cout=silent
+```
+
+所有 18 个测试用例全部通过，包括新增的 `jstring_to_chars_integration` 测试。
+
+运行全部单元测试确保没有破坏现有功能：
+
+```bash
+./build/utest/utwwjson --cout=silent
+```
+
+所有 112 个测试用例全部通过。
+
+### 设计改进
+
+1. **更符合标准容器规范**：添加 `begin()`/`end()` 等迭代器方法
+2. **更灵活的 buffer 操作**：支持从 `end()` 处继续写入
+3. **更安全的接口**：提供带边界检查的 `set_end` 和 `end_cstr` 版本
+4. **代码复用**：安全方法调用基类的 unsafe 版本，减少重复
+5. **更好的第三方函数集成**：通过 `begin()`/`end()`/`cap_end()` 方便与 `std::to_chars` 等函数集成
+
+### 修改文件
+
+- `include/jstring.hpp`：
+  - StringBufferView：添加 `begin()`, `end()`, `cap_end()` 方法
+  - StringBufferView：添加 `unsafe_append(char*, size)` 方法
+  - StringBufferView：添加 `unsafe_set_end(char*)` 重载
+  - StringBuffer：修改 `append()` 和 `push_back()` 调用基类 unsafe 版本
+  - StringBuffer：添加 `set_end(size_t)` 和 `set_end(char*)` 方法
+  - StringBuffer：添加 `end_cstr()` 方法
+
+- `utest/t_jstring.cpp`：
+  - 修复 `jstring_edge_cases` 中的 `unsafe_set_end(0)` 调用，添加显式类型转换
+  - 添加 `#include <system_error>` 以支持 `std::make_error_code`
+  - 添加 `jstring_to_chars_integration` 测试用例
+
+

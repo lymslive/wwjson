@@ -84,6 +84,14 @@ public:
     bool empty() const { return m_end == m_begin; }
     const char* data() const { return m_begin; }
 
+    /// Iterator-like methods returning pointers
+    char* begin() { return m_begin; }
+    const char* begin() const { return m_begin; }
+    char* end() { return m_end; }
+    const char* end() const { return m_end; }
+    char* cap_end() { return m_cap_end; }
+    const char* cap_end() const { return m_cap_end; }
+
     const char* c_str()
     {
         if (m_begin == nullptr)
@@ -113,6 +121,19 @@ public:
         m_end = m_begin + new_size;
     }
 
+    /// Set end pointer directly (char* overload)
+    void unsafe_set_end(char* new_end)
+    {
+        m_end = new_end;
+    }
+
+    /// Unsafe append without boundary checks
+    void unsafe_append(const char* str, size_t len)
+    {
+        ::memcpy(m_end, str, len);
+        m_end += len;
+    }
+
     /// Clear content without deallocation
     void clear()
     {
@@ -123,10 +144,7 @@ public:
     /// Add null terminator at current end
     void unsafe_end_cstr()
     {
-        if (m_end <= m_cap_end)
-        {
-            *m_end = '\0';
-        }
+        *m_end = '\0';
     }
 };
 
@@ -242,8 +260,7 @@ public:
     void append(const char* str, size_t len)
     {
         reserve_ex(len);
-        ::memcpy(m_end, str, len);
-        m_end += len;
+        unsafe_append(str, len);
     }
 
     template <UnsafeLevel kOtherLevel>
@@ -255,7 +272,37 @@ public:
     void push_back(char c)
     {
         reserve_ex(1);
-        *m_end++ = c;
+        unsafe_push_back(c);
+    }
+
+    /// Safe set_end with bounds checking
+    void set_end(size_t new_size)
+    {
+        if (new_size > capacity())
+        {
+            return;
+        }
+        unsafe_set_end(new_size);
+    }
+
+    /// Safe set_end with pointer bounds checking
+    void set_end(char* new_end)
+    {
+        if (new_end < m_begin || new_end > m_cap_end)
+        {
+            return;
+        }
+        unsafe_set_end(new_end);
+    }
+
+    /// Safe end_cstr with bounds checking
+    void end_cstr()
+    {
+        if (m_end > m_cap_end)
+        {
+            return;
+        }
+        unsafe_end_cstr();
     }
 
 private:
