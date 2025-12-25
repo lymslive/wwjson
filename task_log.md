@@ -352,3 +352,74 @@ WWJSON v1.0.0 版本开发周期：2025-11-25 至 2025-12-22
    - m_cap_end 指向实际分配内存的最后一个字节
    - m_cap_end 位置初始化为 '\0'
 
+## TASK:20251225-114051
+-----------------------
+
+### 任务概述
+
+重构 StringBuffer 继承关系，实现更清晰的类层次结构和职责分离。
+
+### 实施过程
+
+#### 1. StringBufferView 重构
+
+将 `StringBufferView` 从简单的结构体改为具有 protected 成员的类：
+
+- 将 `m_begin`、`m_end`、`m_cap_end` 改为 protected 成员，使派生类可以访问
+- 添加公共接口方法：
+  - **只读方法**：`size()`, `capacity()`, `empty()`, `data()`, `front()`, `back()`, `c_str()`
+  - **unsafe 写入方法**：`unsafe_push_back()`, `unsafe_set_end()`
+  - **其他方法**：`clear()`, `unsafe_end_cstr()`
+
+设计理念：StringBufferView 提供读与在不扩容情况下有限范围内的、不检查边界的 unsafe 写操作。
+
+#### 2. StringBuffer 重构
+
+修改 `StringBuffer` 的继承关系和方法分布：
+
+- 继承方式从 `private StringBufferView` 改为 `public StringBufferView`
+- 删除已移至基类的重复方法：
+  - 只读方法：`size()`, `capacity()`, `empty()`, `data()`, `front()`, `back()`, `c_str()`
+  - unsafe 方法：`unsafe_push_back()`, `unsafe_set_end()`, `clear()`, `unsafe_end_cstr()`
+- 保留在 StringBuffer 中的方法：
+  - **安全写入方法**：`append()`, `push_back()`
+  - **内存管理方法**：`reserve()`, `reserve_ex()`, `allocate()`, `deallocate()`, `reallocate()`
+  - 所有构造函数和赋值运算符
+  - 私有辅助方法：`calculate_alloc_size()`, `calculate_growth_size()`, `copy_from()`, `move_from()`
+
+#### 3. 测试代码更新
+
+更新 `utest/t_jstring.cpp` 中的 `jstring_buffer_view` 测试：
+
+- 将 `reinterpret_cast<const StringBufferView&>(buffer)` 改为 `static_cast<const StringBufferView&>(buffer)`，因为现在是 public 继承
+- 将直接访问成员变量改为使用公共接口：
+  - `view.m_end - view.m_begin` → `view.size()`
+  - `view.m_begin` → `view.data()`
+  - `(view.m_end == view.m_begin)` → `view.empty()`
+  - `*view.m_begin` → `view.front()`
+  - `*(view.m_end - 1)` → `view.back()`
+
+### 测试结果
+
+运行单元测试验证重构正确性：
+
+```bash
+cd build && ./utest/utwwjson t_jstring.cpp --cout=silent
+```
+
+所有 17 个测试全部通过。
+
+### 设计改进
+
+1. **更好的封装**：StringBufferView 成员改为 protected，外部无法直接访问，必须通过公共接口
+2. **清晰的职责分离**：
+   - StringBufferView：视图功能（只读和 unsafe 操作）
+   - StringBuffer：缓冲区功能（安全操作和内存管理）
+3. **更符合 OOP 原则**：public 继承表示 "is-a" 关系，StringBuffer 确实 "is a" StringBufferView
+4. **代码复用**：公共方法集中在基类，减少重复代码
+
+### 修改文件
+
+- `include/jstring.hpp`：StringBufferView 和 StringBuffer 类定义重构
+- `utest/t_jstring.cpp`：更新测试代码以适配新的公共接口
+

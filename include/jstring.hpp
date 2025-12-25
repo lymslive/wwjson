@@ -60,38 +60,94 @@ using UnsafeLevel = uint8_t;
 
 /// @brief Three-pointer view for string buffer management
 /// @details
-/// This struct provides the underlying three-pointer design for string buffers:
+/// This class provides the underlying three-pointer design for string buffers:
 /// - m_begin: Start of allocated memory
 /// - m_end: Current end of string content (left-closed, right-open)
 /// - m_cap_end: End of allocated capacity (can write null terminator here)
-/// 
+///
 /// The design allows efficient direct memory manipulation while maintaining
-/// compatibility with standard string operations.
-struct StringBufferView
+/// compatibility with standard string operations. Provides read-only access
+/// and unsafe write operations within the existing buffer range.
+///
+/// Protected members allow derived classes to directly manipulate the pointers.
+class StringBufferView
 {
-    char* m_begin;     ///< Start of buffer memory
-    char* m_end;       ///< Current end of string content
-    char* m_cap_end;   ///< End of allocated capacity
+protected:
+    char* m_begin = nullptr;     ///< Start of buffer memory
+    char* m_end = nullptr;       ///< Current end of string content
+    char* m_cap_end = nullptr;   ///< End of allocated capacity
+
+public:
+    /// Read-only access methods
+    size_t size() const { return m_end - m_begin; }
+    size_t capacity() const { return m_cap_end - m_begin; }
+    bool empty() const { return m_end == m_begin; }
+    const char* data() const { return m_begin; }
+
+    const char* c_str()
+    {
+        if (m_begin == nullptr)
+        {
+            return "";
+        }
+        if (m_end < m_cap_end)
+        {
+            *m_end = '\0';
+        }
+        return m_begin;
+    }
+
+    char& front() { return *m_begin; }
+    const char& front() const { return *m_begin; }
+    char& back() { return *(m_end - 1); }
+    const char& back() const { return *(m_end - 1); }
+
+    /// Unsafe write methods (no boundary checks)
+    void unsafe_push_back(char c)
+    {
+        *m_end++ = c;
+    }
+
+    void unsafe_set_end(size_t new_size)
+    {
+        m_end = m_begin + new_size;
+    }
+
+    /// Clear content without deallocation
+    void clear()
+    {
+        m_end = m_begin;
+        *m_end = '\0';
+    }
+
+    /// Add null terminator at current end
+    void unsafe_end_cstr()
+    {
+        if (m_end <= m_cap_end)
+        {
+            *m_end = '\0';
+        }
+    }
 };
 
 /// @brief High-performance string buffer with unsafe operations
 /// @tparam kUnsafeLevel Number of unsafe operations allowed after each safe check
 /// @details
-/// StringBuffer implements the UnsafeStringConcept interface with a three-pointer
-/// design for optimal performance in JSON serialization. The key features are:
-/// 
+/// StringBuffer implements the UnsafeStringConcept interface by inheriting from
+/// StringBufferView. The key features are:
+///
 /// - Batch boundary checking with safety margin
 /// - Direct buffer manipulation without intermediate copies
 /// - Deferred null termination until final result is needed
 /// - Support for unsafe character writes after safe capacity checks
-/// 
+///
 /// @par Memory Allocation Policy:
 /// - Minimum allocation: 256 bytes (configurable via JSTRING_MIN_ALLOC_SIZE)
 /// - Growth strategy: Exponential (2x) until 8MB, then linear +8MB
 /// - Alignment: Memory is aligned to improve efficiency
 /// - Capacity invariant: capacity() = m_cap_end - m_begin
 /// - Always allocates at least capacity() + 1 bytes for null terminator
-/// 
+///
 /// @par kUnsafeLevel Semantics:
 /// kUnsafeLevel specifies additional bytes beyond user-requested capacity.
 /// Example: For kUnsafeLevel=4, after reserve(100):
@@ -100,13 +156,13 @@ struct StringBufferView
 ///   - You can write upto 100 characters for main content, and then
 ///   - allow to call unsafe_push_back 4 times safely
 /// This definition allows kUnsafeLevel=0 to represent behavior similar to std::string.
-/// 
+///
 /// @par Invariants:
 /// - capacity() == m_cap_end - m_begin (includes kUnsafeLevel)
 /// - Actual allocation >= capacity() + 1 (for null terminator)
 /// - m_cap_end is within allocated memory, position reserved for potential null terminator
 /// - The byte at m_cap_end is written with '\0' on allocation for safety
-/// 
+///
 /// @par Usage Examples:
 /// ```cpp
 /// StringBuffer<4> buffer;  // JString alias
@@ -121,16 +177,13 @@ struct StringBufferView
 /// buffer.unsafe_end_cstr();      // Add null terminator at m_end
 /// ```
 template <UnsafeLevel LEVEL>
-class StringBuffer : private StringBufferView, public UnsafeStringConcept
+class StringBuffer : public StringBufferView, public UnsafeStringConcept
 {
 public:
     static constexpr uint8_t kUnsafeLevel = LEVEL;
 
     StringBuffer()
     {
-        m_begin = nullptr;
-        m_end = nullptr;
-        m_cap_end = nullptr;
     }
 
     explicit StringBuffer(size_t capacity)
@@ -170,29 +223,6 @@ public:
         return *this;
     }
 
-    size_t size() const { return m_end - m_begin; }
-    size_t capacity() const { return m_cap_end - m_begin; }
-    bool empty() const { return m_end == m_begin; }
-    const char* data() const { return m_begin; }
-
-    const char* c_str()
-    {
-        if (m_begin == nullptr)
-        {
-            return "";
-        }
-        if (m_end < m_cap_end)
-        {
-            *m_end = '\0';
-        }
-        return m_begin;
-    }
-
-    char& front() { return *m_begin; }
-    const char& front() const { return *m_begin; }
-    char& back() { return *(m_end - 1); }
-    const char& back() const { return *(m_end - 1); }
-
     void reserve_ex(size_t add_capacity) { reserve(size() + add_capacity); }
     void reserve(size_t new_capacity)
     {
@@ -212,7 +242,7 @@ public:
     void append(const char* str, size_t len)
     {
         reserve_ex(len);
-        memcpy(m_end, str, len);
+        ::memcpy(m_end, str, len);
         m_end += len;
     }
 
@@ -226,30 +256,6 @@ public:
     {
         reserve_ex(1);
         *m_end++ = c;
-    }
-
-    void unsafe_push_back(char c)
-    {
-        *m_end++ = c;
-    }
-
-    void unsafe_set_end(size_t new_size)
-    {
-        m_end = m_begin + new_size;
-    }
-
-    void unsafe_end_cstr()
-    {
-        if (m_end <= m_cap_end)
-        {
-            *m_end = '\0';
-        }
-    }
-
-    void clear()
-    {
-        m_end = m_begin;
-        *m_end = '\0';
     }
 
 private:

@@ -191,3 +191,18 @@ to AI:
 
 ### DONE:20251224-121931
 
+## TODO:2025-12-25/1 重构 StringBufferView 继承关系
+
+- 改为 StringBuffer 公有继承 StringBufferView
+- StringBufferView 成员改为私有，方法公有
+- 将 StringBuffer 的基本只读方法移到 StringBufferView 基类
+- 将 StringBuffer 的 unsafe 写入方法移到基类，保留 safe 方法与内存管理方法
+
+### DONE:20251225-114051
+
+## TODO: 设计 StringBuffer 默认构造状态
+为避免空指针的处理，默认构造指向几个字节的静态 buffer[4]
+
+## TODO: StringBuffer 再增加常用方法
+
+## TODO: 重新设计单元测试

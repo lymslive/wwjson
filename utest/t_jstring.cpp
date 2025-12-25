@@ -241,20 +241,20 @@ DEF_TAST(jstring_buffer_view, "StringBufferView 转换测试")
 {
     JString buffer;
     buffer.append("test content");
-    
+
     // 使用 reinterpret_cast 转换为 StringBufferView
-    // 在私有继承时 static_cast 不可用
-    StringBufferView view = reinterpret_cast<const StringBufferView&>(buffer);
-    
-    COUT(view.m_end - view.m_begin, buffer.size());
-    COUT(view.m_begin, buffer.data());
+    // 现在使用 public 继承，static_cast 可用
+    const StringBufferView& view = static_cast<const StringBufferView&>(buffer);
+
+    COUT(view.size(), buffer.size());
+    COUT(view.data(), buffer.data());
     COUT(strncmp(buffer.data(), "test content", buffer.size()), 0);
-    
-    // 手动计算视图属性
-    bool view_empty = (view.m_end == view.m_begin);
+
+    // 使用公共接口检查视图属性
+    bool view_empty = view.empty();
     COUT(view_empty, false);
-    COUT(*view.m_begin, 't');
-    COUT(*(view.m_end - 1), 't');
+    COUT(view.front(), 't');
+    COUT(view.back(), 't');
 }
 
 DEF_TAST(jstring_capacity_growth, "JString 容量增长测试")
