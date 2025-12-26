@@ -547,3 +547,50 @@ void unsafe_append(const char* str, size_t len)
   - 添加 `jstring_to_chars_integration` 测试用例
 
 
+## TASK:20251226-112337
+-----------------------
+
+### 需求
+
+需求 ID：2025-12-26/1
+
+对 StringBuffer 的 end 状态管理进行 API 重构优化：
+1. 将 `unsafe_set_end(size_t)` 重命名为 `unsafe_resize(size_t)`
+2. 将 `set_end(size_t)` 重命名为 `resize(size_t)`，并支持扩容
+3. 修改 `clear()` 方法行为：相当于 `unsafe_resize(0)`，不再隐含添加空字符 '\0'，只有 `c_str()` 才添加空字符
+
+### 实现
+
+#### 1. 修改 StringBufferView
+
+- 将 `unsafe_set_end(size_t)` 重命名为 `unsafe_resize(size_t)`
+- 修改 `clear()` 方法，移除 `*m_end = '\0'`，改为调用 `unsafe_resize(0)`
+- 保持 `unsafe_set_end(char*)` 方法不变
+
+#### 2. 修改 StringBuffer
+
+- 将 `set_end(size_t)` 重命名为 `resize(size_t)`
+- 实现 `resize(size_t)` 支持扩容：若 `new_size > capacity()` 则调用 `reserve(new_size)`
+- 保持 `set_end(char*)` 方法不变，用于已知 end 指针的场景
+
+#### 3. 更新测试文件
+
+- 将 `unsafe_set_end(size_t)` 调用改为 `unsafe_resize(size_t)`（3处）
+- 将 `unsafe_set_end(static_cast<size_t>(0))` 简化为 `unsafe_resize(0)`
+- 保持 `set_end(char*)` 调用不变
+
+### 测试
+
+运行 `make test`，编译成功，所有 112 个测试用例全部通过。
+
+### 设计改进
+
+1. **更清晰的 API 语义**：`resize` 表示调整大小，比 `set_end` 更准确；`resize` 支持扩容，使用更方便
+2. **职责分离**：`clear()` 只负责重置大小，不再添加空字符；`c_str()` 统一负责添加空字符
+3. **保持灵活性**：保留 `unsafe_set_end(char*)` 和 `set_end(char*)` 用于已知指针的场景
+
+### 修改文件
+
+- `include/jstring.hpp`：StringBufferView 重命名方法并修改 `clear()`；StringBuffer 重命名并实现扩容
+- `utest/t_jstring.cpp`：更新方法名调用
+

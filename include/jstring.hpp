@@ -116,7 +116,7 @@ public:
         *m_end++ = c;
     }
 
-    void unsafe_set_end(size_t new_size)
+    void unsafe_resize(size_t new_size)
     {
         m_end = m_begin + new_size;
     }
@@ -137,8 +137,7 @@ public:
     /// Clear content without deallocation
     void clear()
     {
-        m_end = m_begin;
-        *m_end = '\0';
+        unsafe_resize(0);
     }
 
     /// Add null terminator at current end
@@ -275,14 +274,14 @@ public:
         unsafe_push_back(c);
     }
 
-    /// Safe set_end with bounds checking
-    void set_end(size_t new_size)
+    /// Safe resize with bounds checking and capacity expansion
+    void resize(size_t new_size)
     {
         if (new_size > capacity())
         {
-            return;
+            reserve(new_size);
         }
-        unsafe_set_end(new_size);
+        unsafe_resize(new_size);
     }
 
     /// Safe set_end with pointer bounds checking

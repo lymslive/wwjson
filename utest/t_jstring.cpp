@@ -100,13 +100,13 @@ DEF_TAST(jstring_unsafe_operations, "JString 不安全操作测试")
     COUT(buffer.size(), 7);
     COUT(strncmp(buffer.data(), "key:\"va", buffer.size()), 0);
     
-    // 测试 unsafe_set_end
-    buffer.unsafe_set_end(3);
+    // 测试 unsafe_resize
+    buffer.unsafe_resize(3);
     COUT(buffer.size(), 3);
     COUT(strncmp(buffer.data(), "key", buffer.size()), 0);
     
     // 测试 unsafe_end_cstr
-    buffer.unsafe_set_end(7);
+    buffer.unsafe_resize(7);
     buffer.unsafe_push_back('l');
     buffer.unsafe_push_back('u');
     buffer.unsafe_push_back('e');
@@ -205,7 +205,7 @@ DEF_TAST(jstring_edge_cases, "JString 边界情况测试")
     
     // 在空缓冲区上进行不安全操作
     buffer.reserve_ex(10);
-    buffer.unsafe_set_end(static_cast<size_t>(0));
+    buffer.unsafe_resize(0);
     COUT(buffer.size(), 0);
 }
 

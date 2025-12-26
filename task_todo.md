@@ -218,9 +218,60 @@ std::to_chars 转换整数，先预留足够空间，在从 end 处写入整数�
 
 ### DONE:20251225-145239
 
-## TODO: 设计 StringBuffer 默认构造状态
-为避免空指针的处理，默认构造指向几个字节的静态 buffer[4]
+## TODO:2025-12-26/1 StringBuffer end 状态管理优化
 
-## TODO: StringBuffer 再增加常用方法
+- 待修改文件：include/jstring.hpp，utest/t_jstring.cpp
+- 涉及类：StringBufferView, StringBuffer
+
+- `unsafe_set_end(size_t)` 重载方法名改为 unsafe_resize
+- `set_end(size_t)` 方法名改为 resize，可扩容
+- `clear` 相当于 unsafe_resize(0), 不再隐含修改 end 字符 '\0' ，只让 `c_str`
+  修改 end 字符为 '\0'
+
+### DONE:20251226-112337
+
+## TODO: StringBuffer 与标准字符串的互操作
+
+- 待修改文件：include/jstring.hpp，utest/t_jstring.cpp
+- StringBufferView 可隐式转换为 std::string_view 
+- StringBufferView 需显式转换为 std::string, 因涉及拷贝
+- StringBuffer 的 append 方法增加重载，支持参数 std::string 与 std::string_view
+
+## TODO: StringBufferView 增加 fill 方法
+
+- 待修改文件：include/jstring.hpp，utest/t_jstring.cpp
+- StringBufferView 增加 fill(ch, count) 方法，类似 memset ，重复填充相同字符
+- 不扩容，检查参数 count 不超过容量
+- 额外加个参数表示是否移动 end 指针，默认 false
+- StringBuffer 增加 append(count, ch)，允许扩容
+
+## TODO: 设计 StringBuffer 默认构造状态
+
+为避免空指针的处理，默认构造提默认容量
+
+StringBufferView 增加 operator bool 判断是不有效内存 m_begin 非空
+
+## TODO: StringBufferView 重命名
+
+- StringBufferView 简化为 BufferView
+- 再继承一个 LocalBuffer 类，模板参数 bool UNSAFE
+  + 默认 UNSAFE = false, 每次 append push_back 检查边界，kUnsafeLevel = 0
+  + UNSAFE = true 时 append push_back 不检查边界，就相当于调用 unsafe 版,
+    kUnsafeLevel = 0xFF 表示最大
+- BufferView 增加 overflow() 检测，reserve_ex() 空参时检查剩余可用字节
 
 ## TODO: 重新设计单元测试
+
+## TODO: 增加 jbuilder.hpp 组合使用 jstring.hpp
+
+- wwjson.hpp 与 jstring.hpp 仍有独立使用意义，互不依赖
+- jbuilder.hpp 依赖 wwjson.hpp 与 jstring.hpp 
+- wwjson.hpp 增加编译期判断 stringT 的 unsafe level 功能
+
+常用类别名:
+- Builder: 使用 JString
+- LocalBuffer: 使用 `LoclBuffer<false>`
+- UnsafeBuilder / FastBuilder: 使用 `LoclBuffer<true>`
+
+## TODO: wwjson.hpp 根据 unsfe level 重构 GenericBuiler
+
