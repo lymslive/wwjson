@@ -3,6 +3,8 @@
 #include "jstring.hpp"
 #include <charconv>  // for std::to_chars
 #include <system_error>  // for std::make_error_code
+#include <string>
+#include <string_view>
 
 using namespace wwjson;
 
@@ -509,5 +511,116 @@ DEF_TAST(jstring_to_chars_integration, "std::to_chars 集成测试")
         COUT(strncmp(buffer.data() + buffer.size() - len, extra, len), 0);
         COUT(strncmp(buffer.c_str(), "Unsafe append: test data", buffer.size()), 0);
     }
+}
+
+DEF_TAST(jstring_to_string_view, "StringBufferView 隐式转换为 std::string_view")
+{
+    JString buffer;
+    buffer.append("test content");
+
+    // 隐式转换为 std::string_view
+    std::string_view sv = buffer;
+
+    COUT(sv.size(), buffer.size());
+    COUT(sv.data(), buffer.data());
+    COUT(sv.compare("test content"), 0);
+
+    // 通过引用转换
+    const StringBufferView& view = buffer;
+    std::string_view sv2 = view;
+
+    COUT(sv2.size(), buffer.size());
+    COUT(sv2.data(), buffer.data());
+    COUT(sv2.compare("test content"), 0);
+
+    // 测试空字符串
+    JString empty_buffer;
+    std::string_view empty_sv = empty_buffer;
+    COUT(empty_sv.size(), 0);
+}
+
+DEF_TAST(jstring_to_string, "StringBufferView 显式转换为 std::string")
+{
+    JString buffer;
+    buffer.append("test content");
+
+    // 显式转换为 std::string
+    std::string str = static_cast<std::string>(buffer);
+
+    COUT(str.size(), buffer.size());
+    COUT(str.compare("test content"), 0);
+
+    // 验证拷贝而非引用
+    COUT(str.data() != buffer.data(), true);
+
+    // 修改原始 buffer，str 应该不受影响
+    buffer.append(" more");
+    COUT(str.compare("test content"), 0);
+    COUT(buffer.size(), 17);
+
+    // 测试空字符串
+    JString empty_buffer;
+    std::string empty_str = static_cast<std::string>(empty_buffer);
+    COUT(empty_str.size(), 0);
+    COUT(empty_str.empty(), true);
+}
+
+DEF_TAST(jstring_append_std_string, "StringBuffer append 支持 std::string")
+{
+    JString buffer;
+
+    // 测试 std::string
+    std::string str1 = "hello";
+    buffer.append(str1);
+
+    COUT(buffer.size(), 5);
+    COUT(strncmp(buffer.data(), "hello", buffer.size()), 0);
+
+    std::string str2 = " world";
+    buffer.append(str2);
+
+    COUT(buffer.size(), 11);
+    COUT(strncmp(buffer.data(), "hello world", buffer.size()), 0);
+
+    // 测试空字符串
+    std::string empty_str;
+    buffer.append(empty_str);
+    COUT(buffer.size(), 11);
+}
+
+DEF_TAST(jstring_append_string_view, "StringBuffer append 支持 std::string_view")
+{
+    JString buffer;
+
+    // 测试 std::string_view
+    std::string_view sv1 = "hello";
+    buffer.append(sv1);
+
+    COUT(buffer.size(), 5);
+    COUT(strncmp(buffer.data(), "hello", buffer.size()), 0);
+
+    // 从 std::string 创建 string_view
+    std::string str = " world";
+    std::string_view sv2(str);
+    buffer.append(sv2);
+
+    COUT(buffer.size(), 11);
+    COUT(strncmp(buffer.data(), "hello world", buffer.size()), 0);
+
+    // 测试子串
+    std::string long_str = "0123456789";
+    std::string_view sub_sv = std::string_view(long_str).substr(3, 4); // "3456"
+    buffer.append(sub_sv);
+
+    COUT(buffer.size(), 15);
+    COUT(strncmp(buffer.data(), "hello world3456", buffer.size()), 0);
+
+    // 测试空 string_view
+    std::string_view empty_sv;
+    buffer.append(empty_sv);
+    COUT(buffer.size(), 15);
+
+    buffer.append("");
+    COUT(buffer.size(), 15);
 }
 

@@ -19,6 +19,8 @@
 #include <cstring>
 #include <memory>
 #include <type_traits>
+#include <string>
+#include <string_view>
 
 #include <stdint.h>
 
@@ -103,6 +105,18 @@ public:
             *m_end = '\0';
         }
         return m_begin;
+    }
+
+    /// Implicit conversion to std::string_view
+    operator std::string_view() const
+    {
+        return std::string_view(m_begin, size());
+    }
+
+    /// Explicit conversion to std::string (requires copy)
+    explicit operator std::string() const
+    {
+        return std::string(m_begin, size());
     }
 
     char& front() { return *m_begin; }
@@ -260,6 +274,16 @@ public:
     {
         reserve_ex(len);
         unsafe_append(str, len);
+    }
+
+    void append(const std::string& str)
+    {
+        append(str.data(), str.size());
+    }
+
+    void append(const std::string_view& sv)
+    {
+        append(sv.data(), sv.size());
     }
 
     template <UnsafeLevel kOtherLevel>
