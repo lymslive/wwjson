@@ -677,3 +677,83 @@ void unsafe_append(const char* str, size_t len)
 
 - `include/jstring.hpp`：添加 fill 和 append(count, ch) 方法
 - `utest/t_jstring.cpp`：添加测试用例、优化现有测试
+
+## TASK:20251226-174807
+-----------------------
+
+### 需求
+
+需求 ID：2025-12-26/4
+
+设计 StringBuffer 默认构造状态，避免空指针处理：
+1. StringBuffer 默认构造时预分配 1024 字节内存（kDefaultAllocate）
+2. 删除 JSTRING_MIN_ALLOC_SIZE 宏，不再强制最小申请 256 字节
+3. StringBufferView 增加 operator bool() 判断是否申请过内存（m_begin 非空）
+4. StringBufferView 在 back/front 方法与 unsafe 方法中增加 debug 版本 assert 做安全检查
+5. 修改了默认构造函数语义，修复因变更导致的单元测试
+
+### 实现
+
+#### 1. 修改默认构造函数语义
+
+- 添加 `kDefaultAllocate = 1024` 常量，表示默认内存申请量
+- 默认构造函数复用 `StringBuffer(size_t capacity)` 构造函数：
+  `StringBuffer() : StringBuffer(kDefaultAllocate - kUnsafeLevel - 1)`
+- 默认构造后：申请 1024 字节，capacity() = 1023（减 1 给 null terminator）
+
+#### 2. 删除 JSTRING_MIN_ALLOC_SIZE 宏
+
+- 移除 `#define JSTRING_MIN_ALLOC_SIZE 256` 宏定义
+- 修改 `calculate_alloc_size()`：size=0 时返回 0，否则直接对齐到 8 字节
+- 修改 `calculate_growth_size()`：移除 `cur_size > JSTRING_MIN_ALLOC_SIZE` 判断，改为 `cur_size > 0`
+
+#### 3. 添加 operator bool()
+
+在 `StringBufferView` 中添加：
+```cpp
+explicit operator bool() const { return m_begin != nullptr; }
+```
+
+#### 4. 添加 debug assert
+
+在 `StringBufferView` 的以下方法中添加 assert：
+- `front()`：检查 m_begin 非空且 m_end > m_begin
+- `back()`：检查 m_begin 非空且 m_end > m_begin
+- `unsafe_push_back()`：检查 m_begin 非空
+- `unsafe_resize()`：检查 m_begin 非空
+- `unsafe_set_end(char*)`：检查 m_begin 非空
+- `unsafe_append()`：检查 m_begin 非空
+- `unsafe_end_cstr()`：检查 m_begin 非空
+- `fill()`：检查 m_begin 非空
+
+#### 5. 添加 `<cassert>` 头文件
+
+在 `include/jstring.hpp` 中添加 `#include <cassert>` 以支持 assert
+
+#### 6. 修复单元测试
+
+更新以下测试用例以适应新的默认构造语义：
+- jstring_basic_construct：默认构造后 capacity 为 1023，添加 operator bool() 测试
+- jstring_capacity_growth：使用小容量 (50) 构造观察扩容行为
+- jstring_memory_alignment：更新容量期望值（capacity = alloc_size - 1）
+- jstring_kunsafelevel_semantics：更新容量期望值
+- jstring_copy_move：更新移动后源对象的 capacity 期望值，添加 operator bool() 测试
+- jstring_to_string_view：更新容量期望值，添加 operator bool() 测试
+
+### 测试
+
+运行 `make test`，所有 118 个测试用例全部通过。
+
+### 设计改进
+
+1. **避免空指针**：默认构造即分配内存，避免对空指针的特殊处理
+2. **清晰的常量命名**：kDefaultAllocate 明确表示默认内存申请量，不是 capacity
+3. **复用现有逻辑**：默认构造函数复用带容量的构造函数，避免重复逻辑
+4. **安全检查**：在关键方法中添加 assert，帮助在调试阶段尽早发现错误
+5. **operator bool() 语义**：检查是否有内存，而不是检查是否为空字符串
+
+### 修改文件
+
+- `include/jstring.hpp`：添加 kDefaultAllocate、operator bool()、assert、删除 JSTRING_MIN_ALLOC_SIZE、修改默认构造
+- `utest/t_jstring.cpp`：修复单元测试、添加 operator bool() 测试
+

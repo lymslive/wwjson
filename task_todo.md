@@ -257,11 +257,22 @@ fill 的参数大约是 (char ch, size_t count = -1, bool end = false);
 
 ### DONE:20251226-154417
 
-## TODO: 设计 StringBuffer 默认构造状态
+## TODO:2025-12-26/4 设计 StringBuffer 默认构造状态
 
-为避免空指针的处理，默认构造提默认容量
+待修改文件：include/jstring.hpp，utest/t_jstring.cpp
 
-StringBufferView 增加 operator bool 判断是不有效内存 m_begin 非空
+为避免空指针的处理，StringBuffer 缺省构造提默认容量。
+- 定义默认容量 1024 - kUnsafeLevel - 1，保证默认初始申请内存 1024.
+- JSTRING_MIN_ALLOC_SIZE 最小申请内存宏删除，也允许用户显式指定较小的初始容量
+传给构造函数，但仍要向上对齐。
+- StringBufferView 增加 operator bool 判断是否申请过内存， m_begin 非空
+- StringBufferView 在 back/front 方法与 unsafe 方法中增加仅调试版本的 assert
+做安全检查，也再审核其他代码是否需要 assert 。
+
+修改了默认构造函数语义，可能会破坏原有一些单元测试，需要同步修复。
+不必再新加单元测试用例，在原有的用例中适合的地方加上 operator bool 判断。
+
+### DONE:20251226-174807
 
 ## TODO: StringBufferView 重命名
 
@@ -271,6 +282,22 @@ StringBufferView 增加 operator bool 判断是不有效内存 m_begin 非空
   + UNSAFE = true 时 append push_back 不检查边界，就相当于调用 unsafe 版,
     kUnsafeLevel = 0xFF 表示最大
 - BufferView 增加 overflow() 检测，reserve_ex() 空参时检查剩余可用字节
+
+LocalBuffer 与 StringBuffer 的作用应该基本相似，但不拥有自己的内存，需要借用其
+他内存段，由用户保证在有效的内存区域写入。因此不应该提借默认默认构造，必要提供
+有效内存指针构造，支持以下构造：
+
+- `LocalBuffer(char* dst, size_t size)` 指定地址与长度，begin/end 都指向 dst 入
+  参，即 size = 0，capacity = size-1，cap_end 处预写 '\0'
+- `LocalBuffer(char[N]& dst)`
+- `LocalBuffer(std::array<N>& dst)`
+- `LocalBuffer(std::string& dst)`
+- `LocalBuffer(std:vector<char>& dst)`
+
+以第一个构造函数为主，借用其他对象的内存转调第一个构造函数。正常情况下，不该再
+使用传入参数的对象，它只用于自己申请与释放内存。尤其是当通过 LocalBuffer 写入
+数据后，注意不能同步 std::string 或 std::vector 的 size ，它仍是 0 。但它们在
+传入构造函数之前应该 reserve 内存。
 
 ## TODO: 重新设计单元测试
 
