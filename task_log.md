@@ -594,3 +594,86 @@ void unsafe_append(const char* str, size_t len)
 - `include/jstring.hpp`：StringBufferView 重命名方法并修改 `clear()`；StringBuffer 重命名并实现扩容
 - `utest/t_jstring.cpp`：更新方法名调用
 
+## TASK:20251226-121411
+-----------------------
+
+### 需求
+
+需求 ID：2025-12-26/2
+
+实现 StringBuffer 与标准字符串的互操作功能：
+1. StringBufferView 可隐式转换为 std::string_view
+2. StringBufferView 需显式转换为 std::string，因涉及拷贝
+3. StringBuffer 的 append 方法增加重载，支持参数 std::string 与 std::string_view
+
+### 实现
+
+1. 在 `include/jstring.hpp` 中添加 `<string>` 和 `<string_view>` 头文件
+2. 在 `StringBufferView` 中添加隐式转换到 `std::string_view` 的运算符
+3. 在 `StringBufferView` 中添加显式转换到 `std::string` 的运算符
+4. 在 `StringBuffer` 的 `append` 方法中增加 `std::string` 和 `std::string_view` 的重载
+
+### 测试
+
+在 `utest/t_jstring.cpp` 中添加了 4 个测试用例：
+- jstring_to_string_view：测试隐式转换
+- jstring_to_string：测试显式转换
+- jstring_append_std_string：测试 append 支持 std::string
+- jstring_append_string_view：测试 append 支持 std::string_view
+
+运行单元测试，所有 116 个测试用例全部通过。
+
+### 设计改进
+
+1. 类型安全的互操作：通过隐式转换到 std::string_view，可以方便地将 StringBuffer 传递给接受 string_view 的函数，无需拷贝
+2. 显式转换防止意外拷贝：std::string 转换显式化，避免隐式拷贝带来的性能问题
+3. 统一的 append 接口：新增重载使 append 方法支持所有常见的字符串类型
+4. 更好的标准库集成：通过 std::string_view 转换，可以更方便地与使用标准库的代码集成
+
+### 修改文件
+
+- `include/jstring.hpp`：添加头文件、转换运算符、append 重载
+- `utest/t_jstring.cpp`：添加头文件、测试用例
+
+## TASK:20251226-154417
+-----------------------
+
+### 需求
+
+需求 ID：2025-12-26/3
+
+为 StringBufferView 和 StringBuffer 新增填充和字符重复追加功能：
+1. StringBufferView 增加 fill(ch, count, move_end) 方法，类似 memset
+2. StringBuffer 增加 append(count, ch) 方法，支持扩容
+
+### 实现
+
+#### StringBufferView::fill 方法
+
+在 `include/jstring.hpp` 添加 fill 方法：
+- 默认 count 为 size_t(-1) 时，自动填充全部剩余容量
+- 不扩容，count 超过可用容量时自动截断
+- move_end 参数控制是否移动 m_end 指针，默认 false
+- 使用 memset 批量填充字符
+
+#### StringBuffer::append(count, ch) 方法
+
+添加 append 重载：
+- 直接调用 fill 批量填充，避免循环和多次移动 end 指针
+- 支持自动扩容
+- 参数顺序遵循 std::string::append(count, ch) 约定
+
+### 测试
+
+在 `utest/t_jstring.cpp` 中添加了 2 个测试用例：
+- jstring_fill：测试 fill 方法的各种场景
+- jstring_append_count_char：测试 append(count, ch) 的各种场景
+
+同时优化了现有测试 jstring_kunsafelevel_semantics，使用新增的 append(count, ch) 方法。
+
+运行单元测试，所有 118 个测试用例全部通过。
+
+### 修改文件
+
+- `include/jstring.hpp`：添加 fill 和 append(count, ch) 方法
+- `utest/t_jstring.cpp`：添加测试用例、优化现有测试

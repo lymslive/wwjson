@@ -230,20 +230,32 @@ std::to_chars 转换整数，先预留足够空间，在从 end 处写入整数�
 
 ### DONE:20251226-112337
 
-## TODO: StringBuffer 与标准字符串的互操作
+## TODO:2025-12-26/2 StringBuffer 与标准字符串的互操作
 
 - 待修改文件：include/jstring.hpp，utest/t_jstring.cpp
 - StringBufferView 可隐式转换为 std::string_view 
 - StringBufferView 需显式转换为 std::string, 因涉及拷贝
 - StringBuffer 的 append 方法增加重载，支持参数 std::string 与 std::string_view
 
-## TODO: StringBufferView 增加 fill 方法
+### DONE:20251226-121411
+
+## TODO:2025-12-26/3 StringBufferView 增加 fill 方法
 
 - 待修改文件：include/jstring.hpp，utest/t_jstring.cpp
 - StringBufferView 增加 fill(ch, count) 方法，类似 memset ，重复填充相同字符
 - 不扩容，检查参数 count 不超过容量
 - 额外加个参数表示是否移动 end 指针，默认 false
 - StringBuffer 增加 append(count, ch)，允许扩容
+
+fill 的参数大约是 (char ch, size_t count = -1, bool end = false);
+其设计用意：
+- fill(0) 可以将 buffer （剩余）部分全置 0 ，因为默认初始化时只在 cap_end 置 0，
+  允许用户按需全填 `\0`
+- fill('x', count, true) ，允许填充其他字符内容，且同步 size 增 count
+- fill 与 append 的前两个参数位置不同，主要分别参考 memset 与 std::string 的
+  append 同名方法的签名
+
+### DONE:20251226-154417
 
 ## TODO: 设计 StringBuffer 默认构造状态
 

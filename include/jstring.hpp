@@ -159,6 +159,29 @@ public:
     {
         *m_end = '\0';
     }
+
+    /// Fill buffer with a character (like memset)
+    /// @param ch Character to fill
+    /// @param count Number of characters to fill
+    /// @param move_end Whether to move m_end pointer forward (default: false)
+    /// @details No capacity expansion - count must be <= available capacity
+    /// When count is -1 (max size_t), fill all remaining capacity from m_end to m_cap_end
+    void fill(char ch, size_t count = static_cast<size_t>(-1), bool move_end = false)
+    {
+        size_t available = m_cap_end - m_end;
+        // count is already bounded by available (including when count = -1)
+        if (count > available)
+        {
+            count = available;
+        }
+
+        ::memset(m_end, ch, count);
+
+        if (move_end)
+        {
+            m_end += count;
+        }
+    }
 };
 
 /// @brief High-performance string buffer with unsafe operations
@@ -296,6 +319,15 @@ public:
     {
         reserve_ex(1);
         unsafe_push_back(c);
+    }
+
+    /// Append count copies of character ch (like std::string::append)
+    /// @param count Number of characters to append
+    /// @param ch Character to append
+    void append(size_t count, char ch)
+    {
+        reserve_ex(count);
+        fill(ch, count, true);
     }
 
     /// Safe resize with bounds checking and capacity expansion

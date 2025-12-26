@@ -335,8 +335,7 @@ DEF_TAST(jstring_kunsafelevel_semantics, "kUnsafeLevel 语义测试")
     // 测试 reserve_ex(n) 后可以写入 n 个字符，然后再调用 unsafe_push_back kUnsafeLevel 次
     {
         JString buffer(250);
-        std::string fill(buffer.capacity(), 'x');
-        buffer.append(fill.c_str(), fill.size());
+        buffer.append(buffer.capacity(), 'x');
         size_t old_size = buffer.size();
 
         // 最少申请 256 ，容量 255
@@ -622,5 +621,99 @@ DEF_TAST(jstring_append_string_view, "StringBuffer append 支持 std::string_vie
 
     buffer.append("");
     COUT(buffer.size(), 15);
+}
+
+DEF_TAST(jstring_fill, "StringBufferView fill 方法测试")
+{
+    DESC("fill(0) 填充剩余空间为 '\\0'");
+    {
+        JString buffer(100);
+        buffer.append("hello");
+        buffer.fill(0);
+        for (size_t i = buffer.size(); i < buffer.capacity(); ++i)
+        {
+            COUT(buffer.data()[i], '\0');
+        }
+        COUT(strncmp(buffer.data(), "hello", 5), 0);
+    }
+
+    DESC("fill(ch, count) 填充指定数量字符，不移动 end");
+    {
+        JString buffer(100);
+        buffer.append("test");
+        size_t size_before = buffer.size();
+        buffer.fill('x', 5);
+        COUT(buffer.size(), size_before);
+        COUT(strncmp(buffer.data(), "test", 4), 0);
+        COUT(strncmp(buffer.data() + size_before, "xxxxx", 5), 0);
+    }
+
+    DESC("fill(ch, count, true) 填充并移动 end 指针");
+    {
+        JString buffer(100);
+        buffer.append("hello");
+        buffer.fill('!', 3, true);
+        COUT(buffer.size(), 8);
+        COUT(strcmp(buffer.c_str(), "hello!!!"), 0);
+    }
+
+    DESC("fill 超过容量时自动截断");
+    {
+        JString buffer(100);
+        buffer.append("test");
+        size_t size_before = buffer.size();
+        buffer.fill('y', 1000);
+        COUT(buffer.size(), size_before);
+        bool all_y = true;
+        for (size_t i = size_before; i < buffer.capacity(); ++i)
+        {
+            if (buffer.data()[i] != 'y') all_y = false;
+        }
+        COUT(all_y, true);
+    }
+}
+
+DEF_TAST(jstring_append_count_char, "StringBuffer append(count, ch) 测试")
+{
+    DESC("基础测试：追加多个相同字符");
+    {
+        JString buffer;
+        buffer.append("hello");
+        buffer.append(5, '!');
+        COUT(buffer.size(), 10);
+        COUT(strcmp(buffer.c_str(), "hello!!!!!"), 0);
+    }
+
+    DESC("超过容量时自动扩容");
+    {
+        JString buffer(10);
+        buffer.append("test");
+        buffer.append(100, 'x');
+        COUT(buffer.size(), 104);
+        bool all_x = true;
+        for (size_t i = 4; i < 104; ++i)
+        {
+            if (buffer.data()[i] != 'x') all_x = false;
+        }
+        COUT(all_x, true);
+    }
+
+    DESC("count=0 不追加任何字符");
+    {
+        JString buffer;
+        buffer.append("hello");
+        buffer.append(0, 'x');
+        COUT(buffer.size(), 5);
+        COUT(strcmp(buffer.c_str(), "hello"), 0);
+    }
+
+    DESC("fill 和 append 组合使用");
+    {
+        JString buffer(100);
+        buffer.append("prefix");
+        buffer.fill('-', 5, true);
+        buffer.append(3, '?');
+        COUT(strcmp(buffer.c_str(), "prefix-----???"), 0);
+    }
 }
 
