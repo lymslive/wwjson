@@ -10,21 +10,24 @@ using namespace wwjson;
 
 DEF_TAST(jstring_basic_construct, "JString 基础构造测试")
 {
-    // 默认构造
+    // 默认构造 - 现在默认申请 1024 字节，容量为 1023
     JString buffer1;
     COUT(buffer1.empty(), true);
     COUT(buffer1.size(), 0);
-    COUT(buffer1.capacity(), 0);
-    COUT((void*)buffer1.data(), nullptr);
-    // 未分配内存，但 c_str 返回非 nullptr, 指向静态空串
+    COUT(buffer1.capacity(), 1023);
+    COUT((void*)buffer1.data() != nullptr, true);
+    // operator bool() 测试
+    COUT(static_cast<bool>(buffer1), true);
+    // c_str 应该正常返回
     COUT(buffer1.c_str() != nullptr, true);
-    
+
     // 带容量构造
     JString buffer2(100);
     COUT(buffer2.empty(), true);
     COUT(buffer2.size(), 0);
     COUT(buffer2.capacity() >= 100, true);
     COUT((void*)buffer2.data() != nullptr, true);
+    COUT(static_cast<bool>(buffer2), true);
 }
 
 DEF_TAST(jstring_append_string, "JString 字符串追加测试")
@@ -157,33 +160,39 @@ DEF_TAST(jstring_copy_move, "JString 复制和移动语义测试")
 {
     JString original;
     original.append("Hello World");
-    
+    original.end_cstr();
+
     // 复制构造
     JString copy(original);
     COUT(copy.size(), original.size());
     COUT(strcmp(copy.data(), original.data()), 0);
     COUT(copy.data() != original.data(), true); // 不同内存
-    
+    COUT(static_cast<bool>(copy), true);
+
     // 复制赋值
     JString copy2;
+    COUT(static_cast<bool>(copy2), true);  // 默认构造也分配内存
     copy2 = original;
     COUT(copy2.size(), original.size());
     COUT(strcmp(copy2.data(), original.data()), 0);
     COUT(copy2.data() != original.data(), true); // 不同内存
-    
+    COUT(static_cast<bool>(copy2), true);
+
     // 移动构造
     JString moved(std::move(original));
     COUT(moved.size(), 11);
     COUT(strcmp(moved.data(), "Hello World"), 0);
     COUT(original.empty(), true); // 原对象应为空
-    COUT(original.data() == nullptr, true);
-    
+    COUT(original.capacity(), 0); 
+    COUT(static_cast<bool>(original), false);
+
     // 移动赋值
     JString moved2;
     moved2 = std::move(moved);
     COUT(moved2.size(), 11);
     COUT(strcmp(moved2.data(), "Hello World"), 0);
     COUT(moved.empty(), true); // 原对象应为空
+    COUT(static_cast<bool>(moved), false);
 }
 
 DEF_TAST(jstring_edge_cases, "JString 边界情况测试")
@@ -263,20 +272,23 @@ DEF_TAST(jstring_buffer_view, "StringBufferView 转换测试")
 
 DEF_TAST(jstring_capacity_growth, "JString 容量增长测试")
 {
-    JString buffer;
-    
+    // 使用较小的初始容量观察扩容行为
+    JString buffer(50);
+
+    // 初始容量（50 + 4 + 1 = 55，对齐到 56，capacity = 55）
     size_t initial_capacity = buffer.capacity();
-    COUT(initial_capacity, 0);
-    
-    // 小追加应触发分配
+    COUT(initial_capacity, 55);
+    COUT(static_cast<bool>(buffer), true);
+
+    // 小追加不应触发重新分配
     buffer.append("small");
-    COUT(buffer.capacity() > 0, true);
-    
+    COUT(buffer.capacity(), 55);
+
     // 大追加应触发重新分配
     size_t capacity_before = buffer.capacity();
     std::string large_content(1000, 'x');
     buffer.append(large_content.c_str(), large_content.size());
-    
+
     COUT(buffer.capacity() > capacity_before, true);
     COUT(buffer.size(), 1005); // 5 + 1000
 }
@@ -338,7 +350,7 @@ DEF_TAST(jstring_kunsafelevel_semantics, "kUnsafeLevel 语义测试")
         buffer.append(buffer.capacity(), 'x');
         size_t old_size = buffer.size();
 
-        // 最少申请 256 ，容量 255
+        // 250 + 4 + 1 = 255，对齐到 256，capacity = 255
         COUT(old_size, 255);
 
         buffer.reserve_ex(10);  // 预留 10 个字符的空间 + 4 的 unsafe margin
@@ -365,15 +377,31 @@ DEF_TAST(jstring_kunsafelevel_semantics, "kUnsafeLevel 语义测试")
 
         COUT(cap1 == cap2, true);
         COUT(cap1 == cap3, true);
+        COUT(static_cast<bool>(buffer), true);
     }
 }
 
-DEF_TAST(jstring_memory_alignment, "内存对齐和最小分配测试")
+DEF_TAST(jstring_memory_alignment, "内存对齐测试")
 {
-    // 测试最小分配大小 (256 字节)
+    // 测试默认构造的对齐容量
+    {
+        JString buffer;
+        COUT(buffer.capacity(), 1023);  // 1024 - 1 (null terminator)
+        COUT(static_cast<bool>(buffer), true);
+    }
+
+    // 测试小容量构造的对齐（无最小分配限制）
     {
         JString buffer(100);
-        COUT(buffer.capacity(), 255);
+        // 100 + 4 + 1 = 105，对齐到 112，capacity = 111
+        COUT(buffer.capacity(), 111);
+    }
+
+    // 测试指定较小容量
+    {
+        JString buffer(10);
+        // 10 + 4 + 1 = 15，对齐到 16，capacity = 15
+        COUT(buffer.capacity(), 15);
     }
 }
 
@@ -534,6 +562,8 @@ DEF_TAST(jstring_to_string_view, "StringBufferView 隐式转换为 std::string_v
 
     // 测试空字符串
     JString empty_buffer;
+    COUT(empty_buffer.capacity(), 1023);  // 默认构造
+    COUT(static_cast<bool>(empty_buffer), true);  // 有内存
     std::string_view empty_sv = empty_buffer;
     COUT(empty_sv.size(), 0);
 }

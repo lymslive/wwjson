@@ -16,6 +16,7 @@
 #ifndef JSTRING_HPP__
 #define JSTRING_HPP__
 
+#include <cassert>
 #include <cstring>
 #include <memory>
 #include <type_traits>
@@ -25,10 +26,6 @@
 #include <stdint.h>
 
 // Compile-time configuration for memory allocation
-#ifndef JSTRING_MIN_ALLOC_SIZE
-#define JSTRING_MIN_ALLOC_SIZE 256  // Minimum initial allocation size
-#endif
-
 #ifndef JSTRING_MAX_EXP_ALLOC_SIZE
 #define JSTRING_MAX_EXP_ALLOC_SIZE (8 * 1024 * 1024)  // 8MB - max exponential growth
 #endif
@@ -86,6 +83,9 @@ public:
     bool empty() const { return m_end == m_begin; }
     const char* data() const { return m_begin; }
 
+    /// Check if memory is allocated
+    explicit operator bool() const { return m_begin != nullptr; }
+
     /// Iterator-like methods returning pointers
     char* begin() { return m_begin; }
     const char* begin() const { return m_begin; }
@@ -119,31 +119,55 @@ public:
         return std::string(m_begin, size());
     }
 
-    char& front() { return *m_begin; }
-    const char& front() const { return *m_begin; }
-    char& back() { return *(m_end - 1); }
-    const char& back() const { return *(m_end - 1); }
+    char& front() 
+    { 
+        assert(m_begin != nullptr && "StringBufferView::front() called on null buffer");
+        assert(m_end > m_begin && "StringBufferView::front() called on empty buffer");
+        return *m_begin; 
+    }
+    const char& front() const 
+    { 
+        assert(m_begin != nullptr && "StringBufferView::front() called on null buffer");
+        assert(m_end > m_begin && "StringBufferView::front() called on empty buffer");
+        return *m_begin; 
+    }
+    char& back() 
+    { 
+        assert(m_begin != nullptr && "StringBufferView::back() called on null buffer");
+        assert(m_end > m_begin && "StringBufferView::back() called on empty buffer");
+        return *(m_end - 1); 
+    }
+    const char& back() const 
+    { 
+        assert(m_begin != nullptr && "StringBufferView::back() called on null buffer");
+        assert(m_end > m_begin && "StringBufferView::back() called on empty buffer");
+        return *(m_end - 1); 
+    }
 
     /// Unsafe write methods (no boundary checks)
     void unsafe_push_back(char c)
     {
+        assert(m_begin != nullptr && "StringBufferView::unsafe_push_back() called on null buffer");
         *m_end++ = c;
     }
 
     void unsafe_resize(size_t new_size)
     {
+        assert(m_begin != nullptr && "StringBufferView::unsafe_resize() called on null buffer");
         m_end = m_begin + new_size;
     }
 
     /// Set end pointer directly (char* overload)
     void unsafe_set_end(char* new_end)
     {
+        assert(m_begin != nullptr && "StringBufferView::unsafe_set_end() called on null buffer");
         m_end = new_end;
     }
 
     /// Unsafe append without boundary checks
     void unsafe_append(const char* str, size_t len)
     {
+        assert(m_begin != nullptr && "StringBufferView::unsafe_append() called on null buffer");
         ::memcpy(m_end, str, len);
         m_end += len;
     }
@@ -157,6 +181,7 @@ public:
     /// Add null terminator at current end
     void unsafe_end_cstr()
     {
+        assert(m_begin != nullptr && "StringBufferView::unsafe_end_cstr() called on null buffer");
         *m_end = '\0';
     }
 
@@ -168,6 +193,7 @@ public:
     /// When count is -1 (max size_t), fill all remaining capacity from m_end to m_cap_end
     void fill(char ch, size_t count = static_cast<size_t>(-1), bool move_end = false)
     {
+        assert(m_begin != nullptr && "StringBufferView::fill() called on null buffer");
         size_t available = m_cap_end - m_end;
         // count is already bounded by available (including when count = -1)
         if (count > available)
@@ -235,8 +261,9 @@ class StringBuffer : public StringBufferView, public UnsafeStringConcept
 {
 public:
     static constexpr uint8_t kUnsafeLevel = LEVEL;
+    static constexpr size_t kDefaultAllocate = 1024;  // Default memory allocation size
 
-    StringBuffer()
+    StringBuffer() : StringBuffer(kDefaultAllocate - kUnsafeLevel - 1)
     {
     }
 
@@ -363,9 +390,9 @@ public:
 private:
     static size_t calculate_alloc_size(size_t size)
     {
-        if (size < JSTRING_MIN_ALLOC_SIZE)
+        if (size == 0)
         {
-            return JSTRING_MIN_ALLOC_SIZE;
+            return 0;
         }
         
         const size_t alignment = 8;
@@ -376,7 +403,7 @@ private:
     static size_t calculate_growth_size(size_t cur_size, size_t req_size)
     {
         size_t new_size = req_size;
-        if (cur_size > JSTRING_MIN_ALLOC_SIZE)
+        if (cur_size > 0)
         {
             if (cur_size < JSTRING_MAX_EXP_ALLOC_SIZE)
             {
@@ -395,12 +422,6 @@ private:
                 size_t linear_size = cur_size + JSTRING_MAX_EXP_ALLOC_SIZE;
                 new_size = (new_size > linear_size) ? new_size : linear_size;
             }
-        }
-        
-        // Apply minimum allocation constraint
-        if (new_size < JSTRING_MIN_ALLOC_SIZE)
-        {
-            new_size = JSTRING_MIN_ALLOC_SIZE;
         }
         
         // Align to 8-byte boundary
