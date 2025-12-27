@@ -274,14 +274,14 @@ fill 的参数大约是 (char ch, size_t count = -1, bool end = false);
 
 ### DONE:20251226-174807
 
-## TODO: StringBufferView 重命名
+## TODO:2025-12-27/1 StringBufferView 重命名再派生 LocalBuffer 类
 
 - StringBufferView 简化为 BufferView
 - 再继承一个 LocalBuffer 类，模板参数 bool UNSAFE
   + 默认 UNSAFE = false, 每次 append push_back 检查边界，kUnsafeLevel = 0
   + UNSAFE = true 时 append push_back 不检查边界，就相当于调用 unsafe 版,
     kUnsafeLevel = 0xFF 表示最大
-- BufferView 增加 overflow() 检测，reserve_ex() 空参时检查剩余可用字节
+- BufferView 增加 overflow() 检测是否溢界，reserve_ex() 空参时检查剩余可用字节
 
 LocalBuffer 与 StringBuffer 的作用应该基本相似，但不拥有自己的内存，需要借用其
 他内存段，由用户保证在有效的内存区域写入。因此不应该提借默认默认构造，必要提供
@@ -298,6 +298,14 @@ LocalBuffer 与 StringBuffer 的作用应该基本相似，但不拥有自己的
 使用传入参数的对象，它只用于自己申请与释放内存。尤其是当通过 LocalBuffer 写入
 数据后，注意不能同步 std::string 或 std::vector 的 size ，它仍是 0 。但它们在
 传入构造函数之前应该 reserve 内存。
+
+LocalBuffer 构造之后不能扩容，在使用过程中可以按需调用 `reserve_ex()` 检查可写
+余量，使用完毕可检查 `overflow()`. 注意在写出边界后 `reserve_ex()` 应该返回负
+数，所以返回值不能用 `size_t` ，改用 `int64_t`.
+
+### DONE:20251227-171417
+
+## TODO: 优化设计 BufferView::fill 方法的功能
 
 ## TODO: 重新设计单元测试
 

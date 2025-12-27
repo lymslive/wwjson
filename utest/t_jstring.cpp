@@ -250,14 +250,14 @@ DEF_TAST(jstring_json_patterns, "JString JSON 序列化模式测试")
     COUT(strcmp(buffer.c_str(), "\"name\":\"John Doe\",\"age\":30"), 0);
 }
 
-DEF_TAST(jstring_buffer_view, "StringBufferView 转换测试")
+DEF_TAST(jstring_buffer_view, "BufferView 转换测试")
 {
     JString buffer;
     buffer.append("test content");
 
-    // 使用 reinterpret_cast 转换为 StringBufferView
+    // 使用 reinterpret_cast 转换为 BufferView
     // 现在使用 public 继承，static_cast 可用
-    const StringBufferView& view = static_cast<const StringBufferView&>(buffer);
+    const BufferView& view = static_cast<const BufferView&>(buffer);
 
     COUT(view.size(), buffer.size());
     COUT(view.data(), buffer.data());
@@ -533,14 +533,14 @@ DEF_TAST(jstring_to_chars_integration, "std::to_chars 集成测试")
         // 手动构造字符串并使用 unsafe_append
         const char* extra = "test data";
         size_t len = strlen(extra);
-        buffer.StringBufferView::unsafe_append(extra, len);
+        buffer.BufferView::unsafe_append(extra, len);
 
         COUT(strncmp(buffer.data() + buffer.size() - len, extra, len), 0);
         COUT(strncmp(buffer.c_str(), "Unsafe append: test data", buffer.size()), 0);
     }
 }
 
-DEF_TAST(jstring_to_string_view, "StringBufferView 隐式转换为 std::string_view")
+DEF_TAST(jstring_to_string_view, "BufferView 隐式转换为 std::string_view")
 {
     JString buffer;
     buffer.append("test content");
@@ -553,7 +553,7 @@ DEF_TAST(jstring_to_string_view, "StringBufferView 隐式转换为 std::string_v
     COUT(sv.compare("test content"), 0);
 
     // 通过引用转换
-    const StringBufferView& view = buffer;
+    const BufferView& view = buffer;
     std::string_view sv2 = view;
 
     COUT(sv2.size(), buffer.size());
@@ -568,7 +568,7 @@ DEF_TAST(jstring_to_string_view, "StringBufferView 隐式转换为 std::string_v
     COUT(empty_sv.size(), 0);
 }
 
-DEF_TAST(jstring_to_string, "StringBufferView 显式转换为 std::string")
+DEF_TAST(jstring_to_string, "BufferView 显式转换为 std::string")
 {
     JString buffer;
     buffer.append("test content");
@@ -653,7 +653,7 @@ DEF_TAST(jstring_append_string_view, "StringBuffer append 支持 std::string_vie
     COUT(buffer.size(), 15);
 }
 
-DEF_TAST(jstring_fill, "StringBufferView fill 方法测试")
+DEF_TAST(jstring_fill, "BufferView fill 方法测试")
 {
     DESC("fill(0) 填充剩余空间为 '\\0'");
     {
@@ -744,6 +744,295 @@ DEF_TAST(jstring_append_count_char, "StringBuffer append(count, ch) 测试")
         buffer.fill('-', 5, true);
         buffer.append(3, '?');
         COUT(strcmp(buffer.c_str(), "prefix-----???"), 0);
+    }
+}
+
+DEF_TAST(localbuffer_constructors, "LocalBuffer 构造函数测试")
+{
+    DESC("constructor from char* and size");
+    {
+        char buffer[256];
+        LocalBuffer<false> lb(buffer, 256);
+
+        COUT(lb.size(), 0);
+        COUT(lb.capacity(), 255);
+        COUT(static_cast<bool>(lb), true);
+
+        lb.append("hello");
+        COUT(lb.size(), 5);
+        COUT(strncmp(lb.data(), "hello", 5), 0);
+    }
+
+    DESC("constructor from C array");
+    {
+        char buffer[128];
+        LocalBuffer<false> lb(buffer);
+
+        COUT(lb.capacity(), 127);
+
+        lb.append("test");
+        COUT(lb.size(), 4);
+        COUT(strncmp(lb.data(), "test", 4), 0);
+    }
+
+    DESC("constructor from std::array");
+    {
+        std::array<char, 64> arr;
+        LocalBuffer<false> lb(arr);
+
+        COUT(lb.capacity(), 63);
+
+        lb.append("array test");
+        COUT(lb.size(), 10);
+        COUT(strncmp(lb.data(), "array test", 10), 0);
+    }
+
+    DESC("constructor from std::string");
+    {
+        std::string str;
+        str.reserve(512);
+
+        LocalBuffer<false> lb(str);
+        // Note: LocalBuffer will always use last byte for \0
+        COUT(lb.capacity(), str.capacity() - 1);
+
+        lb.append("borrowed string");
+        COUT(lb.size(), 15);
+
+        // Note: str.size() is still 0, LocalBuffer doesn't sync size
+        COUT(str.size(), 0);
+        COUT(strncmp(lb.data(), "borrowed string", 15), 0);
+    }
+
+    DESC("constructor from std::vector<char>");
+    {
+        std::vector<char> vec;
+        vec.reserve(1024);
+
+        LocalBuffer<false> lb(vec);
+        COUT(lb.capacity(), vec.capacity() - 1);
+
+        lb.append("vector content");
+        COUT(lb.size(), 14);
+
+        // Note: vec.size() is still 0, LocalBuffer doesn't sync size
+        COUT(vec.size(), 0);
+        COUT(strncmp(lb.data(), "vector content", 14), 0);
+    }
+}
+
+DEF_TAST(localbuffer_move_constructor, "LocalBuffer 移动构造测试")
+{
+    char buffer[64];
+    LocalBuffer<false> lb1(buffer);
+    lb1.append("test data longer");
+
+    // Move construct
+    LocalBuffer<false> lb2(std::move(lb1));
+
+    // lb2 should have data
+    COUT(lb2.size(), 16);
+    COUT(std::string(lb2), "test data longer");
+
+    // lb1 should be empty (nullptr pointers)
+    COUT(static_cast<bool>(lb1), false);
+    COUT(lb1.size(), 0);
+    COUT(lb1.capacity(), 0);
+}
+
+DEF_TAST(localbuffer_push_back, "LocalBuffer push_back 测试")
+{
+    DESC("safe mode (UNSAFE=false) with boundary checking");
+    {
+        char buffer[16];
+        LocalBuffer<false> lb(buffer);
+
+        lb.push_back('H');
+        lb.push_back('e');
+        lb.push_back('l');
+        lb.push_back('l');
+        lb.push_back('o');
+
+        COUT(lb.size(), 5);
+        COUT(std::string(lb), "Hello");
+
+        // Try push_back beyond capacity in safe mode
+        for (int i = 0; i < 20; ++i)
+        {
+            lb.push_back('x');
+        }
+        COUT(lb.size(), lb.capacity());
+        COUT(lb.overflow(), false);
+        COUT(lb.reserve_ex(), 0);  // Full
+    }
+
+    DESC("unsafe mode (UNSAFE=true) without boundary checking");
+    {
+        char buffer[16 + 32];
+        LocalBuffer<true> lb(buffer, 16);
+
+        lb.push_back('A');
+        lb.push_back('B');
+        lb.push_back('C');
+
+        COUT(lb.size(), 3);
+
+        // Unsafe mode will allow overflow
+        for (int i = 0; i < 20; ++i)
+        {
+            lb.push_back('x');
+        }
+        COUT(lb.size(), 23);
+        COUT(lb.overflow(), true);
+        COUT(lb.reserve_ex(), -8);  // 15 capacity - 23 written = -8 overflow
+    }
+}
+
+DEF_TAST(localbuffer_append, "LocalBuffer append 测试")
+{
+    DESC("safe mode (UNSAFE=false) with boundary checking");
+    {
+        char buffer[32];
+        LocalBuffer<false> lb(buffer);
+
+        lb.append("safe write");
+        COUT(lb.size(), 10);
+        COUT(std::string(lb), std::string("safe write"));
+
+        // Try to write beyond capacity - should be rejected
+        lb.append("this text is way too long and should be rejected");
+        COUT(lb.overflow(), false);  // Overflow not triggered (write rejected)
+        COUT(lb.reserve_ex(), 21);  // 31 capacity - 10 written = 21 remaining
+        COUT(lb.size(), 10);        // Size unchanged
+    }
+
+    DESC("unsafe mode (UNSAFE=true) without boundary checking");
+    {
+        char buffer[64 + 96];
+        LocalBuffer<true> lb(buffer, 64);
+
+        lb.append("unsafe");
+        COUT(lb.size(), 6);
+        COUT(std::string(lb, 0, 6), std::string("unsafe"));
+
+        // Writing beyond capacity will cause overflow
+        std::string long_text(100, 'x');
+        lb.append(long_text);
+        COUT(lb.overflow(), true);  // Overflow occurred
+        COUT(lb.reserve_ex(), -43);  // 63 capacity - 106 written = -43 overflow
+    }
+}
+
+DEF_TAST(localbuffer_append_count, "LocalBuffer append(count, ch) 测试")
+{
+    DESC("safe mode (UNSAFE=false) with boundary checking");
+    {
+        char buffer[32];
+        LocalBuffer<false> lb(buffer);
+
+        lb.append("hello");
+        lb.append(5, '!');
+        COUT(lb.size(), 10);
+        COUT(std::string(lb), "hello!!!!!");
+
+        // Try to append beyond capacity - should be rejected
+        lb.append(50, 'x');
+        COUT(lb.size(), 10);  // Unchanged
+        COUT(lb.overflow(), false);
+        COUT(lb.reserve_ex(), 21);  // 31 capacity - 10 written = 21 remaining
+    }
+
+    DESC("unsafe mode (UNSAFE=true) without boundary checking");
+    {
+        char buffer[32 + 64];
+        LocalBuffer<true> lb(buffer, 32);
+
+        lb.append("hello");
+        lb.append(5, '!');
+        COUT(lb.size(), 10);
+        COUT(std::string(lb), "hello!!!!!");
+
+        // Unsafe mode will allow overflow
+        lb.append(50, 'x');
+        COUT(lb.overflow(), true);
+        COUT(lb.reserve_ex(), -29);  // 31 capacity - 60 written = -29 overflow
+    }
+}
+
+DEF_TAST(localbuffer_fill, "LocalBuffer fill 测试")
+{
+    DESC("safe mode (UNSAFE=false) with boundary checking");
+    {
+        char buffer[64];
+        LocalBuffer<false> lb(buffer);
+
+        lb.append("prefix");
+        lb.fill('-', 5, true);
+        COUT(lb.size(), 11);
+        COUT(std::string(lb), "prefix-----");
+
+        // Fill rest of buffer
+        size_t before_size = lb.size();
+        lb.fill('x', -1, true);  // Fill remaining with move_end=true
+        COUT(lb.size(), lb.capacity());
+        COUT(lb.overflow(), false);
+        COUT(lb.reserve_ex(), 0);  // Full
+    }
+
+    DESC("unsafe mode (UNSAFE=true) without boundary checking");
+    {
+        char buffer[64 + 96];
+        LocalBuffer<true> lb(buffer, 64);
+
+        lb.append("prefix");
+        lb.fill('-', 5, true);
+        COUT(lb.size(), 11);
+
+        // Unsafe mode allows any fill size
+        // Note: fill is safe, not overlow
+        lb.fill('x', 100, true);
+        // 63 capacity - 111 written = -48 overflow
+        COUT(lb.overflow(), false);
+        COUT(lb.reserve_ex(), 0);
+    }
+}
+
+DEF_TAST(localbuffer_resize, "LocalBuffer resize 测试")
+{
+    DESC("safe mode (UNSAFE=false) with boundary checking");
+    {
+        char buffer[64];
+        LocalBuffer<false> lb(buffer);
+
+        lb.append("test content");
+        COUT(lb.size(), 12);
+
+        lb.resize(5);
+        COUT(lb.size(), 5);
+        COUT(std::string(lb, 0, 5), std::string("test "));
+
+        // Try to resize beyond capacity - should be rejected
+        lb.resize(100);
+        COUT(lb.size(), 5);  // Unchanged
+        COUT(lb.overflow(), false);
+        COUT(lb.reserve_ex(), 58);  // 63 capacity - 5 written = 58 remaining
+    }
+
+    DESC("unsafe mode (UNSAFE=true) without boundary checking");
+    {
+        char buffer[64 + 96];
+        LocalBuffer<true> lb(buffer, 64);
+
+        lb.append("test content");
+        COUT(lb.size(), 12);
+
+        lb.resize(5);
+        COUT(lb.size(), 5);
+
+        // Unsafe mode will allow overflow
+        lb.resize(100);
+        COUT(lb.overflow(), true);
+        COUT(lb.reserve_ex(), -37);  // 63 capacity - 100 written = -37 overflow
     }
 }
 

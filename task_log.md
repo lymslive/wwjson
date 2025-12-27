@@ -757,3 +757,134 @@ explicit operator bool() const { return m_begin != nullptr; }
 - `include/jstring.hpp`：添加 kDefaultAllocate、operator bool()、assert、删除 JSTRING_MIN_ALLOC_SIZE、修改默认构造
 - `utest/t_jstring.cpp`：修复单元测试、添加 operator bool() 测试
 
+## TASK:20251227-171417
+-----------------------
+
+### 需求
+
+需求 ID：2025-12-27/1
+
+StringBufferView 重命名再派生 LocalBuffer 类，具体要求：
+
+1. **重命名 StringBufferView 为 BufferView**
+   - 简化为 BufferView，更通用的名称
+   - 更新所有引用和文档
+
+2. **创建 LocalBuffer 类**
+   - 模板参数 `bool UNSAFE`，默认 false
+   - UNSAFE = false：kUnsafeLevel = 0，append/push_back 每次检查边界
+   - UNSAFE = true：kUnsafeLevel = 0xFF，append/push_back 不检查边界
+
+3. **BufferView 增强**
+   - 添加 `overflow()` 方法：检测是否溢出（m_end > m_cap_end）
+   - `reserve_ex()` 空参版：检查剩余可用字节，返回 int64_t
+
+4. **LocalBuffer 构造函数**
+   - 5 种构造函数支持不同容器类型
+   - 无默认构造函数
+   - Copy constructor 删除，Move constructor 显式实现
+
+5. **LocalBuffer 行为**
+   - 不扩容，固定容量
+   - 不拥有内存，借用外部内存
+   - 写入完成后可检查 overflow() 状态
+
+### 实现
+
+#### 1. 重命名 StringBufferView 为 BufferView
+- 在 `include/jstring.hpp` 中将类名改为 BufferView
+- 更新 StringBuffer 的基类声明
+- 更新所有注释和断言消息
+
+#### 2. BufferView 添加 overflow() 方法
+- 返回 m_end > m_cap_end 的比较结果
+- 用于检测写入是否超出容量
+
+#### 3. 创建 LocalBuffer 模板类
+- 模板参数 bool UNSAFE，默认 false
+- UNSAFE=true 时 kUnsafeLevel=0xFF，false 时 kUnsafeLevel=0
+- 继承 BufferView
+- 删除 copy constructor 和 copy assignment
+- 显式实现 move constructor 和 move assignment（将源对象置空）
+
+#### 4. LocalBuffer 构造函数实现
+- LocalBuffer(char* dst, size_t size)：主构造函数，设置三个指针，在 cap_end 处写 '\0'
+- 其他 4 个构造函数委托给主构造函数
+
+#### 5. LocalBuffer::reserve_ex() 实现
+- 返回 static_cast<int64_t>(m_cap_end - m_end)
+- 正值：剩余字节数，0：已满，负值：overflow 的字节数
+
+#### 6. LocalBuffer::append(str, len) 实现
+- safe 模式：检查 m_end + len > m_cap_end，超出则返回
+- unsafe 模式：直接调用 unsafe_append(str, len)
+
+#### 7. LocalBuffer::push_back(char) 实现
+- safe 模式：检查 m_end + 1 > m_cap_end，超出则返回
+- unsafe 模式：直接调用 unsafe_push_back(c)
+
+#### 8. LocalBuffer::append(count, ch) 实现
+- safe 模式：检查边界后，直接使用 ::memset 写入并移动 m_end
+- unsafe 模式：直接使用 ::memset 写入并移动 m_end
+- 不调用 BufferView::fill()，避免自动截断
+
+### 测试
+
+在 `utest/t_jstring.cpp` 中添加 8 个测试用例：
+
+#### 1. localbuffer_constructors
+测试所有 5 种构造函数，验证容量和基本功能
+
+#### 2. localbuffer_append
+测试 append 方法，safe/unsafe 两种模式，使用大 buffer 小 size 测试溢出
+
+#### 3. localbuffer_push_back
+测试 push_back 方法，在 overflow 断言后加 reserve_ex 断言
+
+#### 4. localbuffer_append_count
+测试 append(count, ch) 方法，不调用 BufferView::fill
+
+#### 5. localbuffer_resize
+测试 resize 方法，safe/unsafe 两种模式
+
+#### 6. localbuffer_fill
+测试 BufferView::fill 方法，safe 模式自动截断，unsafe 模式仍然自动截断（基类行为）
+
+#### 7. localbuffer_overflow
+测试 overflow 和 reserve_ex，使用大 buffer 小 size 测试溢出
+
+#### 8. localbuffer_move_constructor
+单独测试移动构造，验证源对象置空，目标对象拥有数据
+
+### 测试结果
+
+编译成功，所有 LocalBuffer 相关测试用例实现完成。
+
+### 设计改进
+
+1. **类型安全**：模板参数 UNSAFE 在编译时决定行为，零开销
+2. **清晰的语义**：LocalBuffer 是非拥有的内存视图，BufferView 提供通用操作
+3. **正确的边界检查**：m_end + len > m_cap_end 确保不覆盖 cap_end 位置的 '\0'
+4. **reserve_ex() 统一语义**：返回值直接表示可用空间状态，正/零/负三种情况
+5. **移动语义正确**：显式实现 move，移动后源对象置空
+6. **溢出测试安全**：使用大 buffer 小 size，避免真正的内存访问错误
+
+### 修改文件
+
+- `include/jstring.hpp`：
+  - 重命名 StringBufferView → BufferView
+  - 添加 BufferView::overflow() 方法
+  - 添加 LocalBuffer 模板类及其所有方法
+  - 添加 <vector> 和 <array> 头文件
+- `utest/t_jstring.cpp`：
+  - 更新所有 StringBufferView 引用为 BufferView
+  - 添加 8 个 LocalBuffer 测试用例
+  - 使用 std::string 比较代替 strcmp
+
+### 遗留问题
+
+1. **BufferView::fill 的自动截断行为**
+   - 当前 safe 和 unsafe 模式下都会自动截断
+   - 如果需要 unsafe 模式能真正溢出，需要重写 fill 方法
+   - 留到下个任务解决
+
