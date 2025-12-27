@@ -8,6 +8,99 @@
 
 using namespace wwjson;
 
+DEF_TAST(bufferview_layout, "BufferView 布局大小测试")
+{
+    size_t ptr = sizeof((void*)nullptr);
+    COUT(sizeof(BufferView), 3 * ptr);
+    COUT(sizeof(JString), 3 * ptr);
+    COUT(sizeof(LocalBuffer<true>), 3 * ptr);
+    COUT(sizeof(LocalBuffer<false>), 3 * ptr);
+}
+
+DEF_TAST(bufferview_invariants, "BufferView 不变关系式测试")
+{
+    char buffer[256];
+    BufferView view(buffer, 256);
+
+    DESC("初始构造状态");
+    {
+        // capacity == cap_end - begin
+        COUT(view.capacity(), 255);
+        COUT(view.capacity(), view.cap_end() - view.begin());
+
+        // size = end - begin
+        // empty() == (m_end == m_begin)
+        COUT(view.size(), 0);
+        COUT(view.size(), view.end() - view.begin());
+        COUT(view.empty(), true);
+
+        // full() == !empty() (初始为空，不满)
+        COUT(view.full(), false);
+
+        // reserve_ex = cap_end - end
+        COUT(view.reserve_ex(), view.cap_end() - view.end());
+        COUT(view.reserve_ex(), view.capacity() - view.size());
+        COUT(view.reserve_ex(), 255);
+
+        // reserve_ex() == 0 当且仅当 full() 为真
+        COUT(view.reserve_ex() == 0, view.full());
+
+        // size() == capacity() 当且仅当 full() 为真
+        COUT(view.size() == view.capacity(), view.full());
+
+        // 零字符封尾
+        COUT(*view.cap_end() == '\0', true);
+    }
+
+    DESC("写入一些内容");
+    {
+        view.unsafe_append("hello", 5);
+
+        COUT(view.empty(), false);
+        COUT(view.size(), 5);
+
+        COUT(view.full(), false);
+        COUT(view.reserve_ex() > 0, true);
+        COUT(view.reserve_ex() > 0, !view.full());
+        COUT(view.capacity(), view.cap_end() - view.begin());
+        COUT(view.size(), view.end() - view.begin());
+        COUT(view.reserve_ex(), view.cap_end() - view.end());
+        COUT(view.reserve_ex(), view.capacity() - view.size());
+
+        COUT(*view.cap_end() == '\0', true);
+    }
+
+    DESC("清空内容");
+    {
+        view.clear();
+        COUT(view.size(), 0);
+        COUT(view.empty(), true);
+        COUT(view.size() == 0, view.empty());
+        COUT(view.size() == 0, !view.full());
+        COUT(view.reserve_ex(), view.capacity() - view.size());
+        COUT(*view.cap_end() == '\0', true);
+    }
+
+    DESC("填满内容");
+    {
+        view.fill('x');
+        COUT(view.size(), 0);
+        COUT(view.empty(), true);
+
+        view.fill('x', view.capacity());
+        COUT(view.size(), view.capacity());
+        COUT(view.empty(), false);
+        COUT(view.full(), true);
+        COUT(view.reserve_ex(), 0);
+
+        COUT(view.capacity(), view.cap_end() - view.begin());
+        COUT(view.size(), view.end() - view.begin());
+        COUT(view.reserve_ex(), view.cap_end() - view.end());
+        COUT(view.reserve_ex(), view.capacity() - view.size());
+        COUT(*view.cap_end() == '\0', true);
+    }
+}
+
 DEF_TAST(jstring_basic_construct, "JString 基础构造测试")
 {
     // 默认构造 - 现在默认申请 1024 字节，容量为 1023
@@ -405,37 +498,6 @@ DEF_TAST(jstring_memory_alignment, "内存对齐测试")
     }
 }
 
-DEF_TAST(jstring_invariants, "StringBuffer 不变量测试")
-{
-    {
-        JString buffer;
-        buffer.reserve(100);
-
-        // 不变量 1: capacity() == m_cap_end - m_begin
-        // 这通过 capacity() 的实现保证
-
-        // 不变量 2: capacity() >= size()
-        COUT(buffer.capacity() >= buffer.size(), true);
-
-        buffer.append("hello");
-        COUT(buffer.capacity() >= buffer.size(), true);
-
-        // 不变量 3: m_end 指向当前内容末尾
-        // 这通过 append 实现
-
-        // 不变量 4: unsafe_end_cstr 可以在 m_end <= m_cap_end 时调用
-        buffer.unsafe_end_cstr();
-        COUT(strcmp(buffer.c_str(), "hello"), 0);
-    }
-
-    // 测试 m_cap_end 初始化为 \0
-    {
-        JString buffer(100);
-        // 分配后 m_cap_end 应该被初始化为 '\0'
-        // 这在 allocate() 中实现
-    }
-}
-
 DEF_TAST(jstring_to_chars_integration, "std::to_chars 集成测试")
 {
     // 测试在 JString 原位 buffer 上使用 std::to_chars 转换整数
@@ -682,7 +744,7 @@ DEF_TAST(jstring_fill, "BufferView fill 方法测试")
         buffer.append("test");
         size_t size_before = buffer.size();
         buffer.fill('y', 1000);
-        COUT(buffer.size(), buffer.capacity());
+        COUT(buffer.full(), true);
         bool all_y = true;
         for (size_t i = size_before; i < buffer.capacity(); ++i)
         {
@@ -964,7 +1026,7 @@ DEF_TAST(localbuffer_fill, "LocalBuffer fill 测试")
         size_t before_size = lb.size();
         size_t remaining = lb.capacity() - before_size;
         lb.fill('x', remaining);  // Fill remaining
-        COUT(lb.size(), lb.capacity());
+        COUT(lb.full(), true);
         COUT(lb.overflow(), false);
         COUT(lb.reserve_ex(), 0);  // Full
     }
@@ -983,7 +1045,7 @@ DEF_TAST(localbuffer_fill, "LocalBuffer fill 测试")
         lb.fill('x', 100);
         // 63 capacity - 111 written = -48 overflow
         COUT(lb.overflow(), false);
-        COUT(lb.reserve_ex(), 0);
+        COUT(lb.full(), true);
     }
 }
 

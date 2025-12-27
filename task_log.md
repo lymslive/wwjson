@@ -958,3 +958,56 @@ StringBufferView 重命名再派生 LocalBuffer 类，具体要求：
 
 所有测试通过，验证了重构的正确性。
 
+## TASK:20251227-231327
+-----------------------
+
+### 需求
+
+需求 ID：2025-12-27/3
+
+重构 LocalBuffer，上移一些方法至基类 BufferView：
+1. LocalBuffer::reserve_ex() 移到 BufferView::overflow() 下面，改为 const 方法
+2. BufferView 增加 full() 方法判断已写满
+3. BufferView 增加构造函数 `BufferView(char* dst, size_t size)`，assert 检验参数
+4. LocalBuffer 构造函数转发基类构造函数
+5. BufferView front/back 方法使用 const_cast 转发 const 版本，消除重复 assert
+
+重新设计单元测试用例 `jstring_invariants`：
+- 改名为 `bufferview_` 前缀，测试基类方法
+- 用局部数组构造 BufferView 进行恒等关系的方法测试
+- 测试 full() 不变式：full == !empty，full == (reserve_ex == 0) == (size == capacity)
+- 查找 fill 相关用例中 `size() == capacity()` 断言，改为断言 `full()`
+
+### 实现
+
+1. BufferView 新增 full() 方法，放在 overflow() 下面
+2. BufferView 新增 reserve_ex() const 方法，从 LocalBuffer 上移
+3. BufferView 新增带参数构造函数，添加 dst 非空和 size > 0 的 assert
+4. LocalBuffer 构造函数改为委托基类构造函数，删除重复代码
+5. BufferView 的 front/back 非const 版本使用 const_cast 转发，消除重复 assert
+6. 单元测试 `jstring_invariants` 改名为 `bufferview_invariants`，使用局部数组构造测试基类方法
+7. 更新 fill 测试中的断言：将 `size() == capacity()` 改为 `full()`
+
+### 测试结果
+
+编译成功，运行所有测试用例，32 个测试全部通过。
+
+### 设计改进
+
+1. 职责分离更清晰：BufferView 提供通用视图操作，LocalBuffer 专注于特定场景
+2. 代码复用：构造函数委托基类，front/back 消除重复断言
+3. API 语义更清晰：full() 明确表示缓冲区已满状态
+4. 不变式验证：bufferview_invariants 测试验证 BufferView 核心不变式
+
+### 修改文件
+
+- `include/jstring.hpp`：BufferView 和 LocalBuffer 重构
+- `utest/t_jstring.cpp`：重命名测试用例，更新断言
+
+### BufferView 不变式
+
+1. full() == !empty()（在非空状态下）
+2. full() == (reserve_ex() == 0)
+3. full() == (size() == capacity())
+
+

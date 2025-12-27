@@ -79,6 +79,25 @@ protected:
     char* m_cap_end = nullptr;   ///< End of allocated capacity
 
 public:
+    /// Default constructor - initializes all pointers to nullptr
+    BufferView() = default;
+
+    /// @brief Base class constructor for external buffer management
+    /// @param dst Pointer to memory to borrow
+    /// @param size Size of the memory region (must be > 0)
+    /// @details
+    /// Sets m_begin and m_end to dst, m_cap_end to dst + size - 1.
+    /// Writes '\0' at m_cap_end for safety.
+    BufferView(char* dst, size_t size)
+    {
+        assert(dst != nullptr && "BufferView constructor: dst cannot be nullptr");
+        assert(size > 0 && "BufferView constructor: size must be > 0");
+        m_begin = dst;
+        m_end = dst;
+        m_cap_end = dst + size - 1;
+        *m_cap_end = '\0';
+    }
+
     /// Read-only access methods
     size_t size() const { return m_end - m_begin; }
     size_t capacity() const { return m_cap_end - m_begin; }
@@ -91,6 +110,20 @@ public:
     /// @brief Check if write operations have exceeded buffer capacity
     /// @return true if m_end is beyond m_cap_end (overflow occurred)
     bool overflow() const { return m_end > m_cap_end; }
+
+    /// @brief Check if buffer is full (no remaining space)
+    /// @return true if m_end == m_cap_end (no space left for writing)
+    bool full() const { return m_end == m_cap_end; }
+
+    /// @brief Check remaining available bytes in buffer
+    /// @return
+    ///   - Positive value: bytes available from m_end to m_cap_end
+    ///   - Zero: buffer is exactly full (m_end == m_cap_end)
+    ///   - Negative value: overflow detected (m_end > m_cap_end, value = overflowed bytes)
+    int64_t reserve_ex() const
+    {
+        return static_cast<int64_t>(m_cap_end - m_end);
+    }
 
     /// Iterator-like methods returning pointers
     char* begin() { return m_begin; }
@@ -127,9 +160,7 @@ public:
 
     char& front() 
     { 
-        assert(m_begin != nullptr && "BufferView::front() called on null buffer");
-        assert(m_end > m_begin && "BufferView::front() called on empty buffer");
-        return *m_begin; 
+        return const_cast<char&>(const_cast<const BufferView*>(this)->front());
     }
     const char& front() const 
     { 
@@ -139,9 +170,7 @@ public:
     }
     char& back() 
     { 
-        assert(m_begin != nullptr && "BufferView::back() called on null buffer");
-        assert(m_end > m_begin && "BufferView::back() called on empty buffer");
-        return *(m_end - 1); 
+        return const_cast<char&>(const_cast<const BufferView*>(this)->back());
     }
     const char& back() const 
     { 
@@ -588,14 +617,10 @@ public:
     /// @param dst Pointer to memory to borrow
     /// @param size Size of the memory region (must be > 0)
     /// @details
-    /// Sets m_begin and m_end to dst, m_cap_end to dst + size - 1.
-    /// Writes '\0' at m_cap_end for safety.
+    /// Delegates to BufferView constructor with assert validation.
     explicit LocalBuffer(char* dst, size_t size)
+        : BufferView(dst, size)
     {
-        m_begin = dst;
-        m_end = dst;
-        m_cap_end = dst + size - 1;
-        *m_cap_end = '\0';
     }
 
     /// Constructor 2: C array reference
@@ -668,16 +693,6 @@ public:
 
     /// Destructor - does nothing (doesn't own memory)
     ~LocalBuffer() = default;
-
-    /// @brief Check remaining available bytes in buffer
-    /// @return
-    ///   - Positive value: bytes available from m_end to m_cap_end
-    ///   - Zero: buffer is exactly full (m_end == m_cap_end)
-    ///   - Negative value: overflow detected (m_end > m_cap_end, value = overflowed bytes)
-    int64_t reserve_ex()
-    {
-        return static_cast<int64_t>(m_cap_end - m_end);
-    }
 
     /// Reserve capacity - does nothing (fixed capacity)
     /// @param new_capacity Requested capacity (ignored)

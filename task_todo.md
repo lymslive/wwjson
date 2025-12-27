@@ -323,7 +323,29 @@ LocalBuffer 构造之后不能扩容，在使用过程中可以按需调用 `res
 
 ### DONE: 20251227-213549
 
+## TODO:2025-12-27/3 重构 LocalBuffer 上移一些方法至基类
+
+涉及文件：include/jstring.hpp utest/t_jstring.cpp
+
+- LocalBuffer::reserve_ex() 移到基类 BufferView::overflow() 下面
+- 现增加 BufferView::full() 方法判断已写满
+- 基类增加构造函数 `BufferView(char* dst, size_t size)`，assert 检验参数
+- `LocalBuffer(char* dst, size_t size)` 的构造函数转发基类构造函数
+- BufferView front/back 两个重载版本存在重复 assert 信息，改用 cast 转发 const 版本
+
+重新设计单元测试用例 `jstring_invariants`:
+- 改名为 `bufferview_` 前缀，测试基类方法
+- 用局部数组构造 BufferView 进行一些恒等关系的方法测试
+- 新加方法 full == !empty; full == (reserve_ex == 0) == (size == capacity)
+- 再分析其他有意义的不变式，写入该测试用例
+
+查找之前的涉及 fill 的用例，可能有断言 size() == capacity() ，改为断言 full() 。
+
+### DONE: 20251227-231327
+
 ## TODO: 重新设计单元测试
+
+## TODO: 考虑将 reserve_ex() 改名更合适的
 
 ## TODO: 增加 jbuilder.hpp 组合使用 jstring.hpp
 
