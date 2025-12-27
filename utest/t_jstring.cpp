@@ -667,22 +667,11 @@ DEF_TAST(jstring_fill, "BufferView fill 方法测试")
         COUT(strncmp(buffer.data(), "hello", 5), 0);
     }
 
-    DESC("fill(ch, count) 填充指定数量字符，不移动 end");
-    {
-        JString buffer(100);
-        buffer.append("test");
-        size_t size_before = buffer.size();
-        buffer.fill('x', 5);
-        COUT(buffer.size(), size_before);
-        COUT(strncmp(buffer.data(), "test", 4), 0);
-        COUT(strncmp(buffer.data() + size_before, "xxxxx", 5), 0);
-    }
-
-    DESC("fill(ch, count, true) 填充并移动 end 指针");
+    DESC("fill(ch, count) 填充并移动 end 指针");
     {
         JString buffer(100);
         buffer.append("hello");
-        buffer.fill('!', 3, true);
+        buffer.fill('!', 3);
         COUT(buffer.size(), 8);
         COUT(strcmp(buffer.c_str(), "hello!!!"), 0);
     }
@@ -693,7 +682,7 @@ DEF_TAST(jstring_fill, "BufferView fill 方法测试")
         buffer.append("test");
         size_t size_before = buffer.size();
         buffer.fill('y', 1000);
-        COUT(buffer.size(), size_before);
+        COUT(buffer.size(), buffer.capacity());
         bool all_y = true;
         for (size_t i = size_before; i < buffer.capacity(); ++i)
         {
@@ -741,7 +730,7 @@ DEF_TAST(jstring_append_count_char, "StringBuffer append(count, ch) 测试")
     {
         JString buffer(100);
         buffer.append("prefix");
-        buffer.fill('-', 5, true);
+        buffer.fill('-', 5);
         buffer.append(3, '?');
         COUT(strcmp(buffer.c_str(), "prefix-----???"), 0);
     }
@@ -967,13 +956,14 @@ DEF_TAST(localbuffer_fill, "LocalBuffer fill 测试")
         LocalBuffer<false> lb(buffer);
 
         lb.append("prefix");
-        lb.fill('-', 5, true);
+        lb.fill('-', 5);
         COUT(lb.size(), 11);
         COUT(std::string(lb), "prefix-----");
 
-        // Fill rest of buffer
+        // Fill rest of buffer using remaining capacity
         size_t before_size = lb.size();
-        lb.fill('x', -1, true);  // Fill remaining with move_end=true
+        size_t remaining = lb.capacity() - before_size;
+        lb.fill('x', remaining);  // Fill remaining
         COUT(lb.size(), lb.capacity());
         COUT(lb.overflow(), false);
         COUT(lb.reserve_ex(), 0);  // Full
@@ -985,12 +975,12 @@ DEF_TAST(localbuffer_fill, "LocalBuffer fill 测试")
         LocalBuffer<true> lb(buffer, 64);
 
         lb.append("prefix");
-        lb.fill('-', 5, true);
+        lb.fill('-', 5);
         COUT(lb.size(), 11);
 
         // Unsafe mode allows any fill size
-        // Note: fill is safe, not overlow
-        lb.fill('x', 100, true);
+        // Note: fill is safe (truncates), not overflow
+        lb.fill('x', 100);
         // 63 capacity - 111 written = -48 overflow
         COUT(lb.overflow(), false);
         COUT(lb.reserve_ex(), 0);

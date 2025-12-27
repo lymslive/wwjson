@@ -191,28 +191,43 @@ public:
         *m_end = '\0';
     }
 
-    /// Fill buffer with a character (like memset)
+    /// Fill remaining space with character ch (like memset)
     /// @param ch Character to fill
-    /// @param count Number of characters to fill
-    /// @param move_end Whether to move m_end pointer forward (default: false)
-    /// @details No capacity expansion - count must be <= available capacity
-    /// When count is -1 (max size_t), fill all remaining capacity from m_end to m_cap_end
-    void fill(char ch, size_t count = static_cast<size_t>(-1), bool move_end = false)
+    /// @details Fills from m_end to m_cap_end, doesn't change size
+    void fill(char ch)
     {
         assert(m_begin != nullptr && "BufferView::fill() called on null buffer");
         size_t available = m_cap_end - m_end;
-        // count is already bounded by available (including when count = -1)
+        ::memset(m_end, ch, available);
+    }
+
+    /// Fill count characters with ch, safely truncates at cap_end
+    /// @param ch Character to fill
+    /// @param count Number of characters to fill
+    /// @details Fills count characters starting from m_end, moves end pointer.
+    /// No capacity expansion - count is safely bounded by available capacity.
+    void fill(char ch, size_t count)
+    {
+        assert(m_begin != nullptr && "BufferView::fill() called on null buffer");
+        size_t available = m_cap_end - m_end;
         if (count > available)
         {
             count = available;
         }
-
         ::memset(m_end, ch, count);
+        m_end += count;
+    }
 
-        if (move_end)
-        {
-            m_end += count;
-        }
+    /// Unsafe fill without capacity checking
+    /// @param ch Character to fill
+    /// @param count Number of characters to fill
+    /// @details Fills count characters starting from m_end, moves end pointer.
+    /// No capacity checking - caller must ensure count <= available capacity.
+    void unsafe_fill(char ch, size_t count)
+    {
+        assert(m_begin != nullptr && "BufferView::unsafe_fill() called on null buffer");
+        ::memset(m_end, ch, count);
+        m_end += count;
     }
 };
 
@@ -360,7 +375,7 @@ public:
     void append(size_t count, char ch)
     {
         reserve_ex(count);
-        fill(ch, count, true);
+        unsafe_fill(ch, count);
     }
 
     /// Safe resize with bounds checking and capacity expansion
@@ -745,9 +760,8 @@ public:
     {
         if constexpr (UNSAFE)
         {
-            // Unsafe mode: directly use memset without boundary checking
-            ::memset(m_end, ch, count);
-            m_end += count;
+            // Unsafe mode: directly use unsafe_fill without boundary checking
+            unsafe_fill(ch, count);
         }
         else
         {
@@ -756,9 +770,8 @@ public:
             {
                 return;  // Don't write beyond capacity
             }
-            // Use memset directly instead of calling fill
-            ::memset(m_end, ch, count);
-            m_end += count;
+            // Use unsafe_fill instead of direct memset
+            unsafe_fill(ch, count);
         }
     }
 

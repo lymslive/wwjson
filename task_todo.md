@@ -304,8 +304,24 @@ LocalBuffer 构造之后不能扩容，在使用过程中可以按需调用 `res
 数，所以返回值不能用 `size_t` ，改用 `int64_t`.
 
 ### DONE:20251227-171417
+该任务粒度大了，实施较麻烦。
 
-## TODO: 优化设计 BufferView::fill 方法的功能
+## TODO:2025-12-27/2 优化设计 BufferView::fill 方法的功能
+
+涉及文件：include/jstring.hpp utest/t_jstring.cpp
+
+当前 `BufferView::fill` 一个方法承载了两种功能，又有两个可选参数，设计不良，故
+重新设计：
+- 单参数 `fill(ch)`, 用 `ch` 填充剩余空间，类似 memset ，不改变当前 size
+- 双参数 `fill(ch, count)`, 类似 `append(count, ch)` ，重复填充固定数量的字符
+  ，在 `cap_end` 处安全截断，移动 end 指针使用 size 增加 count.
+- 双参数的 `unsafe_fill` 版本，不检测 `count` 超出余量
+- 然后 StringBuffer 与 LocallBuffer 的 `append(count, ch)` 改为调用基类的
+  `unsafe_fill` ，而不是 `fill`
+
+可能会破坏单元测试，需同步修改。
+
+### DONE: 20251227-213549
 
 ## TODO: 重新设计单元测试
 

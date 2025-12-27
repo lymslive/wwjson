@@ -888,3 +888,73 @@ StringBufferView 重命名再派生 LocalBuffer 类，具体要求：
    - 如果需要 unsafe 模式能真正溢出，需要重写 fill 方法
    - 留到下个任务解决
 
+## TASK:20251227-213549
+-----------------------
+
+需求 ID：2025-12-27/2
+
+### 实现
+
+#### 1. 重新设计 BufferView::fill 方法
+- 将原来的单方法拆分为三个方法：
+  - `fill(char ch)`：填充剩余空间（m_end 到 m_cap_end），不改变 size
+  - `fill(char ch, size_t count)`：填充 count 个字符，安全截断，移动 end 指针
+  - `unsafe_fill(char ch, size_t count)`：填充 count 个字符，不检查容量，移动 end 指针
+- 删除原来的 `move_end` 参数，通过方法签名区分行为
+
+#### 2. 更新 StringBuffer::append(count, ch)
+- 将 `fill(ch, count, true)` 改为 `unsafe_fill(ch, count)`
+- 因为 StringBuffer 已经通过 `reserve_ex(count)` 确保容量，可以直接使用 unsafe 版本
+
+#### 3. 更新 LocalBuffer::append(count, ch)
+- Safe 模式：检查边界后调用 `unsafe_fill(ch, count)`
+- Unsafe 模式：直接调用 `unsafe_fill(ch, count)`，不检查边界
+
+#### 4. 修复测试用例
+- 更新 `jstring_fill` 测试中的 `fill(ch, count, true)` 为 `fill(ch, count)`
+- 更新 `jstring_append_count_char` 测试中的 `fill('-', 5, true)` 为 `fill('-', 5)`
+- 更新 `localbuffer_fill` 测试中的 `fill('-', 5, true)` 为 `fill('-', 5)`
+- 将 `fill('x', -1, true)` 改为先计算剩余容量再调用 `fill('x', remaining)`
+
+### 设计说明
+
+#### API 清晰度改进
+- **之前**：`fill(ch)` 填充剩余，`fill(ch, count)` 填充指定数量但不移动 end，`fill(ch, count, true)` 填充并移动 end，语义不清
+- **之后**：
+  - `fill(ch)`：单参数，语义明确是填充剩余
+  - `fill(ch, count)`：双参数，语义明确是填充并增长
+  - `unsafe_fill(ch, count)`：明确表示不安全操作
+
+#### 性能优化
+- `StringBuffer::append(count, ch)` 改用 `unsafe_fill`，因为 `reserve_ex` 已保证容量，避免重复检查
+- `LocalBuffer` 统一使用 `unsafe_fill`，边界检查在调用前完成
+
+### 测试结果
+
+编译成功，运行所有测试用例，125 个测试全部通过。
+
+### 修改文件
+
+- `include/jstring.hpp`：
+  - 删除 `BufferView::fill(char ch, size_t count = -1, bool move_end = false)`
+  - 添加 `BufferView::fill(char ch)`：填充剩余空间
+  - 添加 `BufferView::fill(char ch, size_t count)`：填充并移动 end
+  - 添加 `BufferView::unsafe_fill(char ch, size_t count)`：不安全填充
+  - 更新 `StringBuffer::append(count, ch)` 调用 `unsafe_fill`
+  - 更新 `LocalBuffer::append(count, ch)` 调用 `unsafe_fill`
+- `utest/t_jstring.cpp`：
+  - 更新 `jstring_fill` 测试中的 fill 调用
+  - 更新 `jstring_append_count_char` 测试中的 fill 调用
+  - 更新 `localbuffer_fill` 测试中的 fill 调用
+
+### 总结
+
+成功将 `BufferView::fill` 方法从混合功能设计拆分为三个清晰的 API：
+1. `fill(ch)`：填充剩余，不改变 size
+2. `fill(ch, count)`：填充并增长 size，安全截断
+3. `unsafe_fill(ch, count)`：填充并增长 size，不检查容量
+
+同时更新了 `StringBuffer` 和 `LocalBuffer` 的 `append(count, ch)` 实现，使其使用更高效的 `unsafe_fill`，因为容量检查已经在调用方完成。
+
+所有测试通过，验证了重构的正确性。
+
