@@ -384,6 +384,16 @@ unsafe mode 段拆分 ubuf_ 缩写前缀。第二参数描叙写出类名全名�
 
 ### DONE: 20251228-111326
 
+## TODO:2025-12-28/2 添加测试用例验证借用容器内存
+
+在 include/jstring.hpp 的 BufferView 类的头注释提到借用标准容器申请的内存写入
+后可用 resize 同步。这不一定对的，容器的 resize 可能添加默认字符。
+
+请在 utest/t_jstring.cpp 添加用例验证这种用法。新用例添加在 BufferView 分组后
+面。
+
+### DONE: 20251228-122949
+
 ## TODO: 重新设计单元测试
 
 ## TODO: 增加 jbuilder.hpp 组合使用 jstring.hpp

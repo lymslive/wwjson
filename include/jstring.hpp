@@ -71,7 +71,9 @@ using UnsafeLevel = uint8_t;
 ///
 /// @par Warning:
 /// When borrowing from std::string or std::vector, buffer view does not update
-/// container's size() method. Manually call container.resize() after writing.
+/// container's size() method. Do NOT call container.resize() after writing, as
+/// it will fill the expanded range with default characters ('\0'), overwriting
+/// the data written by BufferView.
 class BufferView : public UnsafeStringConcept
 {
 protected:
@@ -120,21 +122,25 @@ public:
     /// @brief Constructor from std::string
     /// @param dst Reference to std::string (must have reserved capacity)
     /// @warning
-    /// Does NOT update string's size. After writing, you'll need to manually
-    /// call dst.resize() if you need the string's size to reflect the content.
+    /// Does NOT update string's size. After writing, do NOT call dst.resize()
+    /// as it will overwrite BufferView's data with '\0'. Use alternative methods
+    /// to sync container's size if needed.
     explicit BufferView(std::string& dst)
         : BufferView(dst.data(), dst.capacity())
     {
+        resize(dst.size());
     }
 
     /// @brief Constructor from std::vector<char>
     /// @param dst Reference to std::vector<char> (must have reserved capacity)
     /// @warning
-    /// Does NOT update vector's size. After writing, you'll need to manually
-    /// call dst.resize() if you need the vector's size to reflect the content.
+    /// Does NOT update vector's size. After writing, do NOT call dst.resize()
+    /// as it will overwrite BufferView's data with '\0'. Use alternative methods
+    /// to sync container's size if needed.
     explicit BufferView(std::vector<char>& dst)
         : BufferView(dst.data(), dst.capacity())
     {
+        resize(dst.size());
     }
 
     /// Copy constructor is deleted (non-owning semantics)
@@ -285,6 +291,16 @@ public:
     void clear()
     {
         unsafe_resize(0);
+    }
+
+    /// Safe end_cstr with bounds checking
+    void end_cstr()
+    {
+        if (m_end > m_cap_end)
+        {
+            return;
+        }
+        unsafe_end_cstr();
     }
 
     /// Add null terminator at current end
@@ -641,16 +657,6 @@ public:
             return;
         }
         unsafe_set_end(new_end);
-    }
-
-    /// Safe end_cstr with bounds checking
-    void end_cstr()
-    {
-        if (m_end > m_cap_end)
-        {
-            return;
-        }
-        unsafe_end_cstr();
     }
 
 private:

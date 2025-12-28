@@ -1010,7 +1010,6 @@ StringBufferView 重命名再派生 LocalBuffer 类，具体要求：
 2. full() == (reserve_ex() == 0)
 3. full() == (size() == capacity())
 
-
 ## TASK:20251228-111326
 -----------------------
 
@@ -1060,4 +1059,51 @@ StringBufferView 重命名再派生 LocalBuffer 类，具体要求：
 3. **API 简化**：append 方法统一接受 BufferView 参数，无需模板
 4. **类型安全**：kUnsafeLevel 明确区分安全（0）和不安全（0xFF）模式
 
+## TASK:20251228-122949
+-----------------------
+
+### 任务概述
+
+在 `include/jstring.hpp` 的 `BufferView` 类头注释中提到：借用标准容器（`std::string` 或 `std::vector<char>`）申请的内存写入后可用 `resize()` 同步。但这不正确，因为容器的 `resize()` 会在扩展时填充默认字符，覆盖 `BufferView` 写入的内容。
+
+本任务添加单元测试验证这种用法，并修正相关注释。
+
+### 实现内容
+
+**1. 修正 include/jstring.hpp 注释**
+
+修改了三处关于 `resize()` 的错误注释，澄清 BufferView 借用容器时 resize 的影响。
+
+**2. 添加测试用例**
+
+在 `utest/t_jstring.cpp` 中添加 `#include "couttast/couthex.hpp"`，并在 `BufferView` 分组后添加两个测试用例：
+
+- `bufv_borrow_string_resize`：验证 `BufferView` 借用 `std::string` 内存的问题
+  - **场景1**：`std::string` 原始 `size()` 为 0，`BufferView` 写入后调用 `str.resize()` 会用 `\0` 覆盖所有内容
+  - **场景2**：`std::string` 有初始数据，`BufferView` 从头覆盖写入，`resize()` 会保留前缀（原始 size 长度），后面的内容被 `\0` 覆盖
+
+- `bufv_borrow_vector_resize`：验证 `BufferView` 借用 `std::vector<char>` 内存的问题
+  - **场景1**：`std::vector` 原始 `size()` 为 0，`resize()` 会用 `char()`（即 `\0`）填充所有内容
+  - **场景2**：`std::vector` 有初始数据，`resize()` 会保留前缀，后面的内容被 `\0` 覆盖
+
+**3. 测试实现细节**
+
+- 使用 `COUT_HEX()` 宏以十六进制格式打印 `std::string` 内容，便于直观查看包含特殊字符的数据
+- 在 `BufferView` 写入后调用 `bv.end_cstr()` 添加空字符终止符，确保后续字符串操作正确
+- 在调用容器 `resize()` 之前，先将 `BufferView` 的内容保存到临时变量，避免数据丢失
+
+### 修改文件
+
+- `include/jstring.hpp`：修正三处关于容器 `resize()` 的错误注释
+- `utest/t_jstring.cpp`：添加 `couthex.hpp` 头文件引用和两个新测试用例
+
+### 测试结果
+
+编译成功，所有新增测试用例通过，验证了文档中提到的潜在问题。
+
+### 测试发现
+
+通过测试确认：当 `BufferView` 借用标准容器的内存写入数据后，直接调用容器的 `resize()` 方法来同步大小是**不安全的**，因为 `resize()` 会在扩展时用默认字符 `\0` 填充，覆盖 `BufferView` 写入的内容。
+
+**正确做法**：如果需要同步容器的 `size()`，应该使用其他方法（如直接操作容器或使用 `BufferView::unsafe_set_end()`），而不是依赖容器的 `resize()` 方法。
 

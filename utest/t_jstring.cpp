@@ -1,6 +1,7 @@
 #include "couttast/tinytast.hpp"
 #include "test_util.h"
 #include "jstring.hpp"
+#include "couttast/couthex.hpp"
 #include <charconv>  // for std::to_chars
 #include <system_error>  // for std::make_error_code
 #include <string>
@@ -297,6 +298,202 @@ DEF_TAST(bufv_write_methods, "BufferView 写入方法测试")
         COUT(bv.size(), 5);  // Unchanged
         COUT(bv.overflow(), false);
         COUT(bv.reserve_ex(), 58);  // 63 capacity - 5 written = 58 remaining
+    }
+}
+
+/// @}
+/* ---------------------------------------------------------------------- */
+
+/// @brief Test for BufferView borrowing container memory
+/// @details Tests the behavior when BufferView borrows memory from
+/// std::string or std::vector<char> and demonstrates the issue with
+/// using container.resize() to sync the container's size.
+/// @{
+
+DEF_TAST(bufv_borrow_string_resize, "BufferView 借用 std::string 并验证 resize 问题")
+{
+    DESC("场景1: BufferView 写入超过 string 原始 size,resize 会填充默认字符");
+    {
+        std::string str;
+        str.reserve(256);
+        size_t original_capacity = str.capacity();
+        size_t original_size = str.size();  // 0
+
+        // BufferView 借用 string 的内存并写入数据
+        BufferView bv(str);
+        bv.append("Hello, World! This is a test string for BufferView.");
+        bv.end_cstr();
+        size_t bv_size = bv.size();
+
+        // 此时 str.size() 仍然是 0,但内存中已经有数据
+        COUT(str.size(), 0);
+        COUT(str.c_str());
+        COUT(bv.size(), bv_size);
+
+        // 先保存 BufferView 写入的内容
+        std::string bv_str = static_cast<std::string>(bv);
+
+        // 调用 str.resize(bv.size())
+        // 注意: resize(0 -> 51) 会在 0-50 位置填充默认字符 '\0',覆盖了 BufferView 写入的数据!
+        str.resize(bv_size);
+
+        // 验证: string 的内容可能已经被破坏
+        COUT(str.size(), bv_size);
+        bool content_matches = (str.compare(bv_str) == 0);
+        COUT(content_matches, false);  // 预期为 false,因为 resize 覆盖了内容
+
+        // 使用 COUT_HEX 打印十六进制内容
+        DESC("BufferView 的内容 (十六进制):");
+        COUT_HEX(bv_str);
+        DESC("string 的内容 (resize 后,十六进制):");
+        COUT_HEX(str);
+
+        // 统计非 '\0' 字符数量
+        size_t non_zero_count = 0;
+        for (size_t i = 0; i < str.size(); ++i) {
+            if (str[i] != '\0') non_zero_count++;
+        }
+        COUT(non_zero_count, 0);  // 所有字符都被 '\0' 覆盖
+    }
+
+    DESC("场景2: 验证原始 string 有数据时的情况");
+    {
+        std::string str = "prefix";
+        str.reserve(256);
+        size_t original_size = str.size();  // 6
+
+        // BufferView 借用 string 的内存并写入数据
+        BufferView bv(str);
+        bv.append("Hello, BufferView!");
+        bv.end_cstr();
+        size_t bv_size = bv.size();
+
+        // 此时 str.size() 仍然是 6
+        COUT(str.size(), original_size);
+        COUT(str.c_str());
+        COUT(bv.size(), bv_size);
+
+        // 先保存 BufferView 写入的内容
+        std::string bv_str = static_cast<std::string>(bv);
+
+        // 调用 str.resize(bv.size())
+        // 注意: resize(6 -> 18) 会保留 0-5 的内容,但在 6-17 位置填充 '\0'
+        str.resize(bv_size);
+
+        // 验证: 前缀 "prefix" 应该保留,但后面的内容被 '\0' 覆盖
+        COUT(str.size(), bv_size);
+        bool prefix_preserved = (str.compare(0, 6, "prefix") == 0);
+        COUT(prefix_preserved, true);  // 前缀保留
+
+        bool content_matches = (str.compare(bv_str) == 0);
+        COUT(content_matches, false);  // 整体内容不匹配
+
+        DESC("内容对比 (十六进制):");
+        DESC("BufferView:");
+        COUT_HEX(bv_str);
+        DESC("string (resize 后):");
+        COUT_HEX(str);
+    }
+}
+
+DEF_TAST(bufv_borrow_vector_resize, "BufferView 借用 std::vector<char> 并验证 resize 问题")
+{
+    DESC("场景1: BufferView 写入超过 vector 原始 size,resize 会填充默认字符");
+    {
+        std::vector<char> vec;
+        vec.reserve(256);
+        size_t original_size = vec.size();  // 0
+
+        // BufferView 借用 vector 的内存并写入数据
+        BufferView bv(vec);
+        bv.append("Testing vector resize behavior with BufferView.");
+        bv.end_cstr();
+        size_t bv_size = bv.size();
+
+        // 此时 vec.size() 仍然是 0
+        COUT(vec.size(), 0);
+        COUT(vec.data());
+        COUT(bv.size(), bv_size);
+
+        std::string bv_str = static_cast<std::string>(bv);
+
+        // 调用 vec.resize(bv.size())
+        // 注意: resize(0 -> 44) 会在所有位置填充 char() 即 '\0'
+        vec.resize(bv_size);
+
+        // 验证: vector 的内容应该全是 '\0'
+        COUT(vec.size(), bv_size);
+
+        // 检查是否全为 '\0'
+        bool all_zeros = true;
+        for (size_t i = 0; i < vec.size(); ++i) {
+            if (vec[i] != '\0') {
+                all_zeros = false;
+                break;
+            }
+        }
+        COUT(all_zeros, true);  // 预期为 true,所有内容被 '\0' 覆盖
+
+        // 打印内容
+        std::string vec_str(vec.data(), vec.size());
+        DESC("内容对比 (十六进制):");
+        DESC("BufferView:");
+        COUT_HEX(bv_str);
+        DESC("vector:");
+        COUT_HEX(vec_str);
+    }
+
+    DESC("场景2: 验证原始 vector 有数据时的情况");
+    {
+        std::vector<char> vec = {'p', 'r', 'e', 'f', 'i', 'x'};
+        vec.reserve(256);
+        size_t original_size = vec.size();  // 6
+
+        // BufferView 借用 vector 的内存并写入数据
+        BufferView bv(vec);
+        bv.append("Hello, Vector!");
+        bv.end_cstr();
+        size_t bv_size = bv.size();
+
+        // 此时 vec.size() 仍然是 6
+        COUT(vec.size(), original_size);
+        COUT(vec.data());
+        COUT(bv.size(), bv_size);
+
+        std::string bv_str = static_cast<std::string>(bv);
+
+        // 调用 vec.resize(bv.size())
+        // 前缀保留,后面填充 '\0'
+        vec.resize(bv_size);
+
+        // 验证前缀保留
+        bool prefix_preserved = true;
+        std::string prefix = "prefix";
+        for (size_t i = 0; i < 6; ++i) {
+            if (vec[i] != prefix[i]) {
+                prefix_preserved = false;
+                break;
+            }
+        }
+        COUT(prefix_preserved, true);
+
+        // 验证后面全是 '\0'
+        bool suffix_all_zeros = true;
+        for (size_t i = 6; i < vec.size(); ++i) {
+            if (vec[i] != '\0') {
+                suffix_all_zeros = false;
+                break;
+            }
+        }
+        COUT(suffix_all_zeros, true);
+
+        // 打印内容
+        std::string vec_str(vec.data(), vec.size());
+        DESC("内容对比 (十六进制):");
+        DESC("BufferView:");
+        COUT_HEX(bv_str);
+        DESC("vector (resize 后):");
+        COUT_HEX(vec_str);
     }
 }
 
