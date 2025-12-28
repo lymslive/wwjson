@@ -696,8 +696,7 @@ struct GenericBuilder
     stringT json; ///< Internal string buffer storing the JSON being constructed
     using builder_type = GenericBuilder<stringT, configT>; ///< Type alias for this builder
 
-    /// @brief M0: Basic construction and lifecycle methods
-    /// @{
+    /// @{ M0: Basic construction and lifecycle methods
 
     /// @brief Copy constructor
     GenericBuilder(const GenericBuilder &other) = default;
@@ -763,9 +762,8 @@ struct GenericBuilder
     stringT &&MoveResult() { return std::move(GetResult()); }
     
     /// @}
-
-    /// M1: String Interface Wrapper Methods
     /* ---------------------------------------------------------------------- */
+    /// @{ M1: String Interface Wrapper Methods
 
     void PutChar(char c) { json.push_back(c); }
 
@@ -805,8 +803,9 @@ struct GenericBuilder
     void PushBack(char c) { PutChar(c); }
     void Clear() { json.clear(); }
 
-    /// M2: JSON Character-level Methods
+    /// @}
     /* ---------------------------------------------------------------------- */
+    /// @{ M2: JSON Character-level Methods
 
     void PutNext() { PutChar(','); }
     void SepItem() { PutNext(); }
@@ -960,8 +959,9 @@ struct GenericBuilder
 
     void EndLine() { PutChar('\n'); }
 
-    /// M3: JSON Scalar Value and Low-level Methods
+    /// @}
     /* ---------------------------------------------------------------------- */
+    /// @{ M3: JSON Scalar Value and Low-level Methods
 
     void PutNull() { Append("null"); }
     void PutValue(std::nullptr_t) { PutNull(); }
@@ -1074,8 +1074,9 @@ struct GenericBuilder
         PutSub(strSub.data(), strSub.length());
     }
 
-    /// M4: JSON Array and Object Element Methods
+    /// @}
     /* ---------------------------------------------------------------------- */
+    /// @{ M4: JSON Array and Object Element Methods
 
     /// Add numeric item to array.
     template <typename numberT>
@@ -1210,8 +1211,9 @@ struct GenericBuilder
         PutKey(std::forward<keyT>(key));
     }
 
-    /// M5: String Escaping Methods
+    /// @}
     /* ---------------------------------------------------------------------- */
+    /// @{ M5: String Escaping Methods
 
     /// Force to escape string and add to array.
     void AddItemEscape(const char *value, size_t len)
@@ -1270,8 +1272,9 @@ struct GenericBuilder
         PutChar(':');
     }
 
-    /// M6: Special Member Functions and Operator Overloads
+    /// @}
     /* ---------------------------------------------------------------------- */
+    /// @{ M6: Special Member Functions and Operator Overloads
 
     GenericBuilder &operator=(const GenericBuilder &other) = default;
     GenericBuilder &operator=(GenericBuilder &&other) noexcept = default;
@@ -1295,8 +1298,9 @@ struct GenericBuilder
         return *this;
     }
 
-    /// M7: Scope Creation Methods
+    /// @}
     /* ---------------------------------------------------------------------- */
+    /// @{ M7: Scope Creation Methods
 
     /// @brief Create a scoped array that auto-closes when destroyed (RAII)
     /// @return GenericArray RAII wrapper that auto-closes the array
@@ -1371,8 +1375,9 @@ struct GenericBuilder
     std::enable_if_t<is_key_v<keyT>, GenericObject<stringT, configT>>
     ScopeObject(keyT &&key);
 
-    /// M8: Advanced Methods
+    /// @}
     /* ---------------------------------------------------------------------- */
+    /// @{ M8: Advanced Methods
 
     /// Reopen object {} or array [] to add more fields.
     bool Reopen()
@@ -1392,67 +1397,67 @@ struct GenericBuilder
         return false;
     }
 
-        /// @brief Merge two JSON strings (objects or arrays) into one
-        /// @param that Other builder containing JSON to merge
-        /// @return true if merge successful, false if incompatible JSON types
-        /// @details
-        /// Intelligently merges two JSON structures by detecting compatible
-        /// boundaries and combining them with proper comma separation. This
-        /// enables dynamic JSON composition without rebuilding from scratch.
-        ///
-        /// @par Merge Algorithm:
-        /// 1. If either string is empty, return the other unchanged
-        /// 2. Check for compatible boundary patterns:
-        ///    - `}{` (object followed by object)
-        ///    - `][` (array followed by array)
-        /// 3. Replace boundary with comma separator
-        /// 4. Concatenate the structures
-        ///
-        /// @par Supported Patterns:
-        /// - `{"a":1}{"b":2}` → `{"a":1,"b":2}`
-        /// - `[1,2][3,4]` → `[1,2,3,4]`
-        ///
-        /// @par Usage Example:
-        /// @code
-        /// GenericBuilder left;
-        /// left.BeginRoot();
-        /// left.AddMember("id", 1);
-        /// left.EndRoot(); // {"id":1}
-        ///
-        /// GenericBuilder right;
-        /// right.BeginRoot();
-        /// right.AddMember("name", "Alice");
-        /// right.EndRoot(); // {"name":"Alice"}
-        ///
-        /// left.Merge(right); // {"id":1,"name":"Alice"}
-        /// @endcode
-        ///
-        /// @warning This is a simple boundary-based merge. Complex nested
-        /// structures require manual construction. Not all JSON combinations
-        /// are mergeable.
-        bool Merge(const GenericBuilder<stringT, configT> &that)
+    /// @brief Merge two JSON strings (objects or arrays) into one
+    /// @param that Other builder containing JSON to merge
+    /// @return true if merge successful, false if incompatible JSON types
+    /// @details
+    /// Intelligently merges two JSON structures by detecting compatible
+    /// boundaries and combining them with proper comma separation. This
+    /// enables dynamic JSON composition without rebuilding from scratch.
+    ///
+    /// @par Merge Algorithm:
+    /// 1. If either string is empty, return the other unchanged
+    /// 2. Check for compatible boundary patterns:
+    ///    - `}{` (object followed by object)
+    ///    - `][` (array followed by array)
+    /// 3. Replace boundary with comma separator
+    /// 4. Concatenate the structures
+    ///
+    /// @par Supported Patterns:
+    /// - `{"a":1}{"b":2}` → `{"a":1,"b":2}`
+    /// - `[1,2][3,4]` → `[1,2,3,4]`
+    ///
+    /// @par Usage Example:
+    /// @code
+    /// GenericBuilder left;
+    /// left.BeginRoot();
+    /// left.AddMember("id", 1);
+    /// left.EndRoot(); // {"id":1}
+    ///
+    /// GenericBuilder right;
+    /// right.BeginRoot();
+    /// right.AddMember("name", "Alice");
+    /// right.EndRoot(); // {"name":"Alice"}
+    ///
+    /// left.Merge(right); // {"id":1,"name":"Alice"}
+    /// @endcode
+    ///
+    /// @warning This is a simple boundary-based merge. Complex nested
+    /// structures require manual construction. Not all JSON combinations
+    /// are mergeable.
+    bool Merge(const GenericBuilder<stringT, configT> &that)
+    {
+        if (wwjson_unlikely(Empty()))
         {
-            if (wwjson_unlikely(Empty()))
-            {
-                json = that.json;
-                return true;
-            }
-            if (wwjson_unlikely(that.Empty()))
-            {
-                return true;
-            }
-    
-            char selfLast = Back();
-            char thatFirst = that.Front();
-            if (wwjson_likely((selfLast == '}' && thatFirst == '{') ||
-                              (selfLast == ']' && thatFirst == '[')))
-            {
-                Back() = ',';
-                Append(that.json.c_str() + 1, that.Size() - 1);
-                return true;
-            }
-            return false;
+            json = that.json;
+            return true;
         }
+        if (wwjson_unlikely(that.Empty()))
+        {
+            return true;
+        }
+
+        char selfLast = Back();
+        char thatFirst = that.Front();
+        if (wwjson_likely((selfLast == '}' && thatFirst == '{') ||
+                          (selfLast == ']' && thatFirst == '[')))
+        {
+            Back() = ',';
+            Append(that.json.c_str() + 1, that.Size() - 1);
+            return true;
+        }
+        return false;
+    }
 
     /// Static method version, merge two objects {} or arrays [].
     /// Simple algorithm: only checking closing/opening pairs,
@@ -1498,6 +1503,8 @@ struct GenericBuilder
         PutKey(std::forward<keyT>(key));
         AddItemSub(std::forward<Args>(args)...);
     }
+
+    /// @}
 };
 
 /// @brief RAII wrapper for JSON arrays with automatic scope management

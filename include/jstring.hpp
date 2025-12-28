@@ -176,7 +176,7 @@ public:
     ~BufferView() = default;
 
     /// @}
-
+    /* ---------------------------------------------------------------------- */
     /// @{ M1: Capacity and size queries
 
     /// Read-only access methods
@@ -226,7 +226,7 @@ public:
     void clear() { unsafe_resize(0); }
 
     /// @}
-
+    /* ---------------------------------------------------------------------- */
     /// @{ M2: Edge pointer and element access
 
     explicit operator bool() const { return m_begin != nullptr; }
@@ -261,7 +261,7 @@ public:
     }
 
     /// @}
-
+    /* ---------------------------------------------------------------------- */
     /// @{ M3: String conversion
 
     /// Get C-style string (adds null terminator if space available)
@@ -291,7 +291,7 @@ public:
     }
 
     /// @}
-
+    /* ---------------------------------------------------------------------- */
     /// @{ M4: Safe write operations (with boundary checks)
 
     /// Add null terminator with bounds checking
@@ -372,7 +372,7 @@ public:
     }
 
     /// @}
-
+    /* ---------------------------------------------------------------------- */
     /// @{ M5: Unsafe write operations (no boundary checks)
 
     void unsafe_end_cstr()
