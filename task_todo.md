@@ -422,7 +422,7 @@ unsafe mode 段拆分 ubuf_ 缩写前缀。第二参数描叙写出类名全名�
 
 ### DONE: 20251228-151234
 
-## TODO: reserve_ex(n) 返回 bool
+## TODO:2025-12-28/4 重新设计 reserve_ex(n) 返回 bool
 
 修改文件：include/jstring.hpp
 
@@ -433,6 +433,8 @@ n 字节。
 - 基类 BufferView::reserve_ex(n) 不扩容，剩余容量不足时返回 false
 - UnsafeBuffer::reserve_ex(n) 假定空间够，始终返回 true
 - StringBuffer::reserve_ex(n) 扩容失败时返回 false
+
+### DONE: 20251228-213120
 
 ## TODO: 重新设计单元测试
 

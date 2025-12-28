@@ -47,7 +47,7 @@ namespace wwjson {
 /// - unsafe_set_end(char*): Directly set the end pointer of string
 /// - unsafe_resize(size): Directly set the size of string
 /// - unsafe_end_cstr(): Add null terminator at end
-/// - reserve_ex(size_t extra): Reserve extra capacity with kUnsafeLevel bytes margin
+/// - reserve_ex(size_t extra): Check if buffer has space to write extra bytes, return true if available
 /// 
 /// @par Unsafe Level Definition:
 /// kUnsafeLevel defines the number of unsafe operations allowed after a safe check.
@@ -84,7 +84,7 @@ protected:
 public:
     static constexpr uint8_t kUnsafeLevel = 0;
 
-    /// @{ Constructors and assignment operators
+    /// @{ M0: Constructors and assignment operators
 
     /// Default constructor - initializes all pointers to nullptr
     BufferView() = default;
@@ -177,7 +177,7 @@ public:
 
     /// @}
 
-    /// @{ Capacity and size queries
+    /// @{ M1: Capacity and size queries
 
     /// Read-only access methods
     size_t size() const { return m_end - m_begin; }
@@ -200,6 +200,14 @@ public:
         return static_cast<int64_t>(m_cap_end - m_end);
     }
 
+    /// @brief Check if buffer has space to write n bytes
+    /// @param n Number of bytes to check space for
+    /// @return true if remaining space >= n, false otherwise (including overflow)
+    bool reserve_ex(size_t n) const
+    {
+        return reserve_ex() >= static_cast<int64_t>(n);
+    }
+
     /// Set the end pointer with bounds checking.
     void set_end(char* new_end)
     {
@@ -219,7 +227,7 @@ public:
 
     /// @}
 
-    /// @{ Edge pointer and element access
+    /// @{ M2: Edge pointer and element access
 
     explicit operator bool() const { return m_begin != nullptr; }
     const char* data() const { return m_begin; }
@@ -254,7 +262,7 @@ public:
 
     /// @}
 
-    /// @{ String conversion
+    /// @{ M3: String conversion
 
     /// Get C-style string (adds null terminator if space available)
     const char* c_str()
@@ -284,7 +292,7 @@ public:
 
     /// @}
 
-    /// @{ Safe write operations (with boundary checks)
+    /// @{ M4: Safe write operations (with boundary checks)
 
     /// Add null terminator with bounds checking
     void end_cstr()
@@ -365,7 +373,7 @@ public:
 
     /// @}
 
-    /// @{ Unsafe write operations (no boundary checks)
+    /// @{ M5: Unsafe write operations (no boundary checks)
 
     void unsafe_end_cstr()
     {
@@ -429,8 +437,9 @@ class UnsafeBuffer : public BufferView
 public:
     static constexpr uint8_t kUnsafeLevel = 0xFF;
 
-    /// Inherit all constructors from BufferView.
+    /// Inherit all constructors and reserve_ex() from BufferView.
     using BufferView::BufferView;
+    using BufferView::reserve_ex;
 
     void append(const char* str, size_t len)
     {
@@ -471,6 +480,13 @@ public:
     void resize(size_t new_size)
     {
         unsafe_resize(new_size);
+    }
+
+    /// Assume buffer has enough space in unsafe mode and return true.
+    bool reserve_ex(size_t n) const
+    {
+        (void)n;  // Suppress unused parameter warning
+        return true;
     }
 };
 
@@ -522,6 +538,8 @@ public:
     static constexpr uint8_t kUnsafeLevel = LEVEL;
     static constexpr size_t kDefaultAllocate = 1024;  // Default memory allocation size
 
+    using BufferView::reserve_ex;
+
     StringBuffer() : StringBuffer(kDefaultAllocate - kUnsafeLevel - 1)
     {
     }
@@ -563,7 +581,19 @@ public:
         return *this;
     }
 
-    void reserve_ex(size_t add_capacity) { reserve(size() + add_capacity); }
+    bool reserve_ex(size_t add_capacity)
+    {
+        try
+        {
+            reserve(size() + add_capacity);
+            return true;
+        }
+        catch (const std::bad_alloc&)
+        {
+            return false;
+        }
+    }
+
     void reserve(size_t new_capacity)
     {
         size_t total_capacity = new_capacity + kUnsafeLevel;
@@ -673,6 +703,10 @@ private:
 
         size_t alloc_size = calculate_alloc_size(size);
         m_begin = static_cast<char*>(std::malloc(alloc_size));
+        if (m_begin == nullptr)
+        {
+            throw std::bad_alloc();
+        }
         m_end = m_begin;
         m_cap_end = m_begin + alloc_size - 1;
         *m_cap_end = '\0';
@@ -701,13 +735,16 @@ private:
         size_t alloc_size = calculate_growth_size(current_alloc, new_size);
         char* new_begin = static_cast<char*>(std::malloc(alloc_size));
         
-        // Copy existing content
+        if (new_begin == nullptr)
+        {
+            throw std::bad_alloc();
+        }
+        
         if (current_size > 0)
         {
             memcpy(new_begin, m_begin, current_size);
         }
         
-        // Free old buffer
         if (m_begin)
         {
             std::free(m_begin);

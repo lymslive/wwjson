@@ -1176,3 +1176,56 @@ StringBufferView 重命名再派生 LocalBuffer 类，具体要求：
 3. **安全区分**：safe 和 unsafe 方法明确分组，降低误用风险
 4. **字符串转换**：`str()` 方法提供更便捷的字符串转换方式
 
+## TASK:20251228-213120
+-----------------------
+
+### 需求
+
+需求 ID：2025-12-28/4
+
+重新设计 reserve_ex(n) 返回 bool，修改文件 include/jstring.hpp。重新约定 UnsafeStringConcept 要求 reserve_ex(n) 返回 bool 表示是否有空间再写入 n 字节：
+- 剩余空间足够再写入 n 字节时返回 true
+- 基类 BufferView::reserve_ex(n) 不扩容，剩余容量不足时返回 false
+- UnsafeBuffer::reserve_ex(n) 假定空间够，始终返回 true
+- StringBuffer::reserve_ex(n) 扩容失败时返回 false
+
+### 实现内容
+
+**1. 更新 UnsafeStringConcept 文档**
+更新文档中 `reserve_ex(size_t extra)` 的接口说明，从 "Reserve extra capacity with kUnsafeLevel bytes margin" 改为 "Check if buffer has space to write extra bytes, return true if available"。
+
+**2. BufferView 类修改**
+- 保留原有 `int64_t reserve_ex() const` 方法（无参数版本，查询剩余字节数）
+- 新增 `bool reserve_ex(size_t n) const` 方法（单参数版本，检查是否有 n 字节空间）
+  - 实现复用无参数版本：`return reserve_ex() >= static_cast<int64_t>(n)`
+  - 正确处理溢出情况（无参数版本返回负数时比较结果为 false）
+
+**3. UnsafeBuffer 类修改**
+- 添加 `using BufferView::reserve_ex` 声明，暴露基类的无参数版本
+- 新增 `bool reserve_ex(size_t n) const` 方法，始终返回 true（unsafe 模式假定空间足够）
+
+**4. StringBuffer 类修改**
+- `void reserve(size_t new_capacity)` 保持原有行为，内存分配失败时抛 std::bad_alloc 异常（兼容 std::string）
+- `bool reserve_ex(size_t add_capacity)` 修改为返回 bool：
+  - 调用 `reserve()` 进行扩容
+  - 捕获 `std::bad_alloc` 异常并返回 false
+  - 成功时返回 true
+
+**5. 内存分配失败处理**
+修改 `allocate()` 和 `reallocate()` 方法：
+- 检查 `std::malloc` 返回值，失败时抛出 `std::bad_alloc` 异常
+- 避免空指针运算导致的未定义行为
+
+### 修改文件
+
+- `include/jstring.hpp`：
+  - 更新 UnsafeStringConcept 文档中的 reserve_ex 接口说明
+  - BufferView 添加 reserve_ex(size_t n) 重载返回 bool
+  - UnsafeBuffer 添加 reserve_ex(size_t n) 方法，始终返回 true
+  - StringBuffer 修改 reserve_ex(size_t n) 返回 bool，扩容失败返回 false
+  - allocate() 和 reallocate() 检查 malloc 返回值，失败时抛 std::bad_alloc
+
+### 测试结果
+
+编译成功，所有现有测试用例通过。
+
