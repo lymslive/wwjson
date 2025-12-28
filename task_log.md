@@ -1011,3 +1011,53 @@ StringBufferView 重命名再派生 LocalBuffer 类，具体要求：
 3. full() == (size() == capacity())
 
 
+## TASK:20251228-111326
+-----------------------
+
+### 任务概述
+
+将 `LocalBuffer<bool>` 模板类重构为基类 `BufferView` 和子类 `UnsafeBuffer`：
+- BufferView：安全模式，写入方法带边界检查，kUnsafeLevel=0
+- UnsafeBuffer：不安全模式，覆盖写入方法直接调用 unsafe_ 方法，kUnsafeLevel=0xFF
+
+### 实现内容
+
+**1. BufferView 基类改造**
+- 添加 `kUnsafeLevel = 0` 常量和 `UnsafeStringConcept` 继承
+- 添加容器构造函数（C array、std::array、std::string、std::vector）
+- 添加移动构造、移动赋值（非拥有语义）
+- 删除复制构造、复制赋值
+- 添加安全写入方法：append、push_back、resize（带边界检查）
+
+**2. UnsafeBuffer 子类创建**
+- 定义 `kUnsafeLevel = 0xFF`
+- 使用 `using BufferView::BufferView` 继承所有构造函数
+- 覆盖写入方法：append、push_back、resize 直接调用 unsafe_ 方法（无边界检查）
+
+**3. 代码简化**
+- 删除 `LocalBuffer<UNSAFE>` 模板类
+- 将模板 `append(const StringBuffer<kOtherLevel>&)` 改为 `append(const BufferView&)`
+- 移除 UnsafeBuffer 中重复的构造/赋值定义
+
+**4. 单元测试重组**
+- 将 `LocalBuffer` 测试拆分为 `bufv_`（BufferView）和 `ubuf_`（UnsafeBuffer）前缀
+- 合并写入方法测试：`bufv_write_methods` 和 `ubuf_write_methods`
+- 调整测试位置，BufferView/UnsafeBuffer 测试分组
+
+### 修改文件
+
+- `include/jstring.hpp`：LocalBuffer 重构为 BufferView 和 UnsafeBuffer
+- `utest/t_jstring.cpp`：单元测试重组和合并
+
+### 测试结果
+
+编译成功，所有测试用例通过。
+
+### 设计改进
+
+1. **职责分离**：BufferView 提供安全视图操作，UnsafeBuffer 提供不安全操作
+2. **代码复用**：UnsafeBuffer 通过 using 继承构造函数，避免重复
+3. **API 简化**：append 方法统一接受 BufferView 参数，无需模板
+4. **类型安全**：kUnsafeLevel 明确区分安全（0）和不安全（0xFF）模式
+
+

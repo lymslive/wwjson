@@ -343,9 +343,48 @@ LocalBuffer 构造之后不能扩容，在使用过程中可以按需调用 `res
 
 ### DONE: 20251227-231327
 
-## TODO: 重新设计单元测试
-
 ## TODO: 考虑将 reserve_ex() 改名更合适的
+
+空参版 BufferView::reserve_ex() 意义是查询当前剩余可写空间。
+
+最初选这个方法名，是由于 StringBuffer::reserve_ex(n) 表示检查确认还有 n 字节的
+剩余空间，不足时扩容。所以当调用 reserve_ex(n) 后，再查询 reserve_ex() 必定不
+小于 n 。
+
+而检查扩容的方法名取 `reserve_ex` 是为了与 std::string::reserve 保持对应，
+resever 沿用预留绝对空间的意义，reserve_ex 加后缀表示预留相对空间。
+
+请分析 include/jstring.hpp 对该方法的定义，以及在 utest/t_jstring.cpp 的使用，
+评估该命名设计的选择是否合适。尤其是空参数查询时，使用 reserved 或 remain 是否
+更适合呢。或者有没其他更好的命名方案。
+
+### DONE: 20251227~233530
+
+Deepseek 建议保持 reserve_ex 设计；
+```
+如果您的目标是最大化代码自解释性（例如面向更广泛的用户群），则建议改为方案 A（remain()），否则保持当前设计即可。
+```
+
+## TODO:2025-12-28/1 LocalBuffer 类设计重构
+
+涉及文件：include/jstring.hpp utest/t_jstring.cpp
+
+重构方向：
+- 取消 bool 模板参数，将 bool 实例化的两个类功能分别拆分到基类与子类
+- 基类 BufferView 作为安全版本，增加 push_back append 等写入方法
+- 子类 LocalBuffer 改名 UnsafeBuffer ，覆盖 push_back append 等写入方法直接调
+  用 unsafe_ 方法；
+- 基类定义常量 kUnsafeLevel = 0 ，派生类 kUnsafeLevel = 0xFF ，都可满足
+  UnsafeStringConcept 了。
+
+单元测试用例拆分，localbuffer_ 的 safe mode 段先拆出 bufv_ 缩写前缀的用例名。
+unsafe mode 段拆分 ubuf_ 缩写前缀。第二参数描叙写出类名全名。
+
+单元测试按被测试类分为三组，合并写入方法的测试用例。
+
+### DONE: 20251228-111326
+
+## TODO: 重新设计单元测试
 
 ## TODO: 增加 jbuilder.hpp 组合使用 jstring.hpp
 
