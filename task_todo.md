@@ -394,6 +394,46 @@ unsafe mode 段拆分 ubuf_ 缩写前缀。第二参数描叙写出类名全名�
 
 ### DONE: 20251228-122949
 
+## TODO:2025-12-28/3 整理 BufferView 众多方法分类
+
+在 include/jstring.hpp 的 BufferView 类的方法越来越多，许多一开始设计为在其子
+类的方法也上移放到基类来了。为方便维护，希望将方法归类，采用 doxygen 的 `@{@}`
+注释分组。
+
+目前大概有以下几类方法：
+- 基本的构造、析构
+- 只读检查方法
+- 安全写入方法
+- unsafe 写入方法
+- 可能还有其他方法
+
+请仔细分析现有的所有方法，提出一种合理的归类分组方案，将同组的方法括在一起，取
+个简短标题。对于简单、可自解释的方法，再精简注释，用 `///` 风格写一句话即可。
+
+有个问题需要考虑抉择，对于安全写入方法与其对应的 unsafe 版本，是写在一起更好呢
+，还是分在不同组更好。请从可读性与可维护性方面作出决策。
+
+此外，在之前的单元测试中发现，将 BufferView 转为 std::string 需要显示
+`static_cast` ，写起来略麻烦。希望再增加一个 `str()` 方法返回 `std::string` ，
+这也正好与 `c_str()` 方法返回 C-Style 的字符串相对应。请将这个拟新增方法也一起
+考虑进去如何分类。
+
+不要删已有的方法，不该影响单元测试。
+
+### DONE: 20251228-151234
+
+## TODO: reserve_ex(n) 返回 bool
+
+修改文件：include/jstring.hpp
+
+重新约定 UnsafeStringConcept 要求 reserve_ex(n) 返回 bool 表示是否有空间再写入
+n 字节。
+
+- 剩余空间足够再写入 n 字节时返回 true
+- 基类 BufferView::reserve_ex(n) 不扩容，剩余容量不足时返回 false
+- UnsafeBuffer::reserve_ex(n) 假定空间够，始终返回 true
+- StringBuffer::reserve_ex(n) 扩容失败时返回 false
+
 ## TODO: 重新设计单元测试
 
 ## TODO: 增加 jbuilder.hpp 组合使用 jstring.hpp

@@ -374,7 +374,7 @@ DEF_TAST(bufv_borrow_string_resize, "BufferView 借用 std::string 并验证 res
         COUT(bv.size(), bv_size);
 
         // 先保存 BufferView 写入的内容
-        std::string bv_str = static_cast<std::string>(bv);
+        std::string bv_str = bv.c_str();
 
         // 调用 str.resize(bv.size())
         // 注意: resize(6 -> 18) 会保留 0-5 的内容,但在 6-17 位置填充 '\0'
@@ -415,7 +415,7 @@ DEF_TAST(bufv_borrow_vector_resize, "BufferView 借用 std::vector<char> 并验�
         COUT(vec.data());
         COUT(bv.size(), bv_size);
 
-        std::string bv_str = static_cast<std::string>(bv);
+        std::string bv_str = bv.str();
 
         // 调用 vec.resize(bv.size())
         // 注意: resize(0 -> 44) 会在所有位置填充 char() 即 '\0'
@@ -460,7 +460,7 @@ DEF_TAST(bufv_borrow_vector_resize, "BufferView 借用 std::vector<char> 并验�
         COUT(vec.data());
         COUT(bv.size(), bv_size);
 
-        std::string bv_str = static_cast<std::string>(bv);
+        std::string bv_str = bv.str();
 
         // 调用 vec.resize(bv.size())
         // 前缀保留,后面填充 '\0'

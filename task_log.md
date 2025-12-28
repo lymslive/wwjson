@@ -1107,3 +1107,72 @@ StringBufferView 重命名再派生 LocalBuffer 类，具体要求：
 
 **正确做法**：如果需要同步容器的 `size()`，应该使用其他方法（如直接操作容器或使用 `BufferView::unsafe_set_end()`），而不是依赖容器的 `resize()` 方法。
 
+---
+
+## TASK:20251228-151234
+-----------------------
+
+### 需求
+
+需求 ID：2025-12-28/3
+
+整理 BufferView 类的众多方法，使用 doxygen 的 `@{` 和 `@}` 分组标记进行组织，以提高文档的可读性和可维护性。
+
+### 实现内容
+
+**1. 添加 str() 方法**
+在 `BufferView` 类中添加 `str()` 方法，提供从 `BufferView` 到 `std::string` 的便捷转换。此方法返回 `std::string(m_begin, size())`，与现有的 `c_str()` 返回 `const char*` 相比，提供了更直接的字符串转换方式。
+
+**2. Doxygen 分组标记**
+使用 doxygen 的 `@{` 和 `@}` 标记将 `BufferView` 类的众多方法分组为以下 6 个类别：
+
+1. **Constructors and assignment operators**
+   - Default constructor、参数化构造函数（C array、std::array、std::string、std::vector）
+   - Move constructor、Move assignment、Destructor
+
+2. **Capacity and size queries**
+   - `size()`, `capacity()`, `empty()`, `data()`, `operator bool()`
+   - `overflow()`, `full()`, `reserve_ex()`
+
+3. **Pointer and element access**
+   - `begin()`, `end()`, `cap_end()`
+   - `c_str()`, `str()`
+   - `std::string_view` 和 `std::string` 转换运算符
+   - `front()`, `back()`
+
+4. **Unsafe write operations**（放在最后）
+   - `unsafe_push_back()`, `unsafe_resize()`, `unsafe_set_end(char*)`
+   - `unsafe_append()`, `unsafe_end_cstr()`, `unsafe_fill()`
+
+5. **Safe write operations**（包括 fill 方法）
+   - `fill(char)`, `fill(char, size_t)`
+   - `end_cstr()`
+   - `append()`（所有重载版本）
+   - `push_back()`, `append(size_t, char)`, `resize()`
+
+6. **Clear 操作**（放在 Safe write operations 中）
+   - `clear()` 使用 `unsafe_resize(0)` 实现
+
+**3. 分组设计说明**
+- 将指针访问和元素访问合并为一个组（用户建议）
+- 将 fill 方法合并到安全写入操作组（用户建议）
+- 将不安全写入操作放在最后，便于快速定位安全和不安全方法
+- 保留了 `UnsafeStringConcept` 继承关系和 `kUnsafeLevel` 常量
+
+### 修改文件
+
+- `include/jstring.hpp`：
+  - 添加 `str()` 方法
+  - 为 BufferView 类方法添加 doxygen `@{` `@}` 分组标记
+
+### 测试结果
+
+编译成功，运行所有测试用例，127 个测试全部通过。
+
+### 设计改进
+
+1. **文档可读性**：通过 doxygen 分组，方法组织更清晰，便于查找和理解
+2. **代码结构**：方法按功能分类，注释更精简
+3. **安全区分**：safe 和 unsafe 方法明确分组，降低误用风险
+4. **字符串转换**：`str()` 方法提供更便捷的字符串转换方式
+

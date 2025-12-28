@@ -40,18 +40,20 @@ namespace wwjson {
 /// optimized for JSON serialization. The key innovation is the concept of "unsafe level"
 /// which allows a batch of unsafe operations after a safe boundary check.
 /// 
-/// @par Unsafe Level Definition:
-/// kUnsafeLevel defines the number of unsafe operations allowed after a safe check.
-/// Example: kUnsafeLevel=4 means after reserve(n), you can call unsafe_push_back 
-/// 4 times even after write n characters. 
-/// The null terminator space is always additional (+1 byte).
-/// 
 /// @par Required Interface Methods:
 /// - static constexpr uint8_t kUnsafeLevel: Number of unsafe operations allowed
-/// - unsafe_push_back(char c): Add character without boundary check
-/// - unsafe_set_end(size_t new_size): Directly set string length
+/// - unsafe_push_back(char): Add character without boundary check
+/// - unsafe_append(const char*, size_t): Add string without boundary check
+/// - unsafe_set_end(char*): Directly set the end pointer of string
+/// - unsafe_resize(size): Directly set the size of string
 /// - unsafe_end_cstr(): Add null terminator at end
-/// - reserve(size_t capacity): Reserve with kUnsafeLevel bytes margin
+/// - reserve_ex(size_t extra): Reserve extra capacity with kUnsafeLevel bytes margin
+/// 
+/// @par Unsafe Level Definition:
+/// kUnsafeLevel defines the number of unsafe operations allowed after a safe check.
+/// Example: kUnsafeLevel=4 means after reserve_ex(n), you can call unsafe_push_back 
+/// 4 times even after write n characters. 
+/// The null terminator space is always additional (+1 byte).
 struct UnsafeStringConcept
 {
 };
@@ -70,10 +72,8 @@ using UnsafeLevel = uint8_t;
 /// - **Non-owning semantics**: Copy/move transfer pointer ownership (not deallocated)
 ///
 /// @par Warning:
-/// When borrowing from std::string or std::vector, buffer view does not update
-/// container's size() method. Do NOT call container.resize() after writing, as
-/// it will fill the expanded range with default characters ('\0'), overwriting
-/// the data written by BufferView.
+/// Avoid performing write operations using both the buffer view and the memory 
+/// management object that it borrows from at the same time.
 class BufferView : public UnsafeStringConcept
 {
 protected:
@@ -83,6 +83,8 @@ protected:
 
 public:
     static constexpr uint8_t kUnsafeLevel = 0;
+
+    /// @{ Constructors and assignment operators
 
     /// Default constructor - initializes all pointers to nullptr
     BufferView() = default;
@@ -106,8 +108,7 @@ public:
     /// @brief Constructor from C array
     /// @param dst Reference to C array of characters
     template <size_t N>
-    explicit BufferView(char (&dst)[N])
-        : BufferView(dst, N)
+    explicit BufferView(char (&dst)[N]) : BufferView(dst, N)
     {
     }
 
@@ -123,10 +124,8 @@ public:
     /// @param dst Reference to std::string (must have reserved capacity)
     /// @warning
     /// Does NOT update string's size. After writing, do NOT call dst.resize()
-    /// as it will overwrite BufferView's data with '\0'. Use alternative methods
-    /// to sync container's size if needed.
-    explicit BufferView(std::string& dst)
-        : BufferView(dst.data(), dst.capacity())
+    /// as it will overwrite BufferView's data with '\0'.
+    explicit BufferView(std::string& dst) : BufferView(dst.data(), dst.capacity())
     {
         resize(dst.size());
     }
@@ -135,10 +134,8 @@ public:
     /// @param dst Reference to std::vector<char> (must have reserved capacity)
     /// @warning
     /// Does NOT update vector's size. After writing, do NOT call dst.resize()
-    /// as it will overwrite BufferView's data with '\0'. Use alternative methods
-    /// to sync container's size if needed.
-    explicit BufferView(std::vector<char>& dst)
-        : BufferView(dst.data(), dst.capacity())
+    /// as it will overwrite BufferView's data with '\0'.
+    explicit BufferView(std::vector<char>& dst) : BufferView(dst.data(), dst.capacity())
     {
         resize(dst.size());
     }
@@ -178,22 +175,20 @@ public:
     /// Destructor - does nothing (doesn't own memory)
     ~BufferView() = default;
 
+    /// @}
+
+    /// @{ Capacity and size queries
+
     /// Read-only access methods
     size_t size() const { return m_end - m_begin; }
     size_t capacity() const { return m_cap_end - m_begin; }
     bool empty() const { return m_end == m_begin; }
-    const char* data() const { return m_begin; }
 
-    /// Check if memory is allocated
-    explicit operator bool() const { return m_begin != nullptr; }
-
-    /// @brief Check if write operations have exceeded buffer capacity
-    /// @return true if m_end is beyond m_cap_end (overflow occurred)
-    bool overflow() const { return m_end > m_cap_end; }
-
-    /// @brief Check if buffer is full (no remaining space)
-    /// @return true if m_end == m_cap_end (no space left for writing)
+    /// Check if buffer is exactly full (no remaining space)
     bool full() const { return m_end == m_cap_end; }
+
+    /// Check if write operations have exceeded buffer capacity
+    bool overflow() const { return m_end > m_cap_end; }
 
     /// @brief Check remaining available bytes in buffer
     /// @return
@@ -205,38 +200,36 @@ public:
         return static_cast<int64_t>(m_cap_end - m_end);
     }
 
-    /// Iterator-like methods returning pointers
+    /// Set the end pointer with bounds checking.
+    void set_end(char* new_end)
+    {
+        if (new_end < m_begin || new_end > m_cap_end) { return; }
+        unsafe_set_end(new_end);
+    }
+
+    /// Safe resize with bounds checking.
+    void resize(size_t new_size)
+    {
+        if (m_begin + new_size > m_cap_end) { return; }
+        unsafe_resize(new_size);
+    }
+
+    /// Clear content, reset end pointer to the begin.
+    void clear() { unsafe_resize(0); }
+
+    /// @}
+
+    /// @{ Edge pointer and element access
+
+    explicit operator bool() const { return m_begin != nullptr; }
+    const char* data() const { return m_begin; }
+
     char* begin() { return m_begin; }
     const char* begin() const { return m_begin; }
     char* end() { return m_end; }
     const char* end() const { return m_end; }
     char* cap_end() { return m_cap_end; }
     const char* cap_end() const { return m_cap_end; }
-
-    const char* c_str()
-    {
-        if (m_begin == nullptr)
-        {
-            return "";
-        }
-        if (m_end < m_cap_end)
-        {
-            *m_end = '\0';
-        }
-        return m_begin;
-    }
-
-    /// Implicit conversion to std::string_view
-    operator std::string_view() const
-    {
-        return std::string_view(m_begin, size());
-    }
-
-    /// Explicit conversion to std::string (requires copy)
-    explicit operator std::string() const
-    {
-        return std::string(m_begin, size());
-    }
 
     char& front() 
     { 
@@ -259,68 +252,57 @@ public:
         return *(m_end - 1); 
     }
 
-    /// Unsafe write methods (no boundary checks)
-    void unsafe_push_back(char c)
+    /// @}
+
+    /// @{ String conversion
+
+    /// Get C-style string (adds null terminator if space available)
+    const char* c_str()
     {
-        assert(m_begin != nullptr && "BufferView::unsafe_push_back() called on null buffer");
-        *m_end++ = c;
+        if (m_begin == nullptr) { return ""; }
+        end_cstr();
+        return m_begin;
     }
 
-    void unsafe_resize(size_t new_size)
+    /// brief Convert to std::string
+    std::string str() const
     {
-        assert(m_begin != nullptr && "BufferView::unsafe_resize() called on null buffer");
-        m_end = m_begin + new_size;
+        return std::string(m_begin, size());
     }
 
-    /// Set end pointer directly (char* overload)
-    void unsafe_set_end(char* new_end)
+    /// Implicit conversion to std::string_view
+    operator std::string_view() const
     {
-        assert(m_begin != nullptr && "BufferView::unsafe_set_end() called on null buffer");
-        m_end = new_end;
+        return std::string_view(m_begin, size());
     }
 
-    /// Unsafe append without boundary checks
-    void unsafe_append(const char* str, size_t len)
+    /// Explicit conversion to std::string (requires copy)
+    explicit operator std::string() const
     {
-        assert(m_begin != nullptr && "BufferView::unsafe_append() called on null buffer");
-        ::memcpy(m_end, str, len);
-        m_end += len;
+        return std::string(m_begin, size());
     }
 
-    /// Clear content without deallocation
-    void clear()
-    {
-        unsafe_resize(0);
-    }
+    /// @}
 
-    /// Safe end_cstr with bounds checking
+    /// @{ Safe write operations (with boundary checks)
+
+    /// Add null terminator with bounds checking
     void end_cstr()
     {
-        if (m_end > m_cap_end)
-        {
-            return;
-        }
+        if (m_end > m_cap_end) { return; }
         unsafe_end_cstr();
     }
 
-    /// Add null terminator at current end
-    void unsafe_end_cstr()
-    {
-        assert(m_begin != nullptr && "BufferView::unsafe_end_cstr() called on null buffer");
-        *m_end = '\0';
-    }
-
-    /// Fill remaining space with character ch (like memset)
-    /// @param ch Character to fill
-    /// @details Fills from m_end to m_cap_end, doesn't change size
+    /// Fill remaining space with character ch (like memset) but doesn't change size.
     void fill(char ch)
     {
         assert(m_begin != nullptr && "BufferView::fill() called on null buffer");
+        if (full()) return;
         size_t available = m_cap_end - m_end;
         ::memset(m_end, ch, available);
     }
 
-    /// Fill count characters with ch, safely truncates at cap_end
+    /// @brief Fill count characters with ch (safely truncated at cap_end)
     /// @param ch Character to fill
     /// @param count Number of characters to fill
     /// @details Fills count characters starting from m_end, moves end pointer.
@@ -328,37 +310,35 @@ public:
     void fill(char ch, size_t count)
     {
         assert(m_begin != nullptr && "BufferView::fill() called on null buffer");
+        if (full()) return;
         size_t available = m_cap_end - m_end;
-        if (count > available)
-        {
-            count = available;
-        }
+        if (count > available) { count = available; }
         ::memset(m_end, ch, count);
         m_end += count;
     }
 
-    /// Unsafe fill without capacity checking
-    /// @param ch Character to fill
-    /// @param count Number of characters to fill
-    /// @details Fills count characters starting from m_end, moves end pointer.
-    /// No capacity checking - caller must ensure count <= available capacity.
-    void unsafe_fill(char ch, size_t count)
+    /// @brief Push back a charactor with bounds checking
+    /// @param c Character to append
+    /// @details Checks bounds, doesn't write if at capacity.
+    /// m_end can advance to m_cap_end, but not beyond.
+    /// m_cap_end position is reserved for '\0' terminator.
+    void push_back(char c)
     {
-        assert(m_begin != nullptr && "BufferView::unsafe_fill() called on null buffer");
-        ::memset(m_end, ch, count);
-        m_end += count;
+        if (m_end + 1 > m_cap_end) { return; }
+        unsafe_push_back(c);
     }
 
-    /// @brief Append with bounds checking (safe mode)
-    /// @param str String to append
-    /// @param len Length of string
-    /// @details Checks bounds, doesn't write if overflow would occur.
+    /// Append count copies of character ch with safe bounds checking
+    void append(size_t count, char ch)
+    {
+        if (m_end + count > m_cap_end) { return; }
+        unsafe_fill(ch, count);
+    }
+
+    /// Append sting `str` of `len` lenth with bounds checking
     void append(const char* str, size_t len)
     {
-        if (m_end + len > m_cap_end)
-        {
-            return;  // Don't write beyond capacity
-        }
+        if (m_end + len > m_cap_end) { return; }
         unsafe_append(str, len);
     }
 
@@ -378,51 +358,54 @@ public:
         append(sv.data(), sv.size());
     }
 
-    /// @brief Append from another BufferView (includes StringBuffer subclasses)
-    /// @param other Another BufferView to append from
     void append(const BufferView& other)
     {
         append(other.data(), other.size());
     }
 
-    /// @brief Push back with bounds checking (safe mode)
-    /// @param c Character to append
-    /// @details Checks bounds, doesn't write if at capacity.
-    /// m_end can advance to m_cap_end, but not beyond.
-    /// m_cap_end position is reserved for '\0' terminator.
-    void push_back(char c)
+    /// @}
+
+    /// @{ Unsafe write operations (no boundary checks)
+
+    void unsafe_end_cstr()
     {
-        if (m_end + 1 > m_cap_end)
-        {
-            return;  // Don't write beyond capacity
-        }
-        unsafe_push_back(c);
+        assert(m_begin != nullptr && "BufferView::unsafe_end_cstr() called on null buffer");
+        *m_end = '\0';
     }
 
-    /// @brief Append count copies of character ch (safe mode)
-    /// @param count Number of characters to append
-    /// @param ch Character to append
-    /// @details Check bounds before writing.
-    void append(size_t count, char ch)
+    void unsafe_fill(char ch, size_t count)
     {
-        if (m_end + count > m_cap_end)
-        {
-            return;  // Don't write beyond capacity
-        }
-        unsafe_fill(ch, count);
+        assert(m_begin != nullptr && "BufferView::unsafe_fill() called on null buffer");
+        ::memset(m_end, ch, count);
+        m_end += count;
     }
 
-    /// @brief Safe resize with bounds checking
-    /// @param new_size New size
-    /// @details If new_size would exceed capacity, does nothing.
-    void resize(size_t new_size)
+    void unsafe_push_back(char c)
     {
-        if (m_begin + new_size > m_cap_end)
-        {
-            return;  // Don't resize beyond capacity
-        }
-        unsafe_resize(new_size);
+        assert(m_begin != nullptr && "BufferView::unsafe_push_back() called on null buffer");
+        *m_end++ = c;
     }
+
+    void unsafe_append(const char* str, size_t len)
+    {
+        assert(m_begin != nullptr && "BufferView::unsafe_append() called on null buffer");
+        ::memcpy(m_end, str, len);
+        m_end += len;
+    }
+
+    void unsafe_resize(size_t new_size)
+    {
+        assert(m_begin != nullptr && "BufferView::unsafe_resize() called on null buffer");
+        m_end = m_begin + new_size;
+    }
+
+    void unsafe_set_end(char* new_end)
+    {
+        assert(m_begin != nullptr && "BufferView::unsafe_set_end() called on null buffer");
+        m_end = new_end;
+    }
+
+    /// @}
 };
 
 /// @brief Unsafe buffer view with no bounds checking (kUnsafeLevel=0xFF)
@@ -503,11 +486,12 @@ public:
 /// - Support for unsafe character writes after safe capacity checks
 ///
 /// @par Memory Allocation Policy:
-/// - Minimum allocation: 256 bytes (configurable via JSTRING_MIN_ALLOC_SIZE)
 /// - Growth strategy: Exponential (2x) until 8MB, then linear +8MB
 /// - Alignment: Memory is aligned to improve efficiency
 /// - Capacity invariant: capacity() = m_cap_end - m_begin
 /// - Always allocates at least capacity() + 1 bytes for null terminator
+/// - m_cap_end is within allocated memory, position reserved for potential null terminator
+/// - The byte at m_cap_end is written with '\0' on allocation for safety
 ///
 /// @par kUnsafeLevel Semantics:
 /// kUnsafeLevel specifies additional bytes beyond user-requested capacity.
@@ -517,12 +501,6 @@ public:
 ///   - You can write upto 100 characters for main content, and then
 ///   - allow to call unsafe_push_back 4 times safely
 /// This definition allows kUnsafeLevel=0 to represent behavior similar to std::string.
-///
-/// @par Invariants:
-/// - capacity() == m_cap_end - m_begin (includes kUnsafeLevel)
-/// - Actual allocation >= capacity() + 1 (for null terminator)
-/// - m_cap_end is within allocated memory, position reserved for potential null terminator
-/// - The byte at m_cap_end is written with '\0' on allocation for safety
 ///
 /// @par Usage Examples:
 /// ```cpp
@@ -617,8 +595,6 @@ public:
         append(sv.data(), sv.size());
     }
 
-    /// @brief Append from another BufferView (includes other StringBuffer)
-    /// @param other Another BufferView to append from
     void append(const BufferView& other)
     {
         append(other.data(), other.size());
@@ -630,33 +606,16 @@ public:
         unsafe_push_back(c);
     }
 
-    /// Append count copies of character ch (like std::string::append)
-    /// @param count Number of characters to append
-    /// @param ch Character to append
     void append(size_t count, char ch)
     {
         reserve_ex(count);
         unsafe_fill(ch, count);
     }
 
-    /// Safe resize with bounds checking and capacity expansion
     void resize(size_t new_size)
     {
-        if (new_size > capacity())
-        {
-            reserve(new_size);
-        }
+        reserve(new_size);
         unsafe_resize(new_size);
-    }
-
-    /// Safe set_end with pointer bounds checking
-    void set_end(char* new_end)
-    {
-        if (new_end < m_begin || new_end > m_cap_end)
-        {
-            return;
-        }
-        unsafe_set_end(new_end);
     }
 
 private:
