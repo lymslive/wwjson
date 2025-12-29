@@ -12,152 +12,43 @@ using namespace wwjson;
 /// @brief Test for StringBuffer/JString class
 /// @{
 
-DEF_TAST(jstr_basic_construct, "JString 基础构造测试")
+DEF_TAST(jstr_construct, "JString 基础构造测试")
 {
-    // 默认构造 - 现在默认申请 1024 字节，容量为 1023
-    JString buffer1;
-    COUT(buffer1.empty(), true);
-    COUT(buffer1.size(), 0);
-    COUT(buffer1.capacity(), 1023);
-    COUT((void*)buffer1.data() != nullptr, true);
-    // operator bool() 测试
-    COUT(static_cast<bool>(buffer1), true);
-    // c_str 应该正常返回
-    COUT(buffer1.c_str() != nullptr, true);
-
-    // 带容量构造
-    JString buffer2(100);
-    COUT(buffer2.empty(), true);
-    COUT(buffer2.size(), 0);
-    COUT(buffer2.capacity() >= 100, true);
-    COUT((void*)buffer2.data() != nullptr, true);
-    COUT(static_cast<bool>(buffer2), true);
-}
-
-DEF_TAST(jstr_append_string, "JString 字符串追加测试")
-{
-    JString buffer;
-    
-    // 追加 C 风格字符串
-    buffer.append("hello");
-    COUT(buffer.size(), 5);
-    COUT(strncmp(buffer.data(), "hello", buffer.size()), 0);
-    
-    // 按长度追加
-    buffer.append(" world", 6);
-    COUT(buffer.size(), 11);
-    COUT(strncmp(buffer.data(), "hello world", buffer.size()), 0);
-    
-    // 多次追加
-    buffer.append("!");
-    buffer.append(" JSON");
-    COUT(buffer.size(), 17);
-    COUT(strncmp(buffer.data(), "hello world! JSON", buffer.size()), 0);
-}
-
-DEF_TAST(jstr_push_back, "JString 单字符追加测试")
-{
-    JString buffer;
-    
-    // 单字符 push_back
-    buffer.push_back('H');
-    buffer.push_back('e');
-    buffer.push_back('l');
-    buffer.push_back('l');
-    buffer.push_back('o');
-    
-    COUT(buffer.size(), 5);
-    COUT(strncmp(buffer.data(), "Hello", buffer.size()), 0);
-}
-
-DEF_TAST(jstr_reserve, "JString 容量预留测试")
-{
-    JString buffer;
-
-    // 初始预留
-    buffer.reserve(100);
-    COUT(buffer.capacity() >= 100 + 4, true); // capacity() should be >= requested
-    COUT(buffer.empty(), true);
-
-    // 带边界的预留
-    buffer.reserve_ex(50);
-    COUT(buffer.capacity() >= buffer.size() + 50 + 4, true);
-
-    // 预留后追加
-    buffer.append("This is a test string for reserve operation");
-    COUT(buffer.size() > 0, true);
-    COUT(buffer.size() <= buffer.capacity(), true);
-}
-
-DEF_TAST(jstr_unsafe_operations, "JString 不安全操作测试")
-{
-    JString buffer;
-    
-    // 预留足够空间进行不安全操作
-    buffer.reserve_ex(10);
-    
-    // 安全追加
-    buffer.append("key");
-    COUT(buffer.size(), 3);
-    
-    // 边界内不安全操作
-    buffer.unsafe_push_back(':');
-    buffer.unsafe_push_back('"');
-    buffer.unsafe_push_back('v');
-    buffer.unsafe_push_back('a');
-    
-    COUT(buffer.size(), 7);
-    COUT(strncmp(buffer.data(), "key:\"va", buffer.size()), 0);
-    
-    // 测试 unsafe_resize
-    buffer.unsafe_resize(3);
-    COUT(buffer.size(), 3);
-    COUT(strncmp(buffer.data(), "key", buffer.size()), 0);
-    
-    // 测试 unsafe_end_cstr
-    buffer.unsafe_resize(7);
-    buffer.unsafe_push_back('l');
-    buffer.unsafe_push_back('u');
-    buffer.unsafe_push_back('e');
-    buffer.unsafe_push_back('"');
-    
-    COUT(buffer.size(), 11);
-    COUT(strncmp(buffer.c_str(), "key:\"value\"", buffer.size()), 0);
-    
-    // 重置并测试正确空字符结尾
-    buffer.clear();
-    buffer.append("test");
-    buffer.unsafe_end_cstr();
-    COUT(strcmp(buffer.c_str(), "test"), 0);
-}
-
-DEF_TAST(jstr_different_unsafe_levels, "不同不安全级别的 StringBuffer 测试")
-{
-    StringBuffer<2> buffer2;
-    StringBuffer<8> buffer8;
-    
-    // 安全操作应该行为相同
-    buffer2.append("test");
-    buffer8.append("test");
-    
-    COUT(buffer2.size(), 4);
-    COUT(buffer8.size(), 4);
-    COUT(strncmp(buffer2.data(), "test", buffer2.size()), 0);
-    COUT(strncmp(buffer8.data(), "test", buffer8.size()), 0);
-    
-    // 测试不同级别的不安全操作
-    buffer2.reserve_ex(5);
-    buffer8.reserve_ex(5);
-    
-    // 不安全 push back
-    for (int i = 0; i < 3; ++i)
+    DESC("默认构造: 申请 1024 字节，容量 1023");
     {
-        buffer2.unsafe_push_back('a' + i);
-        buffer8.unsafe_push_back('a' + i);
+        JString buffer;
+        COUT(buffer.empty(), true);
+        COUT(buffer.size(), 0);
+        COUT(buffer.capacity(), 1023);
+        COUT((void*)buffer.data() != nullptr, true);
+        COUT(static_cast<bool>(buffer), true);
+        COUT(buffer.c_str() != nullptr, true);
     }
-    
-    COUT(buffer2.size(), 7);
-    COUT(buffer8.size(), 7);
+
+    DESC("带容量构造: 向上对齐 8 字节");
+    {
+        JString buffer(100);
+        COUT(buffer.empty(), true);
+        COUT(buffer.size(), 0);
+        COUT(buffer.capacity() >= 100, true);
+        // 100 + 4 + 1 = 105，对齐到 112，capacity = 111
+        COUT(buffer.capacity(), 111);
+        COUT((void*)buffer.data() != nullptr, true);
+        COUT(static_cast<bool>(buffer), true);
+
+        // 显然可当基类使用
+        const BufferView& view = buffer;
+        COUT(view.reserve_ex(), buffer.capacity());
+    }
+
+    DESC("最小容量构造: 向上对齐 8 字节");
+    {
+        JString buffer(0);
+        COUT(buffer.empty(), true);
+        COUT(buffer.size(), 0);
+        COUT(buffer.capacity() > 0, true);
+        COUT(buffer.capacity(), 8-1);
+    }
 }
 
 DEF_TAST(jstr_copy_move, "JString 复制和移动语义测试")
@@ -199,34 +90,436 @@ DEF_TAST(jstr_copy_move, "JString 复制和移动语义测试")
     COUT(static_cast<bool>(moved), false);
 }
 
+DEF_TAST(jstr_append_string, "JString 字符串追加测试")
+{
+    DESC("追加 C 风格字符串");
+    {
+        JString buffer;
+
+        buffer.append("hello");
+        COUT(buffer.size(), 5);
+        COUT(strncmp(buffer.data(), "hello", buffer.size()), 0);
+
+        // 按长度追加
+        buffer.append(" world", 6);
+        COUT(buffer.size(), 11);
+        COUT(strncmp(buffer.data(), "hello world", buffer.size()), 0);
+
+        // 多次追加
+        buffer.append("!");
+        buffer.append(" JSON");
+        COUT(buffer.size(), 17);
+        COUT(strncmp(buffer.data(), "hello world! JSON", buffer.size()), 0);
+    }
+
+    DESC("追加 std::string");
+    {
+        JString buffer;
+
+        std::string str1 = "hello";
+        buffer.append(str1);
+
+        COUT(buffer.size(), 5);
+        COUT(strncmp(buffer.data(), "hello", buffer.size()), 0);
+
+        std::string str2 = " world";
+        buffer.append(str2);
+
+        COUT(buffer.size(), 11);
+        COUT(strncmp(buffer.data(), "hello world", buffer.size()), 0);
+
+        // 测试空字符串
+        std::string empty_str;
+        buffer.append(empty_str);
+        COUT(buffer.size(), 11);
+    }
+
+    DESC("追加 std::string_view");
+    {
+        JString buffer;
+
+        // 测试 std::string_view
+        std::string_view sv1 = "hello";
+        buffer.append(sv1);
+
+        COUT(buffer.size(), 5);
+        COUT(strncmp(buffer.data(), "hello", buffer.size()), 0);
+
+        // 从 std::string 创建 string_view
+        std::string str = " world";
+        std::string_view sv2(str);
+        buffer.append(sv2);
+
+        COUT(buffer.size(), 11);
+        COUT(strncmp(buffer.data(), "hello world", buffer.size()), 0);
+
+        // 测试子串
+        std::string long_str = "0123456789";
+        std::string_view sub_sv = std::string_view(long_str).substr(3, 4); // "3456"
+        buffer.append(sub_sv);
+
+        COUT(buffer.size(), 15);
+        COUT(strncmp(buffer.data(), "hello world3456", buffer.size()), 0);
+
+        // 测试空 string_view
+        std::string_view empty_sv;
+        buffer.append(empty_sv);
+        COUT(buffer.size(), 15);
+
+        buffer.append("");
+        COUT(buffer.size(), 15);
+    }
+}
+
+DEF_TAST(jstr_push_char, "JString 单字符追加测试")
+{
+    DESC("push back");
+    {
+        JString buffer(0); // minimize intitial capacity
+        COUT(buffer.capacity(), 8-1);
+
+        buffer.push_back('H');
+        buffer.push_back('e');
+        buffer.push_back('l');
+        buffer.push_back('l');
+        buffer.push_back('o');
+
+        COUT(buffer.size(), 5);
+        COUT(buffer.str(), "Hello");
+
+        for (int i = 0; i < 10; ++i)
+        {
+            buffer.push_back('H');
+            buffer.push_back('e');
+            buffer.push_back('l');
+            buffer.push_back('l');
+            buffer.push_back('o');
+        }
+
+        COUT(buffer.size(), 55);
+        COUT(buffer.capacity());
+        COUT(buffer.capacity() > 55, true);
+    }
+
+    DESC("append count of char");
+    {
+        JString buffer(0);
+        buffer.append("hello");
+        buffer.append(5, '!');
+        COUT(buffer.size(), 10);
+        COUT(strcmp(buffer.c_str(), "hello!!!!!"), 0);
+
+        buffer.clear();
+        COUT(buffer.size(), 0);
+        buffer.append("test");
+        buffer.append(100, 'x');
+        COUT(buffer.size(), 104);
+        bool all_x = true;
+        for (size_t i = 4; i < 104; ++i)
+        {
+            if (buffer.data()[i] != 'x') all_x = false;
+        }
+        COUT(all_x, true);
+    }
+
+    DESC("append count=0 不追加任何字符");
+    {
+        JString buffer;
+        buffer.append("hello");
+        buffer.append(0, 'x');
+        COUT(buffer.size(), 5);
+        COUT(strcmp(buffer.c_str(), "hello"), 0);
+    }
+}
+
 DEF_TAST(jstr_edge_cases, "JString 边界情况测试")
 {
     JString buffer;
-    
+
     // 空字符串操作
     COUT(buffer.empty(), true);
     COUT(buffer.size(), 0);
-    
+
     buffer.append("test");
     COUT(buffer.size(), 4);
 
     // 对空缓冲区清空
     buffer.clear();
     COUT(buffer.empty(), true);
-    
+
     // 追加空字符串
     buffer.append("");
     COUT(buffer.size(), 0);
-    
+
     // 在空缓冲区上进行不安全操作
     buffer.reserve_ex(10);
     buffer.unsafe_resize(0);
     COUT(buffer.size(), 0);
 }
 
+
+DEF_TAST(jstr_capacity_growth, "JString 容量增长测试")
+{
+    DESC("使用最小的初始容量观察扩容行为，指数增长上限为 1024");
+    {
+        // 使用最小初始容量
+        JString buffer(0);
+        COUT(buffer.capacity(), 8-1);  // 最小对齐到 8 字节
+
+        // 记录容量变化序列
+        DESC("指数增长阶段：容量翻倍直到达到上限 1024");
+        std::vector<size_t> capacities;
+
+        size_t prev_cap = 0;
+        while (buffer.size() < 5000)
+        {
+            buffer.push_back('x');
+            capacities.push_back(buffer.capacity());
+            size_t cur_cap = buffer.capacity();
+            if (cur_cap > prev_cap)
+            {
+                DESC("size=%zu; capacity=%zu", buffer.size(), cur_cap);
+                prev_cap = cur_cap;
+            }
+        }
+
+        DESC("验证扩容序列符合预期");
+        // 初始容量: 7 (8-1)
+        COUT(capacities[0], 7);
+        COUT(buffer.size() >= capacities[0], true);
+
+        // 验证容量增长模式
+        // 预期序列: 7 -> 15 -> 31 -> 63 -> 127 -> 255 -> 511 -> 1023 (指数增长)
+        // 之后: 1023 -> 1023+1024=2047 -> 2047+1024=3071 ... (线性增长)
+
+        // 找到所有不同的容量值
+        std::vector<size_t> unique_caps;
+        size_t last_cap = 0;
+        for (size_t cap : capacities)
+        {
+            if (cap != last_cap)
+            {
+                unique_caps.push_back(cap);
+                last_cap = cap;
+            }
+        }
+
+        // 验证指数增长阶段
+        bool exponential_growh_correct = true;
+        if (unique_caps.size() >= 8)
+        {
+            COUT(unique_caps[0], 7);    // 8-1
+            COUT(unique_caps[1], 15);   // 16-1
+            COUT(unique_caps[2], 31);   // 32-1
+            COUT(unique_caps[3], 63);   // 64-1
+            COUT(unique_caps[4], 127);  // 128-1
+            COUT(unique_caps[5], 255);  // 256-1
+            COUT(unique_caps[6], 511);  // 512-1
+            COUT(unique_caps[7], 1023);  // 1024-1
+        }
+        else
+        {
+            exponential_growh_correct = false;
+        }
+
+        // 验证线性增长阶段（超过 1024 后每次 +1024）
+        bool linear_growth_correct = true;
+        if (unique_caps.size() >= 9)
+        {
+            // 从指数增长切换到线性增长
+            size_t exp_max = 1023;  // 1024-1
+            size_t linear_step = 1024;  // JSTRING_MAX_EXP_ALLOC_SIZE
+
+            // 检查后续容量
+            for (size_t i = 8; i < unique_caps.size(); ++i)
+            {
+                size_t expected = exp_max + (i - 7) * linear_step;
+                COUT(unique_caps[i], expected);
+                if (unique_caps[i] != expected)
+                {
+                    linear_growth_correct = false;
+                }
+            }
+        }
+
+        COUT(exponential_growh_correct, true);
+        COUT(linear_growth_correct, true);
+    }
+
+    DESC("验证 reserve 触发扩容");
+    {
+        JString buffer(0);
+        COUT(buffer.capacity(), 7);
+
+        // 第一次扩容
+        buffer.reserve(8);  // 需要 8 + kUnsafeLevel(4) + 1 = 13，对齐到 16
+        COUT(buffer.capacity(), 15);
+
+        // 第二次扩容（指数增长）
+        buffer.reserve(20);  // 需要 20 + 4 + 1 = 25，翻倍扩容到 32
+        COUT(buffer.capacity(), 31);
+
+        // 触发到上限
+        buffer.reserve(1024);  // 需要 1024 + 4 + 1 = 1029，扩容到 1032
+        COUT(buffer.capacity(), 1031);
+
+        // 超过上限，线性增长
+        buffer.reserve(2000);  // 需要 2000 + 4 + 1 = 2005，线性增长 1024+1024=2048
+        COUT(buffer.capacity() >= 2047, true);  // 2048-1
+    }
+
+    DESC("验证 append 触发自动扩容");
+    {
+        JString buffer(0);
+        size_t initial_cap = buffer.capacity();
+
+        // 填满当前容量
+        buffer.fill('x', buffer.capacity());
+        COUT(buffer.full(), true);
+
+        // 追加一个字符，触发扩容
+        buffer.append("!");
+        COUT(buffer.capacity() > initial_cap, true);
+        COUT(buffer.capacity() >= initial_cap * 2 - 1, true);  // 指数增长
+    }
+}
+
+DEF_TAST(jstr_reserve, "JString 容量预留测试")
+{
+    JString buffer(0);
+    COUT(buffer.capacity(), 8-1);
+
+    // 初始预留
+    buffer.reserve(100);
+    COUT(buffer.capacity() >= 100 + 4, true); // capacity() should be >= requested
+    COUT(buffer.capacity(), 112-1);
+    COUT(buffer.empty(), true);
+
+    buffer.fill('x', buffer.capacity());
+    COUT(buffer.full(), true);
+
+    // 预留额外字节，翻倍扩容
+    buffer.reserve_ex(50);
+    COUT(buffer.capacity() >= buffer.size() + 50 + 4, true);
+    COUT(buffer.capacity(), (112*2)-1);
+
+    // 预留后追加
+    size_t sizeBefore = buffer.size();
+    buffer.append("This is a test string for reserve operation");
+    COUT(buffer.size() <= buffer.capacity(), true);
+    COUT(buffer.capacity(), (112*2)-1);
+    COUT(::strcmp(buffer.c_str() + sizeBefore, "This is a test string for reserve operation"), 0);
+}
+
+DEF_TAST(jstr_unsafe_operations, "JString 不安全操作测试")
+{
+    JString buffer(0);
+    
+    // 预留足够空间进行不安全操作
+    buffer.reserve_ex(10);
+    
+    // 安全追加
+    buffer.append("key");
+    COUT(buffer.size(), 3);
+    
+    // 边界内不安全操作
+    buffer.unsafe_push_back(':');
+    buffer.unsafe_push_back('"');
+    buffer.unsafe_push_back('v');
+    buffer.unsafe_push_back('a');
+    
+    COUT(buffer.size(), 7);
+    COUT(strncmp(buffer.data(), "key:\"va", buffer.size()), 0);
+    
+    // 测试 unsafe_resize
+    buffer.unsafe_resize(3);
+    COUT(buffer.size(), 3);
+    COUT(strncmp(buffer.data(), "key", buffer.size()), 0);
+    
+    // 测试 unsafe_end_cstr
+    buffer.unsafe_resize(7);
+    buffer.unsafe_push_back('l');
+    buffer.unsafe_push_back('u');
+    buffer.unsafe_push_back('e');
+    buffer.unsafe_push_back('"');
+    
+    COUT(buffer.size(), 11);
+    COUT(strncmp(buffer.c_str(), "key:\"value\"", buffer.size()), 0);
+    
+    // 重置并测试正确空字符结尾
+    buffer.clear();
+    buffer.append("test");
+    buffer.unsafe_end_cstr();
+    COUT(strcmp(buffer.c_str(), "test"), 0);
+}
+
+DEF_TAST(jstr_unsafe_levels, "StringBuffer 不安全级别语义测试")
+{
+    StringBuffer<2> buffer2(4);
+    StringBuffer<8> buffer8(4);
+    
+    // 安全操作应该行为相同
+    buffer2.append("test");
+    buffer8.append("test");
+    
+    COUT(buffer2.size(), 4);
+    COUT(buffer8.size(), 4);
+    COUT(strncmp(buffer2.data(), "test", buffer2.size()), 0);
+    COUT(strncmp(buffer8.data(), "test", buffer8.size()), 0);
+    
+    // 测试不同级别的不安全操作
+    buffer2.reserve_ex(5);
+    buffer8.reserve_ex(5);
+    
+    // reserve_ex(5) 之后，都可以不安全 push back 5 次
+    for (int i = 0; i < 5; ++i)
+    {
+        buffer2.unsafe_push_back('a' + i);
+        buffer8.unsafe_push_back('a' + i);
+    }
+    
+    COUT(buffer2.size(), 9);
+    COUT(buffer8.size(), 9);
+
+    // 允许额外的不安全写入次数
+    for (int i = 0; i < 2; ++i)
+    {
+        buffer2.unsafe_push_back('!');
+    }
+
+    for (int i = 0; i < 8; ++i)
+    {
+        buffer8.unsafe_push_back('!');
+    }
+
+    COUT(buffer2.size() <= buffer2.capacity(), true);
+    COUT(buffer8.size() <= buffer8.capacity(), true);
+    COUT(buffer2.overflow(), false);
+    COUT(buffer8.overflow(), false);
+
+    // unsafe level = 4
+    JString buffer(0);
+    buffer.fill('x', buffer.capacity());
+    COUT(buffer.full(), true);
+    COUT(buffer.capacity(), 8-1);
+    COUT(buffer.size(), buffer.capacity());
+
+    buffer.append("Hello");
+    COUT(buffer.size(), 7+5);
+    COUT(buffer.capacity(), 24-1); // 7+5+4=16 +1-> 24 
+    for (int i = 0; i < 4; ++i)
+    {
+        // unsafe level = 4, 允许 unsafe 再写入 4 字节
+        // 由于向上对齐，也许可以写入更多，但不保证安全
+        buffer.unsafe_push_back('!');
+    }
+    COUT(buffer.size(), 7+5+4);
+    COUT(buffer.capacity(), 24-1);
+}
+
 DEF_TAST(jstr_json_patterns, "JString JSON 序列化模式测试")
 {
-    JString buffer;
+    JString buffer(0);
     
     // 模拟 JSON 键值构建
     buffer.reserve_ex(50);
@@ -254,458 +547,46 @@ DEF_TAST(jstr_json_patterns, "JString JSON 序列化模式测试")
     COUT(strcmp(buffer.c_str(), "\"name\":\"John Doe\",\"age\":30"), 0);
 }
 
-DEF_TAST(jstr_buffer_view, "BufferView 转换测试")
+DEF_TAST(jstr_extern_write, "StringBuffer 与外部方法写入集成协作")
 {
-    JString buffer;
-    buffer.append("test content");
-
-    // 使用 reinterpret_cast 转换为 BufferView
-    // 现在使用 public 继承，static_cast 可用
-    const BufferView& view = static_cast<const BufferView&>(buffer);
-
-    COUT(view.size(), buffer.size());
-    COUT(view.data(), buffer.data());
-    COUT(strncmp(buffer.data(), "test content", buffer.size()), 0);
-
-    // 使用公共接口检查视图属性
-    bool view_empty = view.empty();
-    COUT(view_empty, false);
-    COUT(view.front(), 't');
-    COUT(view.back(), 't');
-}
-
-DEF_TAST(jstr_capacity_growth, "JString 容量增长测试")
-{
-    // 使用较小的初始容量观察扩容行为
-    JString buffer(50);
-
-    // 初始容量（50 + 4 + 1 = 55，对齐到 56，capacity = 55）
-    size_t initial_capacity = buffer.capacity();
-    COUT(initial_capacity, 55);
-    COUT(static_cast<bool>(buffer), true);
-
-    // 小追加不应触发重新分配
-    buffer.append("small");
-    COUT(buffer.capacity(), 55);
-
-    // 大追加应触发重新分配
-    size_t capacity_before = buffer.capacity();
-    std::string large_content(1000, 'x');
-    buffer.append(large_content.c_str(), large_content.size());
-
-    COUT(buffer.capacity() > capacity_before, true);
-    COUT(buffer.size(), 1005); // 5 + 1000
-}
-
-DEF_TAST(jstr_front_back_access, "JString 首尾字符访问测试")
-{
-    JString buffer;
-    buffer.append("Hello");
-    
-    COUT(buffer.front(), 'H');
-    COUT(buffer.back(), 'o');
-    
-    // 通过 front/back 修改
-    buffer.front() = 'h';
-    buffer.back() = '!';
-    COUT(strncmp(buffer.data(), "hell!", buffer.size()), 0);
-}
-
-DEF_TAST(jstr_clear_operation, "JString 清空操作测试")
-{
-    JString buffer;
-    buffer.append("some content");
-    
-    size_t size_before = buffer.size();
-    COUT(size_before > 0, true);
-    
-    buffer.clear();
-    COUT(buffer.empty(), true);
-    COUT(buffer.size(), 0);
-    
-    // 清空后应该可以正常使用
-    buffer.append("new content");
-    COUT(buffer.empty(), false);
-    COUT(strncmp(buffer.data(), "new content", buffer.size()), 0);
-}
-
-DEF_TAST(jstr_c_str_termination, "JString c_str 空字符结尾测试")
-{
-    JString buffer;
-    buffer.append("test");
-
-    // c_str 应该返回以空字符结尾的字符串
-    const char* cstr = buffer.c_str();
-    COUT(strlen(cstr), 4);
-    COUT(strcmp(cstr, "test"), 0);
-
-    // 修改内容后 c_str 仍应正确
-    buffer.push_back('!');
-    cstr = buffer.c_str();
-    COUT(strlen(cstr), 5);
-    COUT(strcmp(cstr, "test!"), 0);
-}
-
-DEF_TAST(jstr_kunsafelevel_semantics, "kUnsafeLevel 语义测试")
-{
-    // 测试 reserve_ex(n) 后可以写入 n 个字符，然后再调用 unsafe_push_back kUnsafeLevel 次
+    DESC("using std::to_chars to write numbers");
     {
-        JString buffer(250);
-        buffer.append(buffer.capacity(), 'x');
-        size_t old_size = buffer.size();
+        JString buffer(0);
 
-        // 250 + 4 + 1 = 255，对齐到 256，capacity = 255
-        COUT(old_size, 255);
+        int value = 4213;
+        buffer.reserve_ex(4);
+        auto result = std::to_chars(buffer.begin(), buffer.cap_end(), value);
+        size_t len = result.ptr - buffer.begin();
 
-        buffer.reserve_ex(10);  // 预留 10 个字符的空间 + 4 的 unsafe margin
-        COUT(buffer.capacity());
-        size_t cap1 = buffer.capacity();
+        buffer.resize(len);
+        COUT(buffer.size(), 4);
+        COUT(buffer.str(), "4213");
 
-        // 写入 10 个安全字符
-        buffer.append("0123456789");
-        COUT(buffer.size(), old_size + 10);
-        size_t cap2 = buffer.capacity();
-
-        // 再调用 unsafe_push_back 4 次 (kUnsafeLevel = 4)
-        buffer.unsafe_push_back('A');
-        buffer.unsafe_push_back('B');
-        buffer.unsafe_push_back('C');
-        buffer.unsafe_push_back('D');
-        size_t cap3 = buffer.capacity();
-
-        COUT(buffer.size(), old_size + 14);
-        COUT(strncmp(buffer.data() + old_size, "0123456789ABCD", 14), 0);
-
-        COUT(buffer.capacity());
-        COUT(buffer.capacity() >= buffer.size(), true);
-
-        COUT(cap1 == cap2, true);
-        COUT(cap1 == cap3, true);
-        COUT(static_cast<bool>(buffer), true);
-    }
-}
-
-DEF_TAST(jstr_memory_alignment, "内存对齐测试")
-{
-    // 测试默认构造的对齐容量
-    {
-        JString buffer;
-        COUT(buffer.capacity(), 1023);  // 1024 - 1 (null terminator)
-        COUT(static_cast<bool>(buffer), true);
-    }
-
-    // 测试小容量构造的对齐（无最小分配限制）
-    {
-        JString buffer(100);
-        // 100 + 4 + 1 = 105，对齐到 112，capacity = 111
-        COUT(buffer.capacity(), 111);
-    }
-
-    // 测试指定较小容量
-    {
-        JString buffer(10);
-        // 10 + 4 + 1 = 15，对齐到 16，capacity = 15
-        COUT(buffer.capacity(), 15);
-    }
-}
-
-DEF_TAST(jstr_to_chars_integration, "std::to_chars 集成测试")
-{
-    // 测试在 JString 原位 buffer 上使用 std::to_chars 转换整数
-    // 先预留足够空间，然后从 end 处写入整数，再更新 end 位置
-
-    {
-        JString buffer;
-        buffer.append("The number is: ");
-
-        // 预留足够空间写入整数
-        buffer.reserve_ex(12);  // 足够存储 INT_MAX (11 chars) + margin
-
-        // 使用 std::to_chars 直接在 buffer 末尾写入整数
-        int value = 12345678;
-        std::to_chars_result result = std::to_chars(buffer.end(), buffer.cap_end(), value);
-
-        COUT(std::make_error_code(result.ec), std::make_error_code(std::errc{}));
-        COUT(result.ptr - buffer.end(), 8);  // "12345678" 的长度
-
-        // 更新 end 位置
+        // Write another number
+        value = 12345678;
+        buffer.reserve_ex(8);
+        result = std::to_chars(buffer.end(), buffer.cap_end(), value);
+        len = result.ptr - buffer.end();
         buffer.set_end(result.ptr);
-
-        COUT(buffer.size(), 23);  // "The number is: " (15) + "12345678" (8) = 23
-
-        // 验证内容
-        buffer.end_cstr();
-        COUT(strcmp(buffer.c_str(), "The number is: 12345678"), 0);
+        COUT(buffer.size(), 12);
+        COUT(buffer.str(), "421312345678");
     }
 
-    // 测试负数
+    DESC("using snprintf to write formatted string");
     {
         JString buffer;
-        buffer.append("Negative: ");
 
-        buffer.reserve_ex(12);
-        int value = -98765;
-        std::to_chars_result result = std::to_chars(buffer.end(), buffer.cap_end(), value);
+        // 默认构造有 1023 字节，这里不 reserve_ex 也行
+        int written = snprintf(buffer.begin(), buffer.capacity() + 1, "%s %d", "value", 100);
+        buffer.unsafe_resize(written);
+        COUT(buffer.size(), 9);
+        COUT(buffer.str(), "value 100");
 
-        COUT(std::make_error_code(result.ec), std::make_error_code(std::errc{}));
-        buffer.set_end(result.ptr);
-
-        buffer.end_cstr();
-        COUT(strcmp(buffer.c_str(), "Negative: -98765"), 0);
-    }
-
-    // 测试 unsigned int
-    {
-        JString buffer;
-        buffer.append("Unsigned: ");
-
-        buffer.reserve_ex(12);
-        unsigned int value = 4294967295u;
-        std::to_chars_result result = std::to_chars(buffer.end(), buffer.cap_end(), value);
-
-        COUT(std::make_error_code(result.ec), std::make_error_code(std::errc{}));
-        buffer.set_end(result.ptr);
-
-        buffer.end_cstr();
-        COUT(strcmp(buffer.c_str(), "Unsigned: 4294967295"), 0);
-    }
-
-    // 测试使用 begin() end() cap_end() 方法
-    {
-        JString buffer;
-        buffer.append("Prefix:");
-
-        buffer.reserve_ex(16);
-
-        // 使用新增的 begin/end/cap_end 方法
-        char* write_pos = buffer.end();
-        int value = 42;
-        std::to_chars_result result = std::to_chars(write_pos, buffer.cap_end(), value);
-
-        COUT(std::make_error_code(result.ec), std::make_error_code(std::errc{}));
-        buffer.set_end(result.ptr);
-
-        COUT(strcmp(buffer.c_str(), "Prefix:42"), 0);
-
-        // 验证 begin() 返回正确的指针
-        COUT(strncmp(buffer.begin(), "Prefix:42", buffer.size()), 0);
-
-        // 验证 end() 和 cap_end() 的关系
-        COUT(buffer.end() - buffer.begin(), buffer.size());
-        COUT(buffer.cap_end() - buffer.begin(), buffer.capacity());
-    }
-
-    // 测试使用 unsafe_append(char*, size)
-    {
-        JString buffer;
-        buffer.append("Unsafe append: ");
-
-        // 预留足够空间
-        buffer.reserve_ex(20);
-
-        // 手动构造字符串并使用 unsafe_append
-        const char* extra = "test data";
-        size_t len = strlen(extra);
-        buffer.BufferView::unsafe_append(extra, len);
-
-        COUT(strncmp(buffer.data() + buffer.size() - len, extra, len), 0);
-        COUT(strncmp(buffer.c_str(), "Unsafe append: test data", buffer.size()), 0);
-    }
-}
-
-DEF_TAST(jstr_to_string_view, "BufferView 隐式转换为 std::string_view")
-{
-    JString buffer;
-    buffer.append("test content");
-
-    // 隐式转换为 std::string_view
-    std::string_view sv = buffer;
-
-    COUT(sv.size(), buffer.size());
-    COUT(sv.data(), buffer.data());
-    COUT(sv.compare("test content"), 0);
-
-    // 通过引用转换
-    const BufferView& view = buffer;
-    std::string_view sv2 = view;
-
-    COUT(sv2.size(), buffer.size());
-    COUT(sv2.data(), buffer.data());
-    COUT(sv2.compare("test content"), 0);
-
-    // 测试空字符串
-    JString empty_buffer;
-    COUT(empty_buffer.capacity(), 1023);  // 默认构造
-    COUT(static_cast<bool>(empty_buffer), true);  // 有内存
-    std::string_view empty_sv = empty_buffer;
-    COUT(empty_sv.size(), 0);
-}
-
-DEF_TAST(jstr_to_string, "BufferView 显式转换为 std::string")
-{
-    JString buffer;
-    buffer.append("test content");
-
-    // 显式转换为 std::string
-    std::string str = static_cast<std::string>(buffer);
-
-    COUT(str.size(), buffer.size());
-    COUT(str.compare("test content"), 0);
-
-    // 验证拷贝而非引用
-    COUT(str.data() != buffer.data(), true);
-
-    // 修改原始 buffer，str 应该不受影响
-    buffer.append(" more");
-    COUT(str.compare("test content"), 0);
-    COUT(buffer.size(), 17);
-
-    // 测试空字符串
-    JString empty_buffer;
-    std::string empty_str = static_cast<std::string>(empty_buffer);
-    COUT(empty_str.size(), 0);
-    COUT(empty_str.empty(), true);
-}
-
-DEF_TAST(jstr_append_std_string, "StringBuffer append 支持 std::string")
-{
-    JString buffer;
-
-    // 测试 std::string
-    std::string str1 = "hello";
-    buffer.append(str1);
-
-    COUT(buffer.size(), 5);
-    COUT(strncmp(buffer.data(), "hello", buffer.size()), 0);
-
-    std::string str2 = " world";
-    buffer.append(str2);
-
-    COUT(buffer.size(), 11);
-    COUT(strncmp(buffer.data(), "hello world", buffer.size()), 0);
-
-    // 测试空字符串
-    std::string empty_str;
-    buffer.append(empty_str);
-    COUT(buffer.size(), 11);
-}
-
-DEF_TAST(jstr_append_string_view, "StringBuffer append 支持 std::string_view")
-{
-    JString buffer;
-
-    // 测试 std::string_view
-    std::string_view sv1 = "hello";
-    buffer.append(sv1);
-
-    COUT(buffer.size(), 5);
-    COUT(strncmp(buffer.data(), "hello", buffer.size()), 0);
-
-    // 从 std::string 创建 string_view
-    std::string str = " world";
-    std::string_view sv2(str);
-    buffer.append(sv2);
-
-    COUT(buffer.size(), 11);
-    COUT(strncmp(buffer.data(), "hello world", buffer.size()), 0);
-
-    // 测试子串
-    std::string long_str = "0123456789";
-    std::string_view sub_sv = std::string_view(long_str).substr(3, 4); // "3456"
-    buffer.append(sub_sv);
-
-    COUT(buffer.size(), 15);
-    COUT(strncmp(buffer.data(), "hello world3456", buffer.size()), 0);
-
-    // 测试空 string_view
-    std::string_view empty_sv;
-    buffer.append(empty_sv);
-    COUT(buffer.size(), 15);
-
-    buffer.append("");
-    COUT(buffer.size(), 15);
-}
-
-DEF_TAST(jstr_fill, "BufferView fill 方法测试")
-{
-    DESC("fill(0) 填充剩余空间为 '\\0'");
-    {
-        JString buffer(100);
-        buffer.append("hello");
-        buffer.fill(0);
-        for (size_t i = buffer.size(); i < buffer.capacity(); ++i)
-        {
-            COUT(buffer.data()[i], '\0');
-        }
-        COUT(strncmp(buffer.data(), "hello", 5), 0);
-    }
-
-    DESC("fill(ch, count) 填充并移动 end 指针");
-    {
-        JString buffer(100);
-        buffer.append("hello");
-        buffer.fill('!', 3);
-        COUT(buffer.size(), 8);
-        COUT(strcmp(buffer.c_str(), "hello!!!"), 0);
-    }
-
-    DESC("fill 超过容量时自动截断");
-    {
-        JString buffer(100);
-        buffer.append("test");
-        size_t size_before = buffer.size();
-        buffer.fill('y', 1000);
-        COUT(buffer.full(), true);
-        bool all_y = true;
-        for (size_t i = size_before; i < buffer.capacity(); ++i)
-        {
-            if (buffer.data()[i] != 'y') all_y = false;
-        }
-        COUT(all_y, true);
-    }
-}
-
-DEF_TAST(jstr_append_count_char, "StringBuffer append(count, ch) 测试")
-{
-    DESC("基础测试：追加多个相同字符");
-    {
-        JString buffer;
-        buffer.append("hello");
-        buffer.append(5, '!');
-        COUT(buffer.size(), 10);
-        COUT(strcmp(buffer.c_str(), "hello!!!!!"), 0);
-    }
-
-    DESC("超过容量时自动扩容");
-    {
-        JString buffer(10);
-        buffer.append("test");
-        buffer.append(100, 'x');
-        COUT(buffer.size(), 104);
-        bool all_x = true;
-        for (size_t i = 4; i < 104; ++i)
-        {
-            if (buffer.data()[i] != 'x') all_x = false;
-        }
-        COUT(all_x, true);
-    }
-
-    DESC("count=0 不追加任何字符");
-    {
-        JString buffer;
-        buffer.append("hello");
-        buffer.append(0, 'x');
-        COUT(buffer.size(), 5);
-        COUT(strcmp(buffer.c_str(), "hello"), 0);
-    }
-
-    DESC("fill 和 append 组合使用");
-    {
-        JString buffer(100);
-        buffer.append("prefix");
-        buffer.fill('-', 5);
-        buffer.append(3, '?');
-        COUT(strcmp(buffer.c_str(), "prefix-----???"), 0);
+        // Append another formatted string
+        written = snprintf(buffer.end(), buffer.reserve_ex() + 1, " %s", "appended");
+        buffer.unsafe_set_end(buffer.end() + written);
+        COUT(buffer.size(), 18);
+        COUT(buffer.str(), "value 100 appended");
     }
 }
 
