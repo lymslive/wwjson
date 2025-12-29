@@ -480,14 +480,88 @@ utest/t_bufferview.cpp 文件添加了几个空实现的测试用例，请根据
 
 ## TODO: 增加 jbuilder.hpp 组合使用 jstring.hpp
 
+include/jstring.hpp 主要功能开发完毕，下一步的目标是要将它应用到 wwjson.hpp 的
+GenericBuilder 模板类中.
+
 - wwjson.hpp 与 jstring.hpp 仍有独立使用意义，互不依赖
 - jbuilder.hpp 依赖 wwjson.hpp 与 jstring.hpp 
 - wwjson.hpp 增加编译期判断 stringT 的 unsafe level 功能
 
-常用类别名:
-- Builder: 使用 JString
-- LocalBuffer: 使用 `LoclBuffer<false>`
-- UnsafeBuilder / FastBuilder: 使用 `LoclBuffer<true>`
+为此需在 `wwjson.hpp` 文件中设计一个 `unsafe_level<stringT>` 编译期常量模板函数，
+其功能为：
+- 如果 stringT 有静态常量成员 kUnsafeLevel ，则返回其值
+- 否则返回 0
+
+例如如下类的 `unsafe_level` 分别是：
+- std::string = 0
+- BufferView = 0
+- UnsafeView = 255
+- JString = 4
+- `StringBuffer<N>` = N
+
+新增 `include/jbuilder.hpp` 主要包含 `wwjson.hpp` 与 `jstring.hpp` ，
+作为粘合剂，定义一些 `GenericBuilder<stringT>` 的常用别名：
+- Builder: 使用 JString (`StringBuffer<4>`) 作为写入目标类
+- FastBuilder: 使用 KString (`StringBuffer<255>`) 作为写入目标类
+
+新增 `utest/t_jbuilder.cpp` 测试文件，暂时先测试如下功能：
+- 验证 `unsafe_level<stringT>` 萃取函数功能
+- 验证 `Builder` 的基本功能，可参考 `basic_builder` 用例，再增加一项
+  `AddMemberEscape` 字段，保证覆盖整数、浮点数、字符串与转义字符串。
+
+虽然 `GenericBuilder<stringT>` 暂时未用到 `unsafe_level<stringT>` 特征作优化，
+但功能应该已经满足，因为 `JString` 满足 `StringConcept`.
 
 ## TODO: wwjson.hpp 根据 unsfe level 重构 GenericBuiler
 
+当 `unsafe_level<stringT>` 的值不小于 4 时，写入以下格式字符调用其
+`unsafe_push_back` 方法：
+- 逗号
+- 冒号
+- 引号
+
+封装一个 `UnsafePutChar` 方法，根据 `unsafe_level` 选择调用 `push_back` 或
+`unsafe_push_back` 。
+
+## TODO: wwjson.hpp 写入浮点数优化
+
+优化 `NumberWriter::Output` 浮点数版的正常分支，
+当 `unsafe_level<stringT>` 的值不小于 4 时，直接向 stringT 末尾调用
+`std::to_chars` 或 `snprintf` 写入浮点数的字符串格式：
+- 先调用 `reserve_ex(n)` 预留空间
+- 写完后调用 `unsafe_set_end` 移动 end 指针
+
+这样可以减少临时 buffer 的使用。
+
+再仔细分析一下浮点数序列化预留多少空间是足够的，有必要现在写的 256 字节那么长
+吗？如果仅因为考虑 long double 才要这么长，可以拒绝支持 sizeof 大于 8 字节的浮
+点数。
+
+## TODO: wwjson.hpp 优化字符串转义方法
+
+优化 `BasicConfig::EscapeString` 方法，
+当 `unsafe_level<stringT>` 的值不小于 4 时，可避免临时 buffer 的使用，
+直接向 stringT 末尾写入转义的字符，先预留两倍空间。
+
+## TODO: wwjson.hpp 优化整数序列化
+
+优化 `NumberWriter::Output` 整数版，当 `unsafe_level<stringT>` 的值不小于 4 时，
+直接从 stringT 末尾正向写入，避免逆向写入临时 buffer 。
+
+需要重新设计一个能正向序列化整数的合适算法。
+
+## TODO: 扩展 jstring.hpp 中 StringBuffer 最大等级的特化
+
+当 `StringBuffer<255>` 达到最大 unsafe 等级时，它具有如下特征：
+- 只在构造函数时申请一次内存，假设用户能预估所需的最大容量，不再需要扩容
+- `reserve_ex(n)` 直接返回 true
+- 安全写入方法 `push_back` 与 `append` 等不再调用 `reserve_ex(n)`
+
+这个特化类，应该可以实现 `UnsafeBuffer` 一样的功能，但是拥有自己的内存，避免像
+后者那样与原内存所有者混乱写入的情况。
+
+## TODO: 性能测试
+
+## TODO: 文档优化
+
+## TODO: v1.2.0 封版
