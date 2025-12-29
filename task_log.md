@@ -1415,3 +1415,97 @@ StringBufferView 重命名再派生 LocalBuffer 类，具体要求：
   - 添加 `#include <charconv>` 头文件
   - 实现 6 个空测试用例：bufv_ends_access、bufv_str_converstion、bufv_write_unsafe、bufv_append_string、bufv_extern_write、bufv_null_end
 
+
+## TASK:20251229-190504
+-----------------------
+
+**关联需求**: 2025-12-29/1 - JString 单元测试重构与完善
+
+### 任务概述
+
+继续完成 2025-12-29/1 需求的第二部分工作。第一部分已完成单元测试结构重组（TASK:20251229-122441），本任务重点完成 JString 测试用例的重构、合并和新测试用例实现。
+
+### 完成内容
+
+**1. 实现完整的 jstr_capacity_growth 测试用例**
+- 指数增长测试：验证容量从最小值开始按 2 倍增长直到 1024 字节
+- 线性增长测试：验证超过 1024 字节后每次增加 1024 字节
+- reserve() 扩容测试：验证通过 reserve() 方法触发的扩容行为
+- append() 自动扩容测试：验证通过 append() 方法触发的自动扩容
+
+**2. 大规模测试用例重构**
+使用 DESC 子测试块重新组织测试，提高可读性和可维护性：
+
+- **jstr_construct**（重命名自 jstr_basic_construct）
+  - 拆分为 3 个 DESC 子测试：默认构造、带容量构造、最小容量构造
+  - 合并原 jstr_memory_alignment 测试内容
+  - 增加对齐和容量的详细验证
+
+- **jstr_push_char**（重命名自 jstr_push_back）
+  - 拆分为 3 个 DESC 子测试：push back、append count of char、append count=0
+  - 合并原 jstr_append_count_char 测试内容
+
+- **jstr_append_string**
+  - 拆分为 3 个 DESC 子测试：C 风格字符串、std::string、std::string_view
+  - 合并原 jstr_append_std_string 和 jstr_append_string_view 测试
+
+- **jstr_unsafe_levels**（重命名自 jstr_different_unsafe_levels）
+  - 保留原有逻辑，更新测试用例名称
+  - 合并原 jstr_kunsafelevel_semantics 测试内容
+
+- **jstr_edge_cases**
+  - 合并原 jstr_clear_operation、jstr_front_back_access、jstr_c_str_termination 的测试内容
+
+**3. 删除冗余和已合并的测试用例**
+- jstr_front_back_access：简单 API 测试，合并到 jstr_edge_cases
+- jstr_clear_operation：清空操作测试，合并到 jstr_edge_cases
+- jstr_c_str_termination：空字符结尾测试，合并到相关测试
+- jstr_kunsafelevel_semantics：合并到 jstr_unsafe_levels
+- jstr_memory_alignment：合并到 jstr_construct
+- jstr_to_chars_integration：整合到新的 jstr_extern_write
+- jstr_to_string_view：类型转换测试，合并到 jstr_append_string
+- jstr_to_string：类型转换测试，合并到 jstr_append_string
+- jstr_fill：填充方法测试，合并到 jstr_push_char
+- jstr_append_count_char：字符重复追加测试，合并到 jstr_push_char
+- jstr_buffer_view：基类视图测试，已迁移到 t_bufferview.cpp
+
+**4. 新增 jstr_extern_write 测试用例**
+整合外部方法写入测试：
+- DESC 1：使用 std::to_chars 写入数字
+- DESC 2：使用 snprintf 格式化写入字符串
+
+**5. 更新现有测试用例**
+- jstr_reserve：保留并优化测试逻辑
+- jstr_unsafe_operations：保留并保持原有测试结构
+- jstr_json_patterns：保留 JSON 序列化模式测试
+- jstr_copy_move：保留复制和移动语义测试
+- jstr_edge_cases：保留并整合边界情况测试
+
+### 测试结果
+
+编译成功，所有 102 个测试用例全部通过：
+- BufferView/UnsafeBuffer 基类测试：10 个用例
+- JString 测试用例：92 个用例
+
+### 代码统计
+
+- 删除：549 行
+- 新增：430 行
+- 净减少：119 行
+- 测试用例数量：从 108 个精简到 102 个
+
+### 设计改进
+
+1. **测试组织**：使用 DESC 子测试块提高测试可读性
+2. **减少冗余**：合并相似测试用例，消除重复代码
+3. **一致性**：统一使用 jstr_ 前缀命名
+4. **完整性**：保留所有核心功能测试，确保测试覆盖率
+
+### 修改文件
+
+- `utest/t_jstring.cpp`：
+  - 实现 jstr_capacity_growth 测试用例
+  - 重构现有测试用例，使用 DESC 子测试块
+  - 合并和删除冗余测试用例
+  - 新增 jstr_extern_write 测试用例
+
