@@ -18,9 +18,15 @@
 - `t_custom.cpp` - 自定义字符串类型测试
 - `t_operator.cpp` - 操作符重载测试
 - `t_number.cpp` - 数字序列化功能测试
+- `t_jstring.cpp` - JString 字符串缓冲类测试
+- `t_bufferview.cpp` - BufferView 和 UnsafeBuffer 基类测试
 - `t_experiment.cpp` - 实验性功能测试（各种探索性用例）
 - `custom_string.cpp` - 自定义字符串类实现（非测试文件）
 - `test_util.cpp` - 测试辅助工具（非测试文件）
+
+可执行文件列表：
+- `utwwjson` - 主单元测试可执行文件
+- `utdocs` - 文档示例测试可执行文件（用于验证 docs/usage.md 示例）
 
 ## 用例管理
 

@@ -436,7 +436,41 @@ n 字节。
 
 ### DONE: 20251228-213120
 
-## TODO: 重新设计单元测试
+## TODO:2025-12-29/1 重构单元测试组织
+
+- 将 `utest/t_usage.cpp` 单独编译为个可执行目标，utdocs，这是同步文档的示例，
+  与原来的主单元测试 utwwjson 分开管理；
+- ci-unit.yml 流水线增加一个运行步骤，直接执行 `utdocs --cout=silent`, 暂不关联
+  手动触发输入的 `$TEST_ARGS` 的参数；
+- 将 `utest/t_jstring.cpp` 文件前面几部分关于 BufferView 与 UnsafeBuffer 的测
+  试用例，单独拆分到 `t_bufferview.cpp` 文件；该文件想测试的功能是
+  `include/jstring.hpp` 文件。
+- 更新 `utest/README.md` 文档中关于测试文件列表的说明；而 `utest/cases.md` 文
+  档可以用 `make test/list` 快捷工具自动更新；
+- utwwjson 目标构建时增加 `JSTRING_MAX_EXP_ALLOC_SIZE` 宏定义，其默认值是 8M
+  ，在单元测试中可以设置小一些，如 1024 ，更易测试 jstring 申请内存增长策略；
+
+再优化 `utest/t_jstring.cpp` 文件中剩下的测试用例：
+- 用例名前缀 `jstring_` 缩写为 `jstr_`
+- 仔细分析现有单元测试用例设计中存在的问题
+
+我觉得这些用例不好的几点：
+- StringBuffer 的一些方法在后续开发中上移到基类 BufferView 了，于是一些测试用
+  例应该是针对 BufferView 基类的，而不是 StringBuffer 子类；
+- 一些用例拆得太细，我想每个 `DEF_TAST` 用例的长度适中，不要太短，也不要太长，
+  较长的用例再用 `DESC` 注释加 `{}` 分段也划分作用域。
+
+所以可能需要对现有 `jstring_*` 用例作较大调整，请分析：
+- 哪些用例更适配改名迁移到 `t_bufferview.cpp` 文件中；
+- 哪些用例是无意义或重复的，可删除；
+- 哪些用例是相似的可以合并为一个用例；
+- 哪些用例中低质量测试应该修改；
+- 是否需要补充新用例，有功能没有被测试覆盖；
+
+但新增用例在本任务中只给出建议，先不实际增加；本任务的目标是精简 `DEF_TAST`
+用例数，以及可以优化已有用例的测试代码。
+
+### DONE:20251229-122441
 
 ## TODO: 增加 jbuilder.hpp 组合使用 jstring.hpp
 

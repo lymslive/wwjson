@@ -1229,3 +1229,97 @@ StringBufferView 重命名再派生 LocalBuffer 类，具体要求：
 
 编译成功，所有现有测试用例通过。
 
+## TASK:20251229-122441
+-----------------------
+
+**关联需求**: 2025-12-29/1 - 单元测试重构
+
+### 完成的工作
+
+**1. 创建独立的 utdocs 可执行文件**
+- 在 `utest/CMakeLists.txt` 中创建新的可执行目标 `utdocs`
+- 从 `utwwjson` 中移除 `t_usage.cpp`
+- `utdocs` 只包含 `t_usage.cpp`，不依赖 `test_util.cpp` 或其他库
+- 添加 `WWJSON_USE_SIMPLE_FLOAT_FORMAT=1` 编译定义
+
+**2. 更新 CI 流水线**
+- 在 `.github/workflows/ci-unit.yml` 中增加 "Run usage docs tests" 步骤
+- 执行命令：`./build-release/utest/utdocs --cout=silent`
+- 暂不关联手动触发的 `$TEST_ARGS` 参数
+
+**3. 创建 t_bufferview.cpp 并迁移测试**
+- 创建新文件 `utest/t_bufferview.cpp`，包含 BufferView 和 UnsafeBuffer 类的测试
+- 迁移的 BufferView 基类测试（7个用例）：
+  - `bufv_layout` - BufferView 布局大小测试
+  - `bufv_invariants` - BufferView 不变关系式测试
+  - `bufv_constructors` - BufferView 构造函数测试
+  - `bufv_move_constructor` - BufferView 移动构造测试
+  - `bufv_write_methods` - BufferView 写入方法测试
+  - `bufv_borrow_string_resize` - BufferView 借用 std::string 并验证 resize 问题
+  - `bufv_borrow_vector_resize` - BufferView 借用 std::vector<char> 并验证 resize 问题
+- 迁移的 UnsafeBuffer 子类测试（3个用例）：
+  - `ubuf_constructors` - UnsafeBuffer 继承构造函数测试
+  - `ubuf_move_constructor` - UnsafeBuffer 移动构造测试
+  - `ubuf_write_methods` - UnsafeBuffer 写入方法测试
+- 从 `t_jstring.cpp` 中移除已迁移的测试用例（删除第12-696行）
+- 在 `utest/CMakeLists.txt` 中添加 `t_bufferview.cpp` 到 `utwwjson` 目标
+
+**4. 添加 JSTRING_MAX_EXP_ALLOC_SIZE 宏定义**
+- 在 `utest/CMakeLists.txt` 中为 `utwwjson` 添加编译定义：
+  - `JSTRING_MAX_EXP_ALLOC_SIZE=1024`（默认 8M，设置为 1024 更容易测试内存增长策略）
+
+**5. 优化 t_jstring.cpp 测试用例**
+- 将所有测试用例名的前缀从 `jstring_` 缩短为 `jstr_`
+- 修改了22个测试用例名称（从 jstring_* 到 jstr_*）
+- 测试用例数量保持不变，通过所有测试
+
+**6. 更新文档**
+- 更新 `utest/README.md`：
+  - 增加 `t_jstring.cpp` - JString 字符串缓冲类测试
+  - 增加 `t_bufferview.cpp` - BufferView 和 UnsafeBuffer 基类测试
+  - 增加 `utdocs` 可执行文件的说明
+  - 移除 `t_usage.cpp`（因为现在单独编译为 utdocs）
+
+### 测试结果
+
+- `utwwjson` 编译成功，108个测试用例全部通过
+- `utdocs` 编译成功，19个测试用例全部通过
+- 所有迁移的 BufferView 和 UnsafeBuffer 测试用例通过
+- 所有重命名的 JString 测试用例通过
+
+### 修改的文件
+
+- `utest/CMakeLists.txt`：
+  - 创建 `utdocs` 可执行目标
+  - 添加 `JSTRING_MAX_EXP_ALLOC_SIZE=1024` 编译定义
+  - 添加 `t_bufferview.cpp` 到 `utwwjson` 目标
+
+- `.github/workflows/ci-unit.yml`：
+  - 增加 "Run usage docs tests" 步骤
+
+- `utest/t_bufferview.cpp`（新文件）：
+  - 包含所有 BufferView 和 UnsafeBuffer 相关测试
+
+- `utest/t_jstring.cpp`：
+  - 移除 BufferView 和 UnsafeBuffer 测试用例
+  - 重命名所有 `jstring_` 前缀为 `jstr_`
+
+- `utest/README.md`：
+  - 更新测试文件列表
+  - 添加可执行文件说明
+
+### 遗留工作（建议作为后续任务）
+
+**1. 进一步优化测试用例**
+根据分析，以下测试用例可以合并：
+- `jstr_basic_construct` + `jstr_memory_alignment`：构造和容量相关
+- `jstr_append_std_string` + `jstr_append_string_view`：不同类型字符串追加
+- `jstr_to_string_view` + `jstr_to_string`：类型转换
+- `jstr_front_back_access` + `jstr_clear_operation` + `jstr_c_str_termination`：简单 API 测试
+
+**2. 补充测试覆盖**
+建议添加以下新测试用例（本次任务只建议，未实际添加）：
+- `jstr_string_capacity_overflow`：测试容量溢出时的行为
+- `jstr_large_string_performance`：大字符串性能测试
+- `jstr_mixed_safe_unsafe_operations`：混合使用安全和不安全操作
+

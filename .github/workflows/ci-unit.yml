@@ -47,9 +47,14 @@ jobs:
       run: |
         # Prepare test command with default arguments
         TEST_CMD="./build-release/utest/utwwjson $TEST_ARGS"
-        
+
         # Echo the actual command for verification
         echo "Running command: $TEST_CMD"
-        
+
         # Execute the test
         $TEST_CMD
+
+    - name: Run usage docs tests
+      run: |
+        # Run utdocs with silent mode (fixed, not using $TEST_ARGS)
+        ./build-release/utest/utdocs --cout=silent

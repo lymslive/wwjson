@@ -27,7 +27,7 @@ endif()
 # Report what we found
 message(STATUS "Using xyjson from: ${XYJSON_INCLUDE_DIR}")
 
-# Create test executable
+# Create test executable for unit tests
 add_executable(utwwjson
     # functional test files
     t_basic.cpp
@@ -38,6 +38,7 @@ add_executable(utwwjson
     t_advance.cpp
     t_operator.cpp
     t_jstring.cpp
+    t_bufferview.cpp
 
     # just experiment/research test
     t_experiment.cpp
@@ -45,13 +46,13 @@ add_executable(utwwjson
     # not test file, but used by other test file
     custom_string.cpp
     test_util.cpp
-
-    # test sample from docs
-    t_usage.cpp
 )
 
-# Add compile definition for simple float format in development
-target_compile_definitions(utwwjson PRIVATE WWJSON_USE_SIMPLE_FLOAT_FORMAT=1)
+# Add compile definitions for unit tests
+target_compile_definitions(utwwjson PRIVATE
+    WWJSON_USE_SIMPLE_FLOAT_FORMAT=1
+    JSTRING_MAX_EXP_ALLOC_SIZE=1024  # Smaller for testing memory growth
+)
 
 # Link with wwjson library
 target_link_libraries(utwwjson PRIVATE wwjson)
@@ -78,6 +79,31 @@ endif()
 # Add test to CTest if available
 enable_testing()
 add_test(NAME wwjson_unit_tests COMMAND utwwjson)
+
+# Create separate executable for documentation tests
+add_executable(utdocs
+    # test sample from docs
+    t_usage.cpp
+)
+
+# Add compile definitions for docs tests
+target_compile_definitions(utdocs PRIVATE
+    WWJSON_USE_SIMPLE_FLOAT_FORMAT=1
+)
+
+# Link with wwjson library
+target_link_libraries(utdocs PRIVATE wwjson)
+
+# Link with modern CMake targets if available
+if(TARGET couttast::couttast)
+    target_link_libraries(utdocs PRIVATE couttast::couttast)
+elseif(TARGET couttast)
+    target_link_libraries(utdocs PRIVATE couttast)
+endif()
+
+# Add test to CTest if available
+enable_testing()
+add_test(NAME wwjson_docs_tests COMMAND utdocs --cout=silent)
 
 # Custom target to list tests
 add_custom_target(list_tests
