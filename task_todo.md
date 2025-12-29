@@ -472,6 +472,12 @@ n 字节。
 
 ### DONE:20251229-122441
 
+## TODO:2025-12-29/2 BufferView 基类测试用例完善
+
+utest/t_bufferview.cpp 文件添加了几个空实现的测试用例，请根据注释完成测试代码。
+
+### DONE:20251229-185409
+
 ## TODO: 增加 jbuilder.hpp 组合使用 jstring.hpp
 
 - wwjson.hpp 与 jstring.hpp 仍有独立使用意义，互不依赖

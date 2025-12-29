@@ -8,6 +8,7 @@
 #include "jstring.hpp"
 #include "couttast/couthex.hpp"
 #include <array>
+#include <charconv>
 #include <string>
 #include <vector>
 
@@ -209,7 +210,174 @@ DEF_TAST(bufv_move_constructor, "BufferView 移动构造测试")
     COUT(bv2.capacity(), 0);
 }
 
-DEF_TAST(bufv_write_methods, "BufferView 写入方法测试")
+/// 测试 M2: Edge pointer and element access 方法组
+DEF_TAST(bufv_ends_access, "BufferView 两端指针及元素获取")
+{
+    DESC("edge pointer access");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+        bv.append("hello world");
+
+        COUT(static_cast<void*>(bv.begin()) == static_cast<void*>(buffer), true);
+        COUT(static_cast<void*>(bv.end()) == static_cast<void*>(buffer + 11), true);
+        COUT(static_cast<void*>(bv.cap_end()) == static_cast<void*>(buffer + 63), true);
+        COUT(bv.capacity(), 63);
+
+        const char* const_begin = static_cast<const BufferView&>(bv).begin();
+        const char* const_end = static_cast<const BufferView&>(bv).end();
+        const char* const_cap_end = static_cast<const BufferView&>(bv).cap_end();
+        COUT(const_begin == bv.begin(), true);
+        COUT(const_end == bv.end(), true);
+        COUT(const_cap_end == bv.cap_end(), true);
+    }
+
+    DESC("element access: front and back");
+    {
+        char buffer[32];
+        BufferView bv(buffer);
+        bv.append("test");
+
+        COUT(bv.front(), 't');
+        COUT(bv.back(), 't');
+
+        bv.append("ing");
+        COUT(bv.front(), 't');
+        COUT(bv.back(), 'g');
+
+        const char& const_front = static_cast<const BufferView&>(bv).front();
+        const char& const_back = static_cast<const BufferView&>(bv).back();
+        COUT(const_front, 't');
+        COUT(const_back, 'g');
+    }
+
+    DESC("bool operator");
+    {
+        char buffer[32];
+        BufferView bv(buffer);
+        COUT(static_cast<bool>(bv), true);
+
+        BufferView empty_bv;
+        COUT(static_cast<bool>(empty_bv), false);
+
+        const BufferView& const_bv = bv;
+        COUT(static_cast<bool>(const_bv), true);
+    }
+
+    DESC("edge pointer on empty buffer");
+    {
+        char buffer[32];
+        BufferView bv(buffer);
+
+        COUT(static_cast<void*>(bv.begin()) == static_cast<void*>(buffer), true);
+        COUT(static_cast<void*>(bv.end()) == static_cast<void*>(buffer), true);
+        COUT(bv.begin() == bv.end(), true);
+    }
+
+    DESC("element access modifications");
+    {
+        char buffer[32];
+        BufferView bv(buffer);
+        bv.append("abcde");
+
+        bv.front() = 'A';
+        bv.back() = 'E';
+        COUT(bv.front(), 'A');
+        COUT(bv.back(), 'E');
+        COUT(std::string(bv), "AbcdE");
+    }
+}
+
+/// 测试 M3: String conversion 方法组
+DEF_TAST(bufv_str_converstion, "BufferView 转换字符串")
+{
+    DESC("c_str conversion with null terminator");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+        bv.append("hello");
+
+        const char* cstr = bv.c_str();
+        COUT(strcmp(cstr, "hello") == 0, true);
+        COUT(cstr[5], '\0');
+
+        bv.append(" world");
+        cstr = bv.c_str();
+        COUT(strcmp(cstr, "hello world") == 0, true);
+        COUT(cstr[11], '\0');
+    }
+
+    DESC("str method conversion");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+        bv.append("test string");
+
+        std::string result = bv.str();
+        COUT(result, std::string("test string"));
+        COUT(result.size(), 11);
+    }
+
+    DESC("implicit string_view conversion");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+        bv.append("string_view");
+
+        std::string_view sv = bv;
+        COUT(sv == std::string_view("string_view"), true);
+        COUT(sv.size(), 11);
+
+        std::string from_sv(sv);
+        COUT(from_sv, std::string("string_view"));
+    }
+
+    DESC("explicit std::string conversion");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+        bv.append("explicit string");
+
+        std::string s = static_cast<std::string>(bv);
+        COUT(s, std::string("explicit string"));
+        COUT(s.size(), 15);
+    }
+
+    DESC("c_str on empty buffer");
+    {
+        char buffer[32];
+        BufferView bv(buffer);
+
+        const char* cstr = bv.c_str();
+        COUT(strcmp(cstr, "") == 0, true);
+    }
+
+    DESC("c_str on null buffer");
+    {
+        BufferView bv;
+
+        const char* cstr = bv.c_str();
+        COUT(strcmp(cstr, "") == 0, true);
+    }
+
+    DESC("str and conversions preserve buffer content");
+    {
+        char buffer[128];
+        BufferView bv(buffer);
+        bv.append("buffer content");
+
+        std::string str1 = bv.str();
+        std::string_view sv = bv;
+        std::string str2 = static_cast<std::string>(bv);
+
+        COUT(str1 == str2, true);
+        COUT(std::string(sv) == str1, true);
+        COUT(str1.size(), 14);
+    }
+}
+
+/// 测试 M4: Safe write operations 方法组
+DEF_TAST(bufv_write_safe, "BufferView 写入方法测试")
 {
     DESC("push_back with boundary checking");
     {
@@ -304,16 +472,277 @@ DEF_TAST(bufv_write_methods, "BufferView 写入方法测试")
     }
 }
 
+/// 测试 M5: Unsafe write operations 方法组
+DEF_TAST(bufv_write_unsafe, "BufferView 不检查边界的写入方法测试")
+{
+    DESC("unsafe_push_back");
+    {
+        char buffer[8];
+        BufferView bv(buffer);
+
+        bv.unsafe_push_back('H');
+        bv.unsafe_push_back('e');
+        bv.unsafe_push_back('l');
+        bv.unsafe_push_back('l');
+        bv.unsafe_push_back('o');
+
+        COUT(bv.size(), 5);
+        COUT(std::string(bv), std::string("Hello"));
+    }
+
+    DESC("unsafe_push_back overflow");
+    {
+        char buffer[4+4];
+        BufferView bv(buffer, 4);
+
+        bv.unsafe_push_back('H');
+        bv.unsafe_push_back('e');
+        bv.unsafe_push_back('l');
+        bv.unsafe_push_back('l');
+        bv.unsafe_push_back('o');
+
+        COUT(bv.capacity(), 3);
+        COUT(bv.size(), 5);
+        COUT(std::string(bv), std::string("Hello"));
+    }
+
+    DESC("unsafe_append with length");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+
+        bv.unsafe_append("unsafe", 6);
+        COUT(bv.size(), 6);
+        COUT(std::string(bv), std::string("unsafe"));
+
+        bv.unsafe_append(" append", 7);
+        COUT(bv.size(), 13);
+        COUT(std::string(bv), std::string("unsafe append"));
+    }
+
+    DESC("unsafe_fill");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+
+        bv.append("prefix");
+        bv.unsafe_fill('-', 5);
+        COUT(bv.size(), 11);
+        COUT(std::string(bv), std::string("prefix-----"));
+
+        bv.unsafe_fill('x', 5);
+        COUT(bv.size(), 16);
+        COUT(std::string(bv), std::string("prefix-----xxxxx"));
+    }
+
+    DESC("unsafe_resize");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+
+        bv.append("test content");
+        COUT(bv.size(), 12);
+
+        bv.unsafe_resize(5);
+        COUT(bv.size(), 5);
+        COUT(std::string(bv, 0, 5), std::string("test "));
+
+        bv.unsafe_resize(10);
+        COUT(bv.size(), 10);
+        COUT(bv.capacity(), 63);
+    }
+
+    DESC("unsafe_set_end");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+        bv.append("hello world");
+
+        char* old_end = bv.end();
+        bv.unsafe_set_end(bv.begin() + 5);
+        COUT(bv.size(), 5);
+        COUT(std::string(bv), std::string("hello"));
+
+        bv.unsafe_set_end(old_end);
+        COUT(bv.size(), 11);
+        COUT(std::string(bv), std::string("hello world"));
+    }
+
+    DESC("unsafe_end_cstr");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+        bv.append("no null");
+
+        bv.unsafe_end_cstr();
+        COUT(bv.size(), 7);
+        COUT(*bv.end(), '\0');
+
+        const char* cstr = bv.c_str();
+        COUT(strcmp(cstr, "no null") == 0, true);
+    }
+
+    DESC("unsafe operations can cause overflow (with protected buffer)");
+    {
+        char buffer[16 + 32];  // Extra 32 bytes to protect against real overflow
+        BufferView bv(buffer, 16);  // Only use first 16 bytes
+
+        // Safe write first
+        bv.append("safe");
+        COUT(bv.overflow(), false);
+
+        // Unsafe write beyond capacity (but within protected buffer)
+        for (int i = 0; i < 20; ++i) {
+            bv.unsafe_push_back('x');
+        }
+
+        COUT(bv.overflow(), true);
+        COUT(bv.reserve_ex(), -9);  // 15 capacity - 24 written = -9 overflow
+        COUT(bv.capacity(), 15);
+        COUT(bv.size(), 24);
+        COUT(bv.str(), "safexxxxxxxxxxxxxxxxxxxx");
+    }
+}
+
+/// 测试 BufferView append 各种字符串重载：
+/// c-string, std::string, std::string_view, BufferView 及其了类 JString
+DEF_TAST(bufv_append_string, "BufferView append 字符串重载")
+{
+    DESC("append c-string");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+
+        bv.append("hello");
+        COUT(bv.size(), 5);
+        COUT(std::string(bv), std::string("hello"));
+
+        bv.append(" world");
+        COUT(bv.size(), 11);
+        COUT(std::string(bv), std::string("hello world"));
+    }
+
+    DESC("append c-string with length");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+
+        bv.append("hello world", 5);
+        COUT(bv.size(), 5);
+        COUT(std::string(bv), std::string("hello"));
+
+        bv.append(" world!", 6);
+        COUT(bv.size(), 11);
+        COUT(std::string(bv), std::string("hello world"));
+    }
+
+    DESC("append std::string");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+
+        std::string str1 = "test";
+        bv.append(str1);
+        COUT(bv.size(), 4);
+        COUT(std::string(bv), std::string("test"));
+
+        std::string str2 = " string";
+        bv.append(str2);
+        COUT(bv.size(), 11);
+        COUT(std::string(bv), std::string("test string"));
+    }
+
+    DESC("append std::string_view");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+
+        std::string_view sv1 = "string_view";
+        bv.append(sv1);
+        COUT(bv.size(), 11);
+        COUT(std::string(bv), std::string("string_view"));
+
+        std::string str = " append";
+        std::string_view sv2 = str;
+        bv.append(sv2);
+        COUT(bv.size(), 18);
+        COUT(std::string(bv), std::string("string_view append"));
+    }
+
+    DESC("append another BufferView");
+    {
+        char buffer1[64];
+        char buffer2[64];
+        BufferView bv1(buffer1);
+        BufferView bv2(buffer2);
+
+        bv1.append("first");
+        bv2.append("second");
+
+        bv1.append(bv2);
+        COUT(bv1.size(), 11);
+        COUT(std::string(bv1), std::string("firstsecond"));
+    }
+
+    DESC("append JString (StringBuffer)");
+    {
+        char buffer[128];
+        BufferView bv(buffer);
+
+        JString js;
+        js.append("JString");
+        bv.append(js);
+        COUT(bv.size(), 7);
+        COUT(std::string(bv), std::string("JString"));
+
+        js.append(" content");
+        bv.append(js);
+        COUT(bv.size(), 22);
+        COUT(std::string(bv), std::string("JStringJString content"));
+    }
+
+    DESC("append multiple string types in sequence");
+    {
+        char buffer[128];
+        BufferView bv(buffer);
+
+        bv.append("c-string");
+        bv.append(std::string(" std::string"));
+        bv.append(std::string_view(" std::string_view"));
+
+        char temp[32];
+        BufferView bv2(temp);
+        bv2.append(" BufferView");
+        bv.append(bv2);
+
+        COUT(bv.size(), 48);
+        COUT(std::string(bv), std::string("c-string std::string std::string_view BufferView"));
+    }
+
+    DESC("append nullptr c-string (should be ignored)");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+
+        bv.append("hello");
+        bv.append(static_cast<const char*>(nullptr));
+        COUT(bv.size(), 5);
+        COUT(std::string(bv), std::string("hello"));
+    }
+}
+
 /// @}
 /* ---------------------------------------------------------------------- */
 
-/// @brief Test for BufferView borrowing container memory
-/// @details Tests the behavior when BufferView borrows memory from
-/// std::string or std::vector<char> and demonstrates the issue with
-/// using container.resize() to sync the container's size.
+/// @brief Test BufferView usage issues
 /// @{
 
-DEF_TAST(bufv_borrow_string_resize, "BufferView 借用 std::string 并验证 resize 问题")
+/// 借用 std::string 注意事项：
+/// - BufferView 的 capacity 容量比 std::string 少 1
+/// - 通过 BufferView 写入内容不会反映到 std::string 的 size 中
+/// - 通过 std::string 写入内容会与 BufferView 互相覆盖
+/// - 使用 std::string resize 也可能会清空 BufferView 写入的内容
+DEF_TAST(bufv_borrow_string, "BufferView 借用 std::string 并验证 resize 问题")
 {
     DESC("场景1: BufferView 写入超过 string 原始 size,resize 会填充默认字符");
     {
@@ -324,6 +753,8 @@ DEF_TAST(bufv_borrow_string_resize, "BufferView 借用 std::string 并验证 res
 
         // BufferView 借用 string 的内存并写入数据
         BufferView bv(str);
+        COUT(bv.capacity(), str.capacity() - 1);
+
         bv.append("Hello, World! This is a test string for BufferView.");
         bv.end_cstr();
         size_t bv_size = bv.size();
@@ -399,7 +830,8 @@ DEF_TAST(bufv_borrow_string_resize, "BufferView 借用 std::string 并验证 res
     }
 }
 
-DEF_TAST(bufv_borrow_vector_resize, "BufferView 借用 std::vector<char> 并验证 resize 问题")
+/// 借用 std::vector<char> 注意事项：与 std::string 类似
+DEF_TAST(bufv_borrow_vector, "BufferView 借用 std::vector<char> 并验证 resize 问题")
 {
     DESC("场景1: BufferView 写入超过 vector 原始 size,resize 会填充默认字符");
     {
@@ -409,6 +841,8 @@ DEF_TAST(bufv_borrow_vector_resize, "BufferView 借用 std::vector<char> 并验�
 
         // BufferView 借用 vector 的内存并写入数据
         BufferView bv(vec);
+        COUT(bv.capacity(), vec.capacity() - 1);
+
         bv.append("Testing vector resize behavior with BufferView.");
         bv.end_cstr();
         size_t bv_size = bv.size();
@@ -497,6 +931,295 @@ DEF_TAST(bufv_borrow_vector_resize, "BufferView 借用 std::vector<char> 并验�
         COUT_HEX(bv_str);
         DESC("vector (resize 后):");
         COUT_HEX(vec_str);
+    }
+}
+
+/// 使用 std::to_chars 与 snprintf 在 BufferView 的内存中直接写入.
+/// 调用外部方法写入内容后，需要调用 resize 或 set_end 方法调整 size.
+DEF_TAST(bufv_extern_write, "BufferView 与外部方法写入集成协作")
+{
+    DESC("using std::to_chars to write numbers");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+
+        int value = 42;
+        auto result = std::to_chars(bv.begin(), bv.cap_end(), value);
+        size_t len = result.ptr - bv.begin();
+
+        bv.resize(len);
+        COUT(bv.size(), 2);
+        COUT(std::string(bv), std::string("42"));
+
+        // Write another number
+        value = 12345;
+        result = std::to_chars(bv.end(), bv.cap_end(), value);
+        len = result.ptr - bv.end();
+        bv.unsafe_set_end(result.ptr);
+        COUT(bv.size(), 7);
+        COUT(std::string(bv), std::string("4212345"));
+    }
+
+    DESC("using snprintf to write formatted string");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+
+        int written = snprintf(bv.begin(), bv.capacity() + 1, "%s %d", "value", 100);
+        bv.resize(written);
+        COUT(bv.size(), 9);
+        COUT(std::string(bv), std::string("value 100"));
+
+        // Append another formatted string
+        written = snprintf(bv.end(), bv.reserve_ex() + 1, " %s", "appended");
+        bv.unsafe_set_end(bv.end() + written);
+        COUT(bv.size(), 18);
+        COUT(std::string(bv), std::string("value 100 appended"));
+    }
+
+    DESC("using memcpy to copy data");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+
+        const char* src = "copied data";
+        size_t len = strlen(src);
+        memcpy(bv.begin(), src, len);
+        bv.resize(len);
+
+        COUT(bv.size(), 11);
+        COUT(std::string(bv), std::string("copied data"));
+    }
+
+    DESC("using strcpy/strncpy to write string");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+
+        strcpy(bv.begin(), "strcpy test");
+        bv.resize(strlen("strcpy test"));
+
+        COUT(bv.size(), 11);
+        COUT(std::string(bv), std::string("strcpy test"));
+
+        strncpy(bv.end(), "append", bv.reserve_ex());
+        size_t append_len = strlen("append");
+        bv.unsafe_set_end(bv.end() + append_len);
+
+        COUT(bv.size(), 17);
+        COUT(std::string(bv), std::string("strcpy testappend"));
+    }
+
+    DESC("set_end vs resize after external write");
+    {
+        char buffer[64];
+        BufferView bv(buffer);
+        bv.append("base");
+
+        // External write using memcpy
+        const char* more = " content";
+        memcpy(bv.end(), more, strlen(more));
+
+        // Using unsafe_set_end
+        bv.unsafe_set_end(bv.end() + strlen(more));
+        COUT(bv.size(), 12);
+        COUT(std::string(bv), std::string("base content"));
+
+        // Using resize (safe version)
+        const char* even_more = " appended";
+        size_t len = strlen(even_more);
+        memcpy(bv.end(), even_more, len);
+        bv.resize(bv.size() + len);
+
+        COUT(bv.size(), 21);
+        COUT(std::string(bv), std::string("base content appended"));
+    }
+}
+
+/// BufferView '\0' 字符封端注意事项：
+/// - 初始化不清零，仅 cap_end 置零
+/// - 写入方法 push_back/append 后不保证有空字符结束
+/// - 显式调用 end_cstr() 会有空字符结束
+/// - 调用 c_str() 方法也保证有空字符结束
+DEF_TAST(bufv_null_end, "BufferView 空字符封端测试")
+{
+    DESC("initialization: only cap_end is set to zero");
+    {
+        char buffer[32];
+        BufferView bv(buffer);
+        bv.fill('@');  // Fill with known character for testing
+
+        COUT(*bv.cap_end() == '\0', true);
+        COUT(bv.empty(), true);
+        COUT(std::string(bv), std::string(""));  // Empty string
+
+        DESC("Buffer content after fill with '@':");
+        COUT_HEX(std::string(bv.data(), bv.capacity()));
+        COUT(bv.data());
+    }
+
+    DESC("push_back doesn't guarantee null terminator");
+    {
+        char buffer[32];
+        BufferView bv(buffer);
+        bv.fill('@');
+
+        bv.push_back('H');
+        bv.push_back('e');
+        bv.push_back('l');
+        bv.push_back('l');
+        bv.push_back('o');
+
+        COUT(bv.size(), 5);
+        COUT(std::string(bv), std::string("Hello"));
+
+        DESC("Buffer content (expect 'Hello@...'):");
+        COUT_HEX(std::string(bv.data(), bv.capacity()));
+        COUT(bv.data());
+
+        COUT(bv.back(), 'o');
+        COUT(*bv.end(), '@');
+        COUT(*bv.cap_end() == '\0', true);  // cap_end is always null
+    }
+
+    DESC("append doesn't guarantee null terminator");
+    {
+        char buffer[32];
+        BufferView bv(buffer);
+        bv.fill('@');
+
+        bv.append("test");
+
+        COUT(bv.size(), 4);
+        COUT(std::string(bv), std::string("test"));
+
+        DESC("Buffer content (expect 'test@@...'):");
+        COUT_HEX(std::string(bv.data(), bv.capacity()));
+        COUT(bv.data());
+
+        COUT(bv.back(), 't');
+        COUT(*bv.end(), '@');
+        COUT(*bv.cap_end() == '\0', true);  // cap_end is always null
+    }
+
+    DESC("explicit end_cstr() adds null terminator");
+    {
+        char buffer[32];
+        BufferView bv(buffer);
+        bv.fill('@');
+
+        bv.append("hello");
+        bv.end_cstr();
+
+        COUT(bv.size(), 5);
+        COUT(*bv.end() == '\0', true);  // Now end() is null
+
+        DESC("Buffer content (expect 'hello\0@...'):");
+        COUT_HEX(std::string(bv.data(), bv.capacity()));
+
+        const char* cstr = bv.c_str();
+        COUT(strcmp(cstr, "hello") == 0, true);
+    }
+
+    DESC("c_str() ensures null terminator");
+    {
+        char buffer[32];
+        BufferView bv(buffer);
+        bv.fill('@');
+
+        bv.append("world");
+
+        const char* cstr = bv.c_str();
+        COUT(bv.size(), 5);
+        COUT(*bv.end() == '\0', true);  // c_str() ensures null terminator
+
+        DESC("Buffer content after c_str() (expect 'world\0@...'):");
+        COUT_HEX(std::string(bv.data(), bv.capacity()));
+
+        COUT(strcmp(cstr, "world") == 0, true);
+    }
+
+    DESC("end_cstr() with no space available");
+    {
+        char buffer[5];
+        BufferView bv(buffer);
+        bv.fill('@');
+
+        bv.append("1234");  // Fill to capacity (4 out of 4)
+        bv.end_cstr();     // No space for null terminator
+
+        COUT(bv.full(), true);
+        COUT(bv.size(), 4);
+
+        DESC("Buffer content full (expect '1234\0'):");
+        COUT_HEX(std::string(bv.data(), bv.capacity()));
+
+        // cap_end should still be null from initialization
+        COUT(*bv.cap_end() == '\0', true);
+
+        const char* cstr = bv.c_str();
+        COUT(strlen(cstr), 4);
+    }
+
+    DESC("multiple writes need explicit end_cstr()");
+    {
+        char buffer[32];
+        BufferView bv(buffer);
+        bv.fill('@');
+
+        bv.append("first");
+        bv.append("second");
+
+        DESC("Buffer before end_cstr() (expect 'firstsecond@@...'):");
+        COUT_HEX(std::string(bv.data(), bv.capacity()));
+
+        // After multiple appends, call end_cstr() to ensure null termination
+        bv.end_cstr();
+
+        COUT(bv.size(), 11);
+        COUT(*bv.end() == '\0', true);
+
+        DESC("Buffer after end_cstr() (expect 'firstsecond\0@...'):");
+        COUT_HEX(std::string(bv.data(), bv.capacity()));
+
+        const char* cstr = bv.c_str();
+        COUT(strcmp(cstr, "firstsecond") == 0, true);
+    }
+
+    DESC("clear doesn't reset cap_end null terminator");
+    {
+        char buffer[32];
+        BufferView bv(buffer);
+        bv.fill('@');
+
+        bv.append("data");
+        bv.end_cstr();
+
+        bv.clear();
+        COUT(bv.size(), 0);
+        COUT(bv.empty(), true);
+
+        DESC("Buffer after clear (expect '@@@@...\0'):");
+        COUT_HEX(std::string(bv.data(), bv.capacity()));
+
+        // cap_end should still be null
+        COUT(*bv.cap_end() == '\0', true);
+    }
+
+    DESC("resize preserves cap_end null terminator");
+    {
+        char buffer[32];
+        BufferView bv(buffer);
+        bv.fill('@');
+
+        bv.append("original data");
+        bv.resize(5);
+
+        COUT(bv.size(), 5);
+        COUT(*bv.cap_end() == '\0', true);  // cap_end is always null
+
+        DESC("Buffer after resize (expect 'origi@@@@@...\0'):");
+        COUT_HEX(std::string(bv.data(), bv.capacity()));
     }
 }
 

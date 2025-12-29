@@ -1323,3 +1323,95 @@ StringBufferView 重命名再派生 LocalBuffer 类，具体要求：
 - `jstr_large_string_performance`：大字符串性能测试
 - `jstr_mixed_safe_unsafe_operations`：混合使用安全和不安全操作
 
+## TASK:20251229-185409
+-----------------------
+
+### 关联需求
+
+需求 ID：2025-12-29/2 - BufferView 基类测试用例完善
+
+### 任务概述
+
+完善 `utest/t_bufferview.cpp` 文件中添加的几个空实现测试用例，根据注释完成测试代码。
+
+### 完成内容
+
+**1. 实现 bufv_ends_access 测试**
+- 测试边缘指针访问：begin()、end()、cap_end()
+- 测试元素访问：front()、back()
+- 测试 operator bool() 转换
+- 测试空缓冲区状态
+- 测试元素修改
+- 正确处理指针比较：使用 static_cast<void*> 转换避免被当作字符串
+
+**2. 实现 bufv_str_converstion 测试**
+- 测试 c_str() 转换（添加 null 终止符）
+- 测试 str() 方法转换为 std::string
+- 测试隐式 string_view 转换
+- 测试显式 std::string 转换
+- 测试空缓冲区和 null 缓冲区的 c_str() 行为
+- 测试多种转换方式保持一致性
+
+**3. 实现 bufv_write_unsafe 测试**
+- 测试 unsafe_push_back：添加单个字符
+- 测试 unsafe_append：添加字符串（带长度）
+- 测试 unsafe_fill：填充字符
+- 测试 unsafe_resize：调整大小
+- 测试 unsafe_set_end：设置结束指针
+- 测试 unsafe_end_cstr：添加 null 终止符
+- 测试溢出场景：使用 buffer[n+m] 保护，构造时只传 n，测试语句可溢出 n 但不溢出 n+m
+
+**4. 实现 bufv_append_string 测试**
+- 测试 append(c-string)：C 字符串追加
+- 测试 append(c-string with length)：带长度追加
+- 测试 append(std::string)：标准字符串追加
+- 测试 append(std::string_view)：字符串视图追加
+- 测试 append(BufferView)：追加另一个 BufferView
+- 测试 append(JString)：追加 JString
+- 测试连续追加多种字符串类型
+- 测试 append(nullptr) 应被忽略
+
+**5. 实现 bufv_extern_write 测试**
+- 测试 std::to_chars 写入数字：直接在 BufferView 内存中写入，然后调用 resize 或 set_end 调整 size
+- 测试 snprintf 格式化写入：使用 snprintf 写入格式化字符串，调整 size
+- 测试 memcpy 数据拷贝：直接拷贝数据到 BufferView，调整 size
+- 测试 strcpy/strncpy：使用标准字符串函数，调整 size
+- 测试 set_end 和 resize 的区别：unsafe_set_end 和 resize 的不同使用场景
+
+**6. 实现 bufv_null_end 测试**
+- 测试初始化行为：仅 cap_end 置零，其他内容不清零
+- 测试 push_back 后不保证 null 终止符
+- 测试 append 后不保证 null 终止符
+- 测试显式 end_cstr() 添加 null 终止符
+- 测试 c_str() 保证 null 终止符
+- 测试无空间时 end_cstr() 的行为
+- 测试多次写入后需要显式调用 end_cstr()
+- 测试 clear 不重置 cap_end null 终止符
+- 测试 resize 保留 cap_end null 终止符
+- 使用 fill('@') 填充已知字符，使用 COUT_HEX() 观察十六进制内容
+- 正确使用 COUT_HEX 单参数形式观察数据，避免写 COUT(*bv.cap_end(), '\0') 打印空字符
+
+**7. 添加头文件**
+- 在 `t_bufferview.cpp` 中添加 `#include <charconv>` 以支持 std::to_chars
+
+### 测试结果
+
+- 编译成功
+- 所有 13 个 BufferView 测试用例全部通过
+- 测试覆盖 BufferView 的核心功能和边界情况
+
+### 设计要点
+
+1. **指针比较**：使用 static_cast<void*> 避免被当作字符串比较
+2. **溢出保护**：使用 buffer[n+m] 构造时传 n，允许测试溢出但保护真实内存
+3. **内存填充**：使用 fill('@') 填充已知字符便于观察内存内容
+4. **十六进制输出**：COUT_HEX 单参数形式观察二进制数据，避免打印空字符
+5. **外部写入**：验证 std::to_chars、snprintf、memcpy 等外部函数与 BufferView 的集成
+6. **null 终止符**：详细测试各种情况下的 null 终止符行为
+
+### 修改文件
+
+- `utest/t_bufferview.cpp`：
+  - 添加 `#include <charconv>` 头文件
+  - 实现 6 个空测试用例：bufv_ends_access、bufv_str_converstion、bufv_write_unsafe、bufv_append_string、bufv_extern_write、bufv_null_end
+
