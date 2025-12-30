@@ -510,6 +510,14 @@ utest/t_bufferview.cpp 文件添加了几个空实现的测试用例，请根据
 
 ### DONE:20251230-103330
 
+## TODO:2025-12-30/2 StringBuffer 使用 realloc 尝试原位扩容
+
+大多数情况下 realloc 应该比手动 malloc+memcpy+free 高效
+
+### DONE:20251230~103330
+修改单元测试，在首次少量扩容时 8-16 发现是原位扩容；
+在较大容量翻倍时不保证原位扩容，扩容前后指针不一样。
+
 ## TODO: 增加 jbuilder.hpp 组合使用 jstring.hpp
 
 include/jstring.hpp 主要功能开发完毕，下一步的目标是要将它应用到 wwjson.hpp 的

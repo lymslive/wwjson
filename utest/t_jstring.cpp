@@ -48,6 +48,15 @@ DEF_TAST(jstr_construct, "JString 基础构造测试")
         COUT(buffer.size(), 0);
         COUT(buffer.capacity() > 0, true);
         COUT(buffer.capacity(), 8-1);
+
+        // 第一次自动扩容
+        void* ptrBefore = buffer.begin();
+        COUT(ptrBefore);
+        buffer.append(8, 'x');
+        COUT(buffer.capacity(), 16-1);
+        void* ptrAfter = buffer.begin();
+        COUT(ptrAfter);
+        COUT(ptrAfter == ptrBefore);
     }
 }
 
@@ -398,10 +407,22 @@ DEF_TAST(jstr_reserve, "JString 容量预留测试")
     buffer.fill('x', buffer.capacity());
     COUT(buffer.full(), true);
 
+    // 保存扩容前信息
+    void* ptrBefore = buffer.begin();
+    std::string strBefore = buffer.str();
+    COUT(ptrBefore);
+
     // 预留额外字节，翻倍扩容
     buffer.reserve_ex(50);
     COUT(buffer.capacity() >= buffer.size() + 50 + 4, true);
     COUT(buffer.capacity(), (112*2)-1);
+
+    // 扩容后信息
+    void* ptrAfter = buffer.begin();
+    std::string strAfter = buffer.str();
+    COUT(ptrAfter);
+    COUT(strAfter == strBefore, true);
+    COUT(ptrAfter == ptrBefore);
 
     // 预留后追加
     size_t sizeBefore = buffer.size();
@@ -589,6 +610,12 @@ DEF_TAST(jstr_extern_write, "StringBuffer 与外部方法写入集成协作")
         COUT(buffer.str(), "value 100 appended");
     }
 }
+
+/// @}
+/* ---------------------------------------------------------------------- */
+
+/// @brief Test for StringBuffer/KString class
+/// @{
 
 DEF_TAST(kstr_construct, "KString 基础构造测试")
 {

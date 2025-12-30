@@ -757,23 +757,20 @@ private:
         }
 
         size_t alloc_size = calculate_growth_size(current_alloc, new_size);
-        char* new_begin = static_cast<char*>(std::malloc(alloc_size));
-        
+
+        // Use realloc to attempt in-place expansion, avoiding memcpy when possible.
+        // realloc behavior:
+        //   - Returns original ptr if in-place expansion succeeds
+        //   - Returns new ptr with data copied if relocation needed
+        //   - Returns nullptr on failure (original pointer remains valid)
+        char* new_begin = static_cast<char*>(std::realloc(m_begin, alloc_size));
+
         if (new_begin == nullptr)
         {
             throw std::bad_alloc();
         }
-        
-        if (current_size > 0)
-        {
-            memcpy(new_begin, m_begin, current_size);
-        }
-        
-        if (m_begin)
-        {
-            std::free(m_begin);
-        }
-        
+
+        // Update pointers - handle both in-place and relocated cases
         m_begin = new_begin;
         m_end = m_begin + current_size;
         m_cap_end = m_begin + alloc_size - 1;
