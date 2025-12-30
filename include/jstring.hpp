@@ -518,6 +518,15 @@ public:
 ///   - allow to call unsafe_push_back 4 times safely
 /// This definition allows kUnsafeLevel=0 to represent behavior similar to std::string.
 ///
+/// @par Maximum Level (0xFF / 255):
+/// When LEVEL equals 255 (0xFF), the buffer operates in single-allocation mode:
+///   - reserve_ex() always returns true (no capacity check or reallocation)
+///   - reserve() is a no-op (no reallocation occurs)
+///   - User must provide sufficient initial capacity in constructor
+///   - Memory is owned (unlike UnsafeBuffer which borrows external memory)
+/// Use this mode when you know the maximum buffer size upfront and want to avoid
+/// reallocation overhead entirely. See KString type alias for convenience.
+///
 /// @par Usage Examples:
 /// ```cpp
 /// StringBuffer<4> buffer;  // JString alias
@@ -583,23 +592,38 @@ public:
 
     bool reserve_ex(size_t add_capacity)
     {
-        try
+        if constexpr (LEVEL < 0xFF)
         {
-            reserve(size() + add_capacity);
-            return true;
+            try
+            {
+                reserve(size() + add_capacity);
+                return true;
+            }
+            catch (const std::bad_alloc&)
+            {
+                return false;
+            }
         }
-        catch (const std::bad_alloc&)
+        else
         {
-            return false;
+            (void)add_capacity;  // Suppress unused parameter warning
+            return true;  // No reallocation for max level
         }
     }
 
     void reserve(size_t new_capacity)
     {
-        size_t total_capacity = new_capacity + kUnsafeLevel;
-        if (total_capacity > capacity())
+        if constexpr (LEVEL < 0xFF)
         {
-            reallocate(total_capacity + 1);
+            size_t total_capacity = new_capacity + kUnsafeLevel;
+            if (total_capacity > capacity())
+            {
+                reallocate(total_capacity + 1);
+            }
+        }
+        else
+        {
+            (void)new_capacity;  // No-op for max level
         }
     }
 
@@ -789,6 +813,11 @@ private:
 /// like `":"`, `","`  which may require multiple consecutive
 /// unsafe character writes.
 using JString = StringBuffer<4>;
+
+/// @brief Maximum unsafe level string buffer - single allocation only
+/// @details StringBuffer with kUnsafeLevel=255, optimized for single-allocation scenarios.
+/// Use when you know the maximum buffer size upfront and want to avoid reallocation.
+using KString = StringBuffer<255>;
 
 } // namespace wwjson
 

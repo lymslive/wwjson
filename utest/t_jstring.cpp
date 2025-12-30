@@ -590,5 +590,99 @@ DEF_TAST(jstr_extern_write, "StringBuffer 与外部方法写入集成协作")
     }
 }
 
+DEF_TAST(kstr_construct, "KString 基础构造测试")
+{
+    DESC("KString(0) 最少申请 256 字节，容量 255");
+    {
+        KString buffer(0);
+        COUT(buffer.empty(), true);
+        COUT(buffer.size(), 0);
+        COUT(buffer.capacity(), 255);
+        COUT((void*)buffer.data() != nullptr, true);
+        COUT(static_cast<bool>(buffer), true);
+    }
+
+    DESC("KString 默认构造仍是 1024 字节");
+    {
+        KString buffer;
+        COUT(buffer.empty(), true);
+        COUT(buffer.size(), 0);
+        COUT(buffer.capacity(), 1023);  // 1024 - 1 for null terminator
+    }
+
+    DESC("KString(4k) 传较大初始容量");
+    {
+        KString buffer(4096);
+        COUT(buffer.empty(), true);
+        COUT(buffer.size(), 0);
+        COUT(buffer.capacity() >= 4096, true);
+        COUT(buffer.capacity(), 4096 + 255);  // capacity + unsafe level margin
+    }
+
+    DESC("基本写入操作");
+    {
+        KString buffer(256);
+        buffer.append("hello");
+        COUT(buffer.size(), 5);
+        COUT(strcmp(buffer.c_str(), "hello"), 0);
+
+        buffer.push_back(' ');
+        buffer.push_back('w');
+        buffer.push_back('o');
+        buffer.push_back('r');
+        buffer.push_back('l');
+        buffer.push_back('d');
+        COUT(buffer.size(), 11);
+        COUT(strcmp(buffer.c_str(), "hello world"), 0);
+    }
+}
+
+DEF_TAST(kstr_reach_full, "KString 写满对比测试")
+{
+    DESC("相同初始容量，相同写入操作");
+    {
+        size_t init_cap = 256;
+
+        // KString: 写满后 full() = true，不会扩容
+        KString kstr(init_cap);
+        size_t kstr_cap = kstr.capacity();
+        for (size_t i = 0; i < kstr_cap; ++i) { kstr.push_back('x'); }
+        COUT(kstr.full(), true);
+        COUT(kstr.capacity(), kstr_cap);  // 容量不变
+
+        // JString: 写满后会自动扩容，full() 不会 true
+        JString jstr(init_cap);
+        size_t jstr_cap = jstr.capacity();
+        for (size_t i = 0; i < jstr_cap; ++i) { jstr.push_back('x'); }
+        COUT(jstr.full(), false);
+        COUT(jstr.capacity() > jstr_cap, true);  // 已扩容
+
+        // StringBuffer<254>: 同样会自动扩容
+        StringBuffer<254> sb(init_cap);
+        size_t sb_cap = sb.capacity();
+        for (size_t i = 0; i < sb_cap; ++i) { sb.push_back('x'); }
+        COUT(sb.full(), false);
+        COUT(sb.capacity() > sb_cap, true);  // 已扩容
+    }
+
+    DESC("KString 多次追加不扩容");
+    {
+        KString buffer(128);
+        size_t init_cap = buffer.capacity();
+
+        buffer.append("hello");
+        buffer.append(" world");
+        buffer.append(" this is a test");
+
+        COUT(buffer.full(), false);
+        COUT(buffer.capacity(), init_cap);  // 容量不变
+
+        // 继续追加直到写满
+        while (!buffer.full()) { buffer.push_back('x'); }
+        COUT(buffer.full(), true);
+        COUT(buffer.capacity(), init_cap);  // 仍未扩容
+    }
+}
+
 /// @}
 /* ---------------------------------------------------------------------- */

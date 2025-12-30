@@ -1509,3 +1509,44 @@ StringBufferView 重命名再派生 LocalBuffer 类，具体要求：
   - 合并和删除冗余测试用例
   - 新增 jstr_extern_write 测试用例
 
+## TASK:20251230-103330
+-----------------------
+
+**关联需求**: 2025-12-30/1 - 扩展 jstring.hpp 中 StringBuffer 最大等级的特化
+
+### 任务概述
+
+为 `StringBuffer<255>` 实现单次内存分配特化，添加类型别名 `KString`。通过 `if constexpr` 条件编译实现最小代码修改。
+
+### 完成内容
+
+**1. 核心特化实现** (`include/jstring.hpp`)
+- `reserve_ex(size_t add_capacity)`: LEVEL < 0xFF 时正常扩容，否则直接返回 true
+- `reserve(size_t new_capacity)`: LEVEL < 0xFF 时正常扩容，否则为空操作
+
+**2. 新增类型别名**
+```cpp
+using KString = StringBuffer<255>;
+```
+
+**3. 新增测试用例** (`utest/t_jstring.cpp`)
+- `kstr_construct`: KString 基础构造测试
+  - KString(0) 最少申请 256 字节，容量 255
+  - KString 默认构造 1024 字节
+  - KString(4k) 传较大初始容量
+  - 基本写入操作验证
+
+- `kstr_reach_full`: KString 写满对比测试
+  - 相同初始容量，KString 写满后 full()=true 不会扩容
+  - JString 和 StringBuffer<254> 写满后会自动扩容
+  - KString 多次追加不扩容验证
+
+### 测试结果
+
+所有 104 个测试用例全部通过。
+
+### 修改文件
+
+- `include/jstring.hpp`: 添加 if constexpr 条件分支实现特化
+- `utest/t_jstring.cpp`: 新增 kstr_construct 和 kstr_reach_full 测试用例
+

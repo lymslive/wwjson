@@ -478,6 +478,38 @@ utest/t_bufferview.cpp 文件添加了几个空实现的测试用例，请根据
 
 ### DONE:20251229-185409
 
+## TODO:2025-12-30/1 扩展 jstring.hpp 中 StringBuffer 最大等级的特化
+
+当 `StringBuffer<255>` 达到最大 unsafe 等级时，它具有如下特征：
+- 只在构造函数时申请一次内存，假设用户能预估所需的最大容量，不再需要扩容
+- `reserve_ex(n)` 直接返回 true
+- 安全写入方法 `push_back` 与 `append` 等不再调用 `reserve_ex(n)`
+
+再仔细分析一下，是否可以只修改 `reserve_ex(n)` ，其他调用者不修改的话，编译优
+化 -O2 以上是否也能达到同样效果，相当于空操作。
+
+这个特化类，应该可以实现 `UnsafeBuffer` 一样的功能，但是拥有自己的内存，避免像
+后者那样与原内存所有者混乱写入的情况。
+
+为这个特化类取别名 KString 。
+
+在 `utest/t_jstring.cpp` 增加两个测试用例：
+- `kstr_construct` 基本测试
+  - KString(0) 最少申请 256 字节，255 容量
+  - KString 默认申请仍是 1024
+  - KString(4k) 再传个较大初始容量的参数
+  - 能执行基本的写入操作
+- `kstr_reach_full` 对比测试 KString 能写满，不扩容
+  - KString 对比另两个类
+  - JString
+  - `StringBuffer<254>`
+  - 逐步写入字符，KString 因为不扩容，应该能写满，full 返回 true，但测试时也应
+    避免溢出，使测试程序出问题
+  - 另外两个类在写入内容快满时应该会自动扩容，不可能写满，只用安全写入方法时
+    full 判断不会 true 。
+
+### DONE:20251230-103330
+
 ## TODO: 增加 jbuilder.hpp 组合使用 jstring.hpp
 
 include/jstring.hpp 主要功能开发完毕，下一步的目标是要将它应用到 wwjson.hpp 的
@@ -549,16 +581,6 @@ GenericBuilder 模板类中.
 直接从 stringT 末尾正向写入，避免逆向写入临时 buffer 。
 
 需要重新设计一个能正向序列化整数的合适算法。
-
-## TODO: 扩展 jstring.hpp 中 StringBuffer 最大等级的特化
-
-当 `StringBuffer<255>` 达到最大 unsafe 等级时，它具有如下特征：
-- 只在构造函数时申请一次内存，假设用户能预估所需的最大容量，不再需要扩容
-- `reserve_ex(n)` 直接返回 true
-- 安全写入方法 `push_back` 与 `append` 等不再调用 `reserve_ex(n)`
-
-这个特化类，应该可以实现 `UnsafeBuffer` 一样的功能，但是拥有自己的内存，避免像
-后者那样与原内存所有者混乱写入的情况。
 
 ## TODO: 性能测试
 
