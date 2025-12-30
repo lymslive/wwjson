@@ -38,21 +38,23 @@ namespace wwjson {
 /// @details
 /// This struct defines the interface for string types that support unsafe operations
 /// optimized for JSON serialization. The key innovation is the concept of "unsafe level"
-/// which allows a batch of unsafe operations after a safe boundary check.
-/// 
+/// which indicates how many bytes can be written using unsafe methods after a safe check.
+///
 /// @par Required Interface Methods:
-/// - static constexpr uint8_t kUnsafeLevel: Number of unsafe operations allowed
+/// - static constexpr uint8_t kUnsafeLevel: Number of bytes that can be written unsafely
 /// - unsafe_push_back(char): Add character without boundary check
 /// - unsafe_append(const char*, size_t): Add string without boundary check
 /// - unsafe_set_end(char*): Directly set the end pointer of string
 /// - unsafe_resize(size): Directly set the size of string
 /// - unsafe_end_cstr(): Add null terminator at end
 /// - reserve_ex(size_t extra): Check if buffer has space to write extra bytes, return true if available
-/// 
+///
 /// @par Unsafe Level Definition:
-/// kUnsafeLevel defines the number of unsafe operations allowed after a safe check.
-/// Example: kUnsafeLevel=4 means after reserve_ex(n), you can call unsafe_push_back 
-/// 4 times even after write n characters. 
+/// kUnsafeLevel specifies how many additional bytes can be written using unsafe methods
+/// (like unsafe_push_back) after calling reserve_ex(). This provides a safety margin
+/// for common JSON patterns that need multiple consecutive character writes.
+/// Example: kUnsafeLevel=4 means after reserve_ex(100), you can safely write 104 bytes
+/// (100 + 4) using unsafe operations before another check is needed.
 /// The null terminator space is always additional (+1 byte).
 struct UnsafeStringConcept
 {
@@ -258,6 +260,15 @@ public:
         assert(m_begin != nullptr && "BufferView::back() called on null buffer");
         assert(m_end > m_begin && "BufferView::back() called on empty buffer");
         return *(m_end - 1); 
+    }
+
+    /// Remove the last character from the string if not empty.
+    void pop_back()
+    {
+        if (m_end > m_begin)
+        {
+            --m_end;
+        }
     }
 
     /// @}
@@ -491,7 +502,7 @@ public:
 };
 
 /// @brief High-performance string buffer with unsafe operations
-/// @tparam kUnsafeLevel Number of unsafe operations allowed after each safe check
+/// @tparam kUnsafeLevel Number of additional bytes that can be written unsafely after a safe check
 /// @details
 /// StringBuffer implements the UnsafeStringConcept interface by inheriting from
 /// BufferView. The key features are:
@@ -510,18 +521,21 @@ public:
 /// - The byte at m_cap_end is written with '\0' on allocation for safety
 ///
 /// @par kUnsafeLevel Semantics:
-/// kUnsafeLevel specifies additional bytes beyond user-requested capacity.
-/// Example: For kUnsafeLevel=4, after reserve(100):
+/// kUnsafeLevel specifies how many additional bytes can be written using unsafe methods
+/// (like unsafe_push_back) after calling reserve_ex(). This provides a safety margin
+/// for common JSON patterns that need multiple consecutive character writes.
+/// Example: For kUnsafeLevel=4, after reserve_ex(100):
 ///   - capacity() returns >=104 (100 user + 4 margin)
 ///   - Actual allocation: aligned to >= 105 bytes (104 + 1 null terminator)
-///   - You can write upto 100 characters for main content, and then
-///   - allow to call unsafe_push_back 4 times safely
+///   - You can write 104 bytes using unsafe operations safely
+///   - The null terminator space is always additional (+1 byte)
 /// This definition allows kUnsafeLevel=0 to represent behavior similar to std::string.
 ///
 /// @par Maximum Level (0xFF / 255):
 /// When LEVEL equals 255 (0xFF), the buffer operates in single-allocation mode:
-///   - reserve_ex() always returns true (no capacity check or reallocation)
-///   - reserve() is a no-op (no reallocation occurs)
+///   - reserve_ex() always returns true (no capacity check)
+///   - push_back/append will not trigger automatic reallocation
+///   - reserve() is allowed for explicit capacity expansion (use sparingly)
 ///   - User must provide sufficient initial capacity in constructor
 ///   - Memory is owned (unlike UnsafeBuffer which borrows external memory)
 /// Use this mode when you know the maximum buffer size upfront and want to avoid
@@ -623,7 +637,12 @@ public:
         }
         else
         {
-            (void)new_capacity;  // No-op for max level
+            // Max unsafe mode: explicit reserve() is allowed for flexibility,
+            // but push_back/append will not trigger automatic reallocation.
+            if (new_capacity > capacity())
+            {
+                reallocate(new_capacity + kUnsafeLevel + 1);
+            }
         }
     }
 

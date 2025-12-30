@@ -518,7 +518,7 @@ utest/t_bufferview.cpp 文件添加了几个空实现的测试用例，请根据
 修改单元测试，在首次少量扩容时 8-16 发现是原位扩容；
 在较大容量翻倍时不保证原位扩容，扩容前后指针不一样。
 
-## TODO: 增加 jbuilder.hpp 组合使用 jstring.hpp
+## TODO:2025-12-30/3 增加 jbuilder.hpp 组合使用 jstring.hpp
 
 include/jstring.hpp 主要功能开发完毕，下一步的目标是要将它应用到 wwjson.hpp 的
 GenericBuilder 模板类中.
@@ -551,6 +551,9 @@ GenericBuilder 模板类中.
 
 虽然 `GenericBuilder<stringT>` 暂时未用到 `unsafe_level<stringT>` 特征作优化，
 但功能应该已经满足，因为 `JString` 满足 `StringConcept`.
+
+### DONE:20251230-165622
+重要设计修改：KString 允许显式 reserve 扩容，否则有协作问题。
 
 ## TODO: wwjson.hpp 根据 unsfe level 重构 GenericBuiler
 

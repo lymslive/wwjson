@@ -1550,3 +1550,38 @@ using KString = StringBuffer<255>;
 - `include/jstring.hpp`: 添加 if constexpr 条件分支实现特化
 - `utest/t_jstring.cpp`: 新增 kstr_construct 和 kstr_reach_full 测试用例
 
+
+### TASK:20251230-165622
+------------------------
+
+完成 `2025-12-30/3` 需求：增加 `jbuilder.hpp` 组合使用 `jstring.hpp`
+
+**主要变更：**
+
+1. `include/wwjson.hpp`:
+   - 新增 `unsafe_level<T>` 编译期特征萃取 trait
+   - 新增 `unsafe_level_v<T>` 便捷变量模板
+   - `GenericBuilder` 添加 `string_type` 类型别名
+   - 优化 `kUnsafeLevel` 注释文档，更准确地描述其含义
+
+2. `include/jstring.hpp`:
+   - `BufferView` 添加 `pop_back()` 方法
+   - `StringBuffer<255>` 的 `reserve()` 允许显式扩容（方案A）
+   - 优化 `UnsafeStringConcept` 和 `StringBuffer` 的注释文档
+
+3. `include/jbuilder.hpp` (新增):
+   - 组合 `wwjson.hpp` 与 `jstring.hpp`
+   - 定义 `Builder` = `GenericBuilder<JString>`
+   - 定义 `FastBuilder` = `GenericBuilder<KString>` 及其 RAII 包装器
+
+4. `utest/t_jbuilder.cpp` (新增):
+   - `jbuilder_unsafe_level`: 测试 `unsafe_level` 萃取功能
+   - `jbuilder_basic`: 测试 `Builder` 基本功能（含 `AddMemberEscape`）
+   - `jbuilder_nested`: 测试嵌套结构
+   - `jbuilder_raii`: 测试 `JObject`/`JArray` RAII 包装器
+   - `jbuilder_fast_basic`: 测试 `FastBuilder` 多种构造方式
+
+5. `utest/CMakeLists.txt`:
+   - 添加 `t_jbuilder.cpp` 测试文件
+
+**测试结果:** 全部 5 个新增测试用例通过。

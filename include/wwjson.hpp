@@ -139,6 +139,38 @@ struct StringConcept
 {
 };
 
+/// @brief Compile-time trait to extract unsafe level from string types
+/// @details
+/// This trait determines the "unsafe level" of a string type used in JSON building.
+/// The unsafe level indicates how many additional bytes can be written using unsafe
+/// methods (like unsafe_push_back) after a single safe capacity check.
+///
+/// @par Design:
+/// - If stringT has a static constexpr member `kUnsafeLevel`, that value is returned
+/// - Otherwise, returns 0 (no unsafe margin, safe mode only)
+///
+/// @par Example Unsafe Levels:
+/// - `std::string` -> 0 (safe mode, no unsafe margin)
+/// - `BufferView` -> 0 (safe mode, no unsafe margin)
+/// - `StringBuffer<4>` (JString) -> 4 bytes unsafe margin
+/// - `StringBuffer<255>` (KString) -> 255 (max level, single allocation mode)
+template <typename stringT, typename = void>
+struct unsafe_level
+{
+    static constexpr uint8_t value = 0;
+};
+
+/// @brief Specialization for types with kUnsafeLevel member
+template <typename stringT>
+struct unsafe_level<stringT, std::void_t<decltype(stringT::kUnsafeLevel)>>
+{
+    static constexpr uint8_t value = stringT::kUnsafeLevel;
+};
+
+/// @brief Convenience variable template for unsafe_level
+template <typename stringT>
+inline constexpr uint8_t unsafe_level_v = unsafe_level<stringT>::value;
+
 /// @brief High-performance number writer for JSON serialization
 /// @details
 /// Provides optimized number-to-string conversion for both integer and floating-point
@@ -694,6 +726,8 @@ template <typename stringT, typename configT = BasicConfig<stringT>>
 struct GenericBuilder
 {
     stringT json; ///< Internal string buffer storing the JSON being constructed
+
+    using string_type = stringT; ///< Type alias for the underlying string type
     using builder_type = GenericBuilder<stringT, configT>; ///< Type alias for this builder
 
     /// @{ M0: Basic construction and lifecycle methods

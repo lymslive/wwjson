@@ -37,8 +37,9 @@ add_executable(utwwjson
     t_escape.cpp
     t_advance.cpp
     t_operator.cpp
-    t_jstring.cpp
     t_bufferview.cpp
+    t_jstring.cpp
+    t_jbuilder.cpp
 
     # just experiment/research test
     t_experiment.cpp
