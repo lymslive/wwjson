@@ -1585,3 +1585,24 @@ using KString = StringBuffer<255>;
    - 添加 `t_jbuilder.cpp` 测试文件
 
 **测试结果:** 全部 5 个新增测试用例通过。
+
+### TASK:20251230-234228
+------------------------
+
+完成 `2025-12-30/4` 需求：重设 KString 最大不安全等级的意义
+
+**主要变更：**
+
+1. `include/jstring.hpp`:
+   - `reserve_ex()` 方法移除 `LEVEL < 0xFF` 条件，允许显式调用扩容
+   - `reserve()` 方法移除 `LEVEL < 0xFF` 条件，允许显式调用扩容
+   - `append()` 方法添加 `LEVEL < 0xFF` 判断，KString 不会隐式扩容
+   - `push_back()` 方法添加 `LEVEL < 0xFF` 判断，KString 不会隐式扩容
+   - `resize()` 方法添加 `LEVEL < 0xFF` 判断，KString 不会隐式扩容
+   - 更新 KString 相关注释说明
+
+2. `utest/t_jstring.cpp`:
+   - `kstr_reach_full` 测试新增显式 reserve 扩容测试用例
+
+**测试结果:** 所有测试用例通过。
+

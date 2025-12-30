@@ -555,7 +555,28 @@ GenericBuilder 模板类中.
 ### DONE:20251230-165622
 重要设计修改：KString 允许显式 reserve 扩容，否则有协作问题。
 
-## TODO: wwjson.hpp 根据 unsfe level 重构 GenericBuiler
+## TODO:2025-12-30/4 重设 KString 最大不安全等级的意义
+
+修改文件：include/jstring.hpp
+
+KString 是 `StringBuffer<255>` 别名，kUnsafeLevel=0xFF 最大值。
+最初的设定是只能初始构造函数时申请一次内存，此后 `reserve_ex` 与 `reserve` 方
+法都空操作不扩容。现重定义如下：
+- `reserve_ex` 与 `reserve` 显式调用时按原逻辑扩容，即恢复 `LEVEL < 0xFF` 正常
+  分支的功能；
+- 其他写入方法仅在 `LEVEL < 0xFF` 时隐式调用 `reserve_ex`，这包括 `push_back`
+  ，`append` 与 `resize` 。
+
+原因：KString 的主要设计目的是为了效率，在写入内容时不作边界检查，也就不会自动
+扩容。所以不扩容是结果，不是目的。但如果用户在有需要时显式调用 reserve 预留空
+间时没必要阻止。同时这样也更好用于 GenericBuilder 模板参数协作。
+
+在 `utest/t_jstring.cpp` 文件的 `kstr_reach_full` 用例补充测试语句或段落，写满
+后显式 reserve 能扩容继续写。
+
+### DONE: 20251230-234228
+
+## TODO: wwjson.hpp 根据 unsfe level 重构 GenericBuilder
 
 当 `unsafe_level<stringT>` 的值不小于 4 时，写入以下格式字符调用其
 `unsafe_push_back` 方法：
@@ -564,7 +585,10 @@ GenericBuilder 模板类中.
 - 引号
 
 封装一个 `UnsafePutChar` 方法，根据 `unsafe_level` 选择调用 `push_back` 或
-`unsafe_push_back` 。
+`unsafe_push_back` 。允许让逗号、冒号、引号调用该不安全方法，但 `[]` 与 `{}`
+两边括号仍必须调用安全的 `PutChar` 方法。
+
+最后 `GetResult` 获取结果时，调用 `end_cstr` 方法保证 null 字符封端。
 
 ## TODO: wwjson.hpp 写入浮点数优化
 

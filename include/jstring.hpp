@@ -532,14 +532,15 @@ public:
 /// This definition allows kUnsafeLevel=0 to represent behavior similar to std::string.
 ///
 /// @par Maximum Level (0xFF / 255):
-/// When LEVEL equals 255 (0xFF), the buffer operates in single-allocation mode:
-///   - reserve_ex() always returns true (no capacity check)
-///   - push_back/append will not trigger automatic reallocation
+/// When LEVEL equals 255 (0xFF), the buffer operates in almost single-allocation mode:
+///   - push_back/append will not trigger automatic reallocation (no boundary check overhead)
+///   - reserve_ex() returns true and allows explicit capacity expansion
 ///   - reserve() is allowed for explicit capacity expansion (use sparingly)
-///   - User must provide sufficient initial capacity in constructor
+///   - User should provide sufficient initial capacity in constructor
 ///   - Memory is owned (unlike UnsafeBuffer which borrows external memory)
-/// Use this mode when you know the maximum buffer size upfront and want to avoid
-/// reallocation overhead entirely. See KString type alias for convenience.
+/// Use this mode when you know the approximate buffer size upfront and want to avoid
+/// automatic reallocation overhead. Explicit reserve() calls are still supported for
+/// flexibility when needed. See KString type alias for convenience.
 ///
 /// @par Usage Examples:
 /// ```cpp
@@ -606,55 +607,38 @@ public:
 
     bool reserve_ex(size_t add_capacity)
     {
-        if constexpr (LEVEL < 0xFF)
+        try
         {
-            try
-            {
-                reserve(size() + add_capacity);
-                return true;
-            }
-            catch (const std::bad_alloc&)
-            {
-                return false;
-            }
+            reserve(size() + add_capacity);
+            return true;
         }
-        else
+        catch (const std::bad_alloc&)
         {
-            (void)add_capacity;  // Suppress unused parameter warning
-            return true;  // No reallocation for max level
+            return false;
         }
     }
 
     void reserve(size_t new_capacity)
     {
-        if constexpr (LEVEL < 0xFF)
+        size_t total_capacity = new_capacity + kUnsafeLevel;
+        if (total_capacity > capacity())
         {
-            size_t total_capacity = new_capacity + kUnsafeLevel;
-            if (total_capacity > capacity())
-            {
-                reallocate(total_capacity + 1);
-            }
-        }
-        else
-        {
-            // Max unsafe mode: explicit reserve() is allowed for flexibility,
-            // but push_back/append will not trigger automatic reallocation.
-            if (new_capacity > capacity())
-            {
-                reallocate(new_capacity + kUnsafeLevel + 1);
-            }
+            reallocate(total_capacity + 1);
         }
     }
 
     void append(const char* str)
     {
-        size_t len = strlen(str);
-        append(str, len);
+        if (str == nullptr) { return; }
+        append(str, ::strlen(str));
     }
 
     void append(const char* str, size_t len)
     {
-        reserve_ex(len);
+        if constexpr (LEVEL < 0xFF)
+        {
+            reserve_ex(len);
+        }
         unsafe_append(str, len);
     }
 
@@ -675,19 +659,28 @@ public:
 
     void push_back(char c)
     {
-        reserve_ex(1);
+        if constexpr (LEVEL < 0xFF)
+        {
+            reserve_ex(1);
+        }
         unsafe_push_back(c);
     }
 
     void append(size_t count, char ch)
     {
-        reserve_ex(count);
+        if constexpr (LEVEL < 0xFF)
+        {
+            reserve_ex(count);
+        }
         unsafe_fill(ch, count);
     }
 
     void resize(size_t new_size)
     {
-        reserve(new_size);
+        if constexpr (LEVEL < 0xFF)
+        {
+            reserve(new_size);
+        }
         unsafe_resize(new_size);
     }
 
@@ -830,9 +823,10 @@ private:
 /// unsafe character writes.
 using JString = StringBuffer<4>;
 
-/// @brief Maximum unsafe level string buffer - single allocation only
-/// @details StringBuffer with kUnsafeLevel=255, optimized for single-allocation scenarios.
-/// Use when you know the maximum buffer size upfront and want to avoid reallocation.
+/// @brief Maximum unsafe level string buffer without automatically allocation
+/// @details StringBuffer with kUnsafeLevel=255, optimized for scenarios where
+/// it is known the maximum buffer size upfront and want to avoid boundary
+/// check overhead.
 using KString = StringBuffer<255>;
 
 } // namespace wwjson

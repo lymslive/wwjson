@@ -249,6 +249,12 @@ DEF_TAST(bufv_ends_access, "BufferView 两端指针及元素获取")
         const char& const_back = static_cast<const BufferView&>(bv).back();
         COUT(const_front, 't');
         COUT(const_back, 'g');
+
+        bv.pop_back();
+        COUT(bv.back(), 'n');
+        bv.pop_back();
+        COUT(bv.back(), 'i');
+        COUT(bv.size(), 5);
     }
 
     DESC("bool operator");

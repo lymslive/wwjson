@@ -709,6 +709,44 @@ DEF_TAST(kstr_reach_full, "KString 写满对比测试")
         COUT(buffer.full(), true);
         COUT(buffer.capacity(), init_cap);  // 仍未扩容
     }
+
+    DESC("KString 写满后显式 reserve 可扩容");
+    {
+        KString buffer(256);
+        size_t init_cap = buffer.capacity();
+
+        // 写满
+        while (!buffer.full()) { buffer.push_back('x'); }
+        COUT(buffer.full(), true);
+        COUT(buffer.capacity(), init_cap);
+
+        // 显式调用 reserve 扩容
+        buffer.reserve(init_cap * 2);
+        COUT(buffer.capacity() > init_cap, true);
+        COUT(buffer.full(), false);
+
+        // 扩容后可以继续写入
+        size_t write_count = 100;
+        buffer.append(write_count, 'y');
+        COUT(buffer.size(), init_cap + write_count);
+        COUT(buffer.capacity() >= init_cap + write_count, true);
+        COUT(buffer.full(), false);
+        COUT(buffer.overflow(), false);
+
+        // 检查数据正确性
+        bool all_x = true;
+        for (size_t i = 0; i < init_cap; ++i)
+        {
+            if (buffer.data()[i] != 'x') all_x = false;
+        }
+        bool all_y = true;
+        for (size_t i = init_cap; i < init_cap + write_count; ++i)
+        {
+            if (buffer.data()[i] != 'y') all_y = false;
+        }
+        COUT(all_x, true);
+        COUT(all_y, true);
+    }
 }
 
 /// @}
