@@ -576,7 +576,7 @@ KString 是 `StringBuffer<255>` 别名，kUnsafeLevel=0xFF 最大值。
 
 ### DONE: 20251230-234228
 
-## TODO: wwjson.hpp 根据 unsfe level 重构 GenericBuilder
+## TODO:2026-01-03/1 wwjson.hpp 根据 unsfe level 重构 GenericBuilder
 
 当 `unsafe_level<stringT>` 的值不小于 4 时，写入以下格式字符调用其
 `unsafe_push_back` 方法：
@@ -586,9 +586,19 @@ KString 是 `StringBuffer<255>` 别名，kUnsafeLevel=0xFF 最大值。
 
 封装一个 `UnsafePutChar` 方法，根据 `unsafe_level` 选择调用 `push_back` 或
 `unsafe_push_back` 。允许让逗号、冒号、引号调用该不安全方法，但 `[]` 与 `{}`
-两边括号仍必须调用安全的 `PutChar` 方法。
+两对括号仍必须调用安全的 `PutChar` 方法。
 
-最后 `GetResult` 获取结果时，调用 `end_cstr` 方法保证 null 字符封端。
+### DONE: 20260104-001348
+
+## TODO: 测试 UnsafePutChar 写格式字符提升性能情况
+
+## TODO: 优化字符串转义方法
+
+在 include/jbuilder.hpp 增加 UnsafeConfig ，继承 BasicConfig，
+覆盖优化 `BasicConfig::EscapeString` 方法。
+当 `unsafe_level<stringT>` 的值不小于 4 时，可避免临时 buffer 的使用，
+直接向 stringT 末尾写入转义的字符。
+先预留两倍空间，写完调用 `unsafe_set_end` 移动 end 指针。
 
 ## TODO: wwjson.hpp 写入浮点数优化
 
@@ -603,12 +613,6 @@ KString 是 `StringBuffer<255>` 别名，kUnsafeLevel=0xFF 最大值。
 再仔细分析一下浮点数序列化预留多少空间是足够的，有必要现在写的 256 字节那么长
 吗？如果仅因为考虑 long double 才要这么长，可以拒绝支持 sizeof 大于 8 字节的浮
 点数。
-
-## TODO: wwjson.hpp 优化字符串转义方法
-
-优化 `BasicConfig::EscapeString` 方法，
-当 `unsafe_level<stringT>` 的值不小于 4 时，可避免临时 buffer 的使用，
-直接向 stringT 末尾写入转义的字符，先预留两倍空间。
 
 ## TODO: wwjson.hpp 优化整数序列化
 

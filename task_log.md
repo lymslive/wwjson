@@ -1606,3 +1606,95 @@ using KString = StringBuffer<255>;
 
 **测试结果:** 所有测试用例通过。
 
+## TASK:20260104-001348
+-----------------------
+
+**关联需求**: 2026-01-03/1 - wwjson.hpp 根据 unsafe level 重构 GenericBuilder
+
+### 任务概述
+
+根据 `unsafe_level<stringT>` 配置，将逗号、冒号、引号的写入操作重构为使用不安全方法（当 unsafe_level >= 4 时），以提升性能。括号 `[]` 和 `{}` 仍必须使用安全的 `PutChar` 方法以保持结构完整性。
+
+### 完成内容
+
+**1. 新增 UnsafePutChar 方法** (`include/wwjson.hpp:808-828`)
+- 添加了 `UnsafePutChar(char c)` 方法到 M1 区域
+- 使用 `if constexpr (unsafe_level_v<stringT> >= 4)` 编译期条件判断
+- unsafe_level >= 4 时调用 `json.unsafe_push_back(c)`
+- 否则调用安全的 `json.push_back(c)`
+- 添加了详细的文档说明设计理由和使用场景
+
+**2. 替换逗号写入** (`include/wwjson.hpp:870`)
+- `PutNext()`: `PutChar(',')` → `UnsafePutChar(',')`
+- `SepItem()` 通过 `PutNext()` 间接使用 `UnsafePutChar(',')`
+
+**3. 替换冒号和引号写入** (`include/wwjson.hpp:1084-1094`)
+- `PutKey()` 方法:
+  - 开引号: `PutChar('"')` → `UnsafePutChar('"')`
+  - 冒号: `PutChar(':')` → `UnsafePutChar(':')`
+  - 闭引号: `PutChar('"')` → `UnsafePutChar('"')`
+
+**4. 替换字符串值的引号写入** (`include/wwjson.hpp:1045,1054`)
+- `PutValue(const char*, size_t)`:
+  - 开引号: `PutChar('"')` → `UnsafePutChar('"')`
+  - 闭引号: `PutChar('"')` → `UnsafePutChar('"')`
+
+**5. 替换 AddItemEscape 的引号写入** (`include/wwjson.hpp:1282,1284`)
+- `AddItemEscape()`:
+  - 开引号: `PutChar('"')` → `UnsafePutChar('"')`
+  - 闭引号: `PutChar('"')` → `UnsafePutChar('"')`
+
+**6. 替换 AddMemberEscape 的引号和冒号** (`include/wwjson.hpp:1320,1331,1332`)
+- `AddMemberEscape()`:
+  - 开引号: `PutChar('"')` → `UnsafePutChar('"')`
+  - 闭引号: `PutChar('"')` → `UnsafePutChar('"')`
+  - 冒号: `PutChar(':')` → `UnsafePutChar(':')`
+
+**7. 替换 AddItem 数字引用的引号写入** (`include/wwjson.hpp:1147,1149,1164,1166`)
+- `AddItem(numberT)` (kQuoteNumber 模式):
+  - 开引号: `PutChar('"')` → `UnsafePutChar('"')`
+  - 闭引号: `PutChar('"')` → `UnsafePutChar('"')`
+- `AddItem(numberT, bool)` (强制引用):
+  - 开引号: `PutChar('"')` → `UnsafePutChar('"')`
+  - 闭引号: `PutChar('"')` → `UnsafePutChar('"')`
+
+**8. 验证括号仍使用安全方法**
+确认以下括号操作保持使用 `PutChar()`:
+- `BeginArray()`: `PutChar('[')`
+- `EndArray()`: `PutChar(']')`
+- `BeginObject()`: `PutChar('{')`
+- `EndObject()`: `PutChar('}')`
+- `BeginRoot()`: `PutChar(bracket)`
+- `EndRoot()`: `PutChar(bracket)`
+
+### 技术细节
+
+**unsafe_level 行为:**
+- `unsafe_level < 4`: 使用安全的 `push_back()`（如 std::string, BufferView）
+- `unsafe_level >= 4`: 使用不安全的 `unsafe_push_back()`（如 StringBuffer<4>, StringBuffer<255>）
+- 不安全方法跳过容量检查，前提是已预留足够的不安全边距
+
+**性能优化目标:**
+- 对于具有高 unsafe_level 的字符串类型（如 KString），减少频繁的容量检查
+- 格式字符（逗号、冒号、引号）写入频率高，优化收益明显
+- 结构字符（括号）保持安全写入，确保 JSON 结构正确性
+
+### 测试结果
+
+所有 109 个测试用例全部通过，验证了重构的正确性：
+- 基本功能测试：通过
+- 数字序列化测试：通过
+- 作用域管理测试：通过
+- 自定义字符串类型测试：通过
+- 字符串转义测试：通过
+- 高级特性测试：通过
+- 操作符重载测试：通过
+- 自定义构建器测试：通过
+
+### 修改文件
+
+- `include/wwjson.hpp`:
+  - 新增 `UnsafePutChar()` 方法（约 20 行）
+  - 修改 8 处 `PutChar()` 调用为 `UnsafePutChar()`
+  - 保持所有括号操作使用安全 `PutChar()`
+
