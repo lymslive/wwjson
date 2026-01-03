@@ -801,6 +801,32 @@ struct GenericBuilder
 
     void PutChar(char c) { json.push_back(c); }
 
+    /// @brief Append character using unsafe method when unsafe_level >= 4
+    /// @details
+    /// This method provides a performance optimization for string types that support
+    /// unsafe operations. When the string type has an unsafe_level of 4 or higher,
+    /// it uses unsafe_push_back which avoids repeated capacity checks. Otherwise,
+    /// it falls back to the safe push_back method.
+    ///
+    /// @par Design Rationale:
+    /// - **unsafe_level < 4**: Use safe push_back (e.g., std::string, BufferView)
+    /// - **unsafe_level >= 4**: Use unsafe_push_back (e.g., StringBuffer<4>, StringBuffer<255>)
+    ///
+    /// @note This is intended for format characters (comma, colon, quotes) that
+    /// are frequently written during JSON construction. Brackets []{} should still
+    /// use the safe PutChar method for structural integrity.
+    void UnsafePutChar(char c)
+    {
+        if constexpr (unsafe_level_v<stringT> >= 4)
+        {
+            json.unsafe_push_back(c);
+        }
+        else
+        {
+            json.push_back(c);
+        }
+    }
+
     void FixTail(char expected, char replacement)
     {
         if (wwjson_likely(!json.empty() && json.back() == expected))
@@ -841,7 +867,7 @@ struct GenericBuilder
     /* ---------------------------------------------------------------------- */
     /// @{ M2: JSON Character-level Methods
 
-    void PutNext() { PutChar(','); }
+    void PutNext() { UnsafePutChar(','); }
     void SepItem() { PutNext(); }
 
     /// @brief Begin a JSON array with opening bracket '['
@@ -1016,7 +1042,7 @@ struct GenericBuilder
     void PutValue(const char *pszVal, size_t len)
     {
         if (wwjson_unlikely(pszVal == nullptr)) { return; }
-        PutChar('"');
+        UnsafePutChar('"');
         if constexpr (configT::kEscapeValue)
         {
             configT::EscapeString(json, pszVal, len);
@@ -1025,7 +1051,7 @@ struct GenericBuilder
         {
             Append(pszVal, len);
         }
-        PutChar('"');
+        UnsafePutChar('"');
     }
 
     void PutValue(const char *pszVal)
@@ -1055,7 +1081,7 @@ struct GenericBuilder
     void PutKey(const char *pszKey, size_t len)
     {
         if (wwjson_unlikely(pszKey == nullptr)) { return; }
-        PutChar('"');
+        UnsafePutChar('"');
         if constexpr (configT::kEscapeKey)
         {
             configT::EscapeKey(json, pszKey, len);
@@ -1064,8 +1090,8 @@ struct GenericBuilder
         {
             Append(pszKey, len);
         }
-        PutChar('"');
-        PutChar(':');
+        UnsafePutChar('"');
+        UnsafePutChar(':');
     }
 
     void PutKey(const char *pszKey)
@@ -1118,9 +1144,9 @@ struct GenericBuilder
     {
         if constexpr (configT::kQuoteNumber)
         {
-            PutChar('"');
+            UnsafePutChar('"');
             PutValue(value);
-            PutChar('"');
+            UnsafePutChar('"');
         }
         else
         {
@@ -1135,9 +1161,9 @@ struct GenericBuilder
     std::enable_if_t<std::is_arithmetic_v<numberT>, void>
     AddItem(numberT value, bool /*asString*/)
     {
-        PutChar('"');
+        UnsafePutChar('"');
         PutValue(value);
-        PutChar('"');
+        UnsafePutChar('"');
         SepItem();
     }
 
@@ -1253,9 +1279,9 @@ struct GenericBuilder
     void AddItemEscape(const char *value, size_t len)
     {
         if (wwjson_unlikely(value == nullptr)) { return; }
-        PutChar('"');
+        UnsafePutChar('"');
         configT::EscapeString(json, value, len);
-        PutChar('"');
+        UnsafePutChar('"');
         SepItem();
     }
 
@@ -1291,7 +1317,7 @@ struct GenericBuilder
     template <typename keyT>
     std::enable_if_t<is_key_v<keyT>, void> AddMemberEscape(keyT&& key)
     {
-        PutChar('"');
+        UnsafePutChar('"');
         if constexpr (std::is_pointer_v<std::decay_t<keyT>>)
         {
             // const char*
@@ -1302,8 +1328,8 @@ struct GenericBuilder
             // std::string or std::string_view
             configT::EscapeKey(json, key.data(), key.length());
         }
-        PutChar('"');
-        PutChar(':');
+        UnsafePutChar('"');
+        UnsafePutChar(':');
     }
 
     /// @}
