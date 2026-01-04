@@ -615,6 +615,17 @@ KString 是 `StringBuffer<255>` 别名，kUnsafeLevel=0xFF 最大值。
 
 ### DONE:20260104-160928
 
+## TODO:2026-01-04/3 测试 UnsafeConfig 优化转义字符串的性能提升
+
+修改文件： `perf/p_string.cpp`
+
+扩展测试用例 `string_object_relative` 与 `string_escape_relative` 。
+各增加两个相对性能测试派生类:
+- 比较 `wwjson::RawBuilder`(std::string) 与 `wwjson::Builder`(JString)
+- 比较 `wwjson::RawBuilder`(std::string) 与 `wwjson::FastBuilder`(KString)
+
+### DONE:20260104-175151
+
 ## TODO: wwjson.hpp 写入浮点数优化
 
 优化 `NumberWriter::Output` 浮点数版的正常分支，

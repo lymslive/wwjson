@@ -1755,3 +1755,31 @@ using KString = StringBuffer<255>;
 
 - `include/jbuilder.hpp`: 添加 `UnsafeConfig` 模板类，更新所有类型别名
 
+
+## TASK:20260104-175151
+-----------------------
+
+### 任务内容
+
+扩展 p_string.cpp 性能测试，比较 RawBuilder(std::string) vs Builder(JString) vs FastBuilder(KString)
+
+### 实施过程
+
+1. 添加 JString/KString 构建函数 `BuildStringObjectJString` `BuildStringObjectKString` `BuildEscapeObjectJString` `BuildEscapeObjectKString`
+
+2. 添加相对性能测试类 `StringObjectJStringRelativeTest` `StringObjectKStringRelativeTest` `EscapeObjectJStringRelativeTest` `EscapeObjectKStringRelativeTest`
+
+3. 扩展 `string_object_relative` 和 `string_escape_relative` 测试用例
+
+4. **修复 Bug**: 初始实现传入 `KString` 对象给 FastBuilder 构造函数，导致 StringBuffer 拷贝。拷贝构造函数只分配 `size()` 而非 `capacity()` 空间，加上默认 Reserve(1024) 不足，引发写越界崩溃。改为直接使用 `FastBuilder(capacity)` 构造。
+
+### 测试结果
+
+- wwjson RawBuilder vs yyjson: wwjson 约 7-12% 更快
+- std::string vs JString: JString 约 5-18% 更快
+- std::string vs KString: KString 约 5-23% 更快
+
+### 修改文件
+
+- `perf/p_string.cpp`: 新增 4 个构建函数、4 个测试类、扩展 2 个测试用例
+
