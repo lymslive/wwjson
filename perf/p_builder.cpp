@@ -6,6 +6,7 @@
 
 #include "wwjson.hpp"
 #include "yyjson.h"
+#include "jbuilder.hpp"
 
 #include <filesystem>
 #include <fstream>
@@ -127,6 +128,68 @@ void BuildJson(std::string &dst, int n, int size = 1)
     // End the root object
     builder.EndObject();
 
+    dst = builder.MoveResult();
+}
+
+/**
+ * @brief Generate JSON data using Builder (GenericBuilder<JString>)
+ *
+ * Similar structure to BuildJson but uses wwjson::Builder with JString
+ * to test performance difference from std::string-based RawBuilder.
+ */
+void BuildJsonJString(std::string &dst, int n, int reserve_kb = 1)
+{
+    ::wwjson::Builder builder(reserve_kb * 1024);
+
+    builder.BeginObject();
+    for (int i = 0; i < n; i++)
+    {
+        std::string array_key = "item_" + std::to_string(i);
+        builder.BeginArray(array_key.c_str());
+        builder.AddItem(i + 1);
+        builder.AddItem((i + 1) * 1.5);
+        builder.AddItem(std::to_string(i + 1).c_str());
+        builder.EndArray();
+
+        std::string nested_key = "nested_" + std::to_string(i);
+        builder.BeginObject(nested_key.c_str());
+        builder.AddMember("id", i);
+        builder.AddMember("name", "Test Item");
+        builder.AddMember("value", i * 2.5);
+        builder.EndObject();
+    }
+    builder.EndObject();
+    dst = builder.MoveResult();
+}
+
+/**
+ * @brief Generate JSON data using FastBuilder (GenericBuilder<KString>)
+ *
+ * Similar structure to BuildJson but uses wwjson::FastBuilder with KString
+ * to test performance difference from std::string-based RawBuilder.
+ */
+void BuildJsonKString(std::string &dst, int n, int reserve_kb = 1)
+{
+    ::wwjson::FastBuilder builder(reserve_kb * 1024);
+
+    builder.BeginObject();
+    for (int i = 0; i < n; i++)
+    {
+        std::string array_key = "item_" + std::to_string(i);
+        builder.BeginArray(array_key.c_str());
+        builder.AddItem(i + 1);
+        builder.AddItem((i + 1) * 1.5);
+        builder.AddItem(std::to_string(i + 1).c_str());
+        builder.EndArray();
+
+        std::string nested_key = "nested_" + std::to_string(i);
+        builder.BeginObject(nested_key.c_str());
+        builder.AddMember("id", i);
+        builder.AddMember("name", "Test Item");
+        builder.AddMember("value", i * 2.5);
+        builder.EndObject();
+    }
+    builder.EndObject();
     dst = builder.MoveResult();
 }
 
@@ -586,7 +649,7 @@ struct BuildJsonRelativeTest : public test::perf::RelativeTimer<BuildJsonRelativ
     std::string wwjson_result;
     std::string yyjson_result;
 
-    BuildJsonRelativeTest(int items, int size = 1) : n(items), size_kb(size) 
+    BuildJsonRelativeTest(int items, int size = 1) : n(items), size_kb(size)
     {
         // Auto-estimate size if default (1)
         if (size_kb == 1)
@@ -598,36 +661,103 @@ struct BuildJsonRelativeTest : public test::perf::RelativeTimer<BuildJsonRelativ
     }
 
     // Method A: wwjson build
-    void methodA()
-    {
-        test::wwjson::BuildJson(wwjson_result, n, size_kb);
-    }
+    void methodA() { test::wwjson::BuildJson(wwjson_result, n, size_kb); }
 
     // Method B: yyjson build
-    void methodB()
+    void methodB() { test::yyjson::BuildJson(yyjson_result, n); }
+
+    // Verify the outputs are functionally equivalent.
+    // But for now, directly return true to skip verification
+    // Note: wwjson and yyjson may generate different JSON strings for floating point values
+    // (wwjson omits .0 suffix for whole numbers, yyjson includes it)
+    // So string comparison and document type comparison will fail
+    bool methodVerify() { return true; }
+
+    static const char *testName() { return "BuildJson Relative Test"; }
+    static const char *labelA() { return "wwjson"; }
+    static const char *labelB() { return "yyjson"; }
+};
+
+// Relative performance test: std::string vs JString
+struct BuildJsonJStringRelativeTest
+    : public test::perf::RelativeTimer<BuildJsonJStringRelativeTest>
+{
+    int n;
+    int size_kb;
+    std::string raw_result;
+    std::string jstring_result;
+
+    BuildJsonJStringRelativeTest(int items, int size = 1) : n(items), size_kb(size)
     {
-        test::yyjson::BuildJson(yyjson_result, n);
+        if (size_kb == 1)
+        {
+            std::string temp;
+            test::wwjson::BuildJson(temp, n, 1);
+            size_kb = (temp.size() / 1024) + 1;
+        }
     }
 
-    // Verify the outputs are functionally equivalent
+    // Method A: RawBuilder with std::string
+    void methodA() { test::wwjson::BuildJson(raw_result, n, size_kb); }
+
+    // Method B: Builder with JString
+    void methodB() { test::wwjson::BuildJsonJString(jstring_result, n, size_kb); }
+
+    // Verify both methods produce identical JSON strings
     bool methodVerify()
     {
-        // For now, directly return true to skip verification
-        // Note: wwjson and yyjson may generate different JSON strings for floating point values
-        // (wwjson omits .0 suffix for whole numbers, yyjson includes it)
-        // So string comparison and document type comparison will fail
-        return true;
+        test::wwjson::BuildJson(raw_result, n, size_kb);
+        test::wwjson::BuildJsonJString(jstring_result, n, size_kb); 
+        return raw_result == jstring_result;
     }
 
-    static const char* testName() { return "BuildJson Relative Test"; }
-    static const char* labelA() { return "wwjson"; }
-    static const char* labelB() { return "yyjson"; }
+    static const char *testName() { return "BuildJson JString Relative Test"; }
+    static const char *labelA() { return "std::string"; }
+    static const char *labelB() { return "JString"; }
+};
+
+// Relative performance test: std::string vs KString
+struct BuildJsonKStringRelativeTest
+    : public test::perf::RelativeTimer<BuildJsonKStringRelativeTest>
+{
+    int n;
+    int size_kb;
+    std::string raw_result;
+    std::string kstring_result;
+
+    BuildJsonKStringRelativeTest(int items, int size = 1) : n(items), size_kb(size)
+    {
+        if (size_kb == 1)
+        {
+            std::string temp;
+            test::wwjson::BuildJson(temp, n, 1);
+            size_kb = (temp.size() / 1024) + 1;
+        }
+    }
+
+    // Method A: RawBuilder with std::string
+    void methodA() { test::wwjson::BuildJson(raw_result, n, size_kb); }
+
+    // Method B: FastBuilder with KString
+    void methodB() { test::wwjson::BuildJsonKString(kstring_result, n, size_kb); }
+
+    // Verify both methods produce identical JSON strings
+    bool methodVerify()
+    {
+        test::wwjson::BuildJson(raw_result, n, size_kb);
+        test::wwjson::BuildJsonKString(kstring_result, n, size_kb); 
+        return raw_result == kstring_result;
+    }
+
+    static const char *testName() { return "BuildJson KString Relative Test"; }
+    static const char *labelA() { return "std::string"; }
+    static const char *labelB() { return "KString"; }
 };
 
 } // namespace test::perf
 
 // Relative performance test for JSON building
-DEF_TAST(build_relative, "JSON 构建相对性能测试（wwjson vs yyjson）")
+DEF_TAST(build_relative, "JSON 构建相对性能测试")
 {
     test::CArgv argv;
 
@@ -635,15 +765,47 @@ DEF_TAST(build_relative, "JSON 构建相对性能测试（wwjson vs yyjson）")
     std::vector<int> test_counts = {6, 12, 120, 1200}; // Corresponding to ~0.5k, 1k, 10k, 100k
     test_counts.push_back(argv.items); // Add user-specified items
 
+    DESC("=== Testing wwjson (RawBuilder) vs yyjson ===");
+    DESC("");
     for (int n : test_counts)
     {
-        test::perf::BuildJsonRelativeTest test(n, 1); // size will be auto-estimated
-        double ratio = test.runAndPrint(
+        // Test 1: wwjson vs yyjson
+        test::perf::BuildJsonRelativeTest test1(n, 1);
+        double ratio = test1.runAndPrint(
             "JSON Build Test (n=" + std::to_string(n) + ")",
-            "wwjson", "yyjson", 
-            argv.loop, 10
-        );
-        
+            "wwjson", "yyjson",
+            argv.loop, 10);
+
+        DESC("");
+    }
+
+    DESC("=== Testing std::string(RawBuilder) vs JString (Builder) ===");
+    DESC("");
+
+    for (int n : test_counts)
+    {
+        // Test 2: std::string (RawBuilder) vs JString (Builder)
+        test::perf::BuildJsonJStringRelativeTest test2(n, 1);
+        double ratio = test2.runAndPrint(
+            "JString Test (n=" + std::to_string(n) + ")",
+            "std::string", "JString",
+            argv.loop, 10);
+
+        DESC("");
+    }
+
+    DESC("=== Testing std::string(RawBuilder) vs KString (FastBuilder) ===");
+    DESC("");
+
+    for (int n : test_counts)
+    {
+        // Test 3: std::string (RawBuilder) vs KString (FastBuilder)
+        test::perf::BuildJsonKStringRelativeTest test3(n, 1);
+        double ratio = test3.runAndPrint(
+            "KString Test (n=" + std::to_string(n) + ")",
+            "std::string", "KString",
+            argv.loop, 10);
+
         DESC("");
     }
 }

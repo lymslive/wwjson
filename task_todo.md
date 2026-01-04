@@ -590,7 +590,18 @@ KString 是 `StringBuffer<255>` 别名，kUnsafeLevel=0xFF 最大值。
 
 ### DONE: 20260104-001348
 
-## TODO: 测试 UnsafePutChar 写格式字符提升性能情况
+## TODO:2026-01-04/1 测试 UnsafePutChar 写格式字符提升性能情况
+
+在 `perf/p_builder.cpp` 增加两个相对性能测试派生类。
+- 其一：比较写入目标分别是 std::string 与 wwjson::JString 是情况
+- 其二：比较写入目标分别是 std::string 与 wwjson::KString 是情况
+
+也就是在 `include/jbuilder.hpp` 新定义的两个 Builder 别名，与 wwjson.hpp 中最初
+的 RawBuilder 的比较。
+
+可以在原有的 `build_relative` 增加这两种测试类实例的调用。
+
+### DONE:20260104-141057
 
 ## TODO: 优化字符串转义方法
 

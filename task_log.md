@@ -1550,7 +1550,6 @@ using KString = StringBuffer<255>;
 - `include/jstring.hpp`: 添加 if constexpr 条件分支实现特化
 - `utest/t_jstring.cpp`: 新增 kstr_construct 和 kstr_reach_full 测试用例
 
-
 ### TASK:20251230-165622
 ------------------------
 
@@ -1698,3 +1697,28 @@ using KString = StringBuffer<255>;
   - 修改 8 处 `PutChar()` 调用为 `UnsafePutChar()`
   - 保持所有括号操作使用安全 `PutChar()`
 
+## TASK:20260104-141057
+------------------------
+
+完成 2026-01-04/1 需求：测试 UnsafePutChar 写格式字符提升性能情况
+
+### 实施内容
+
+1. 在 `perf/p_builder.cpp` 新增两个 JSON 构建函数：
+   - `BuildJsonJString()` 使用 `wwjson::Builder` (`GenericBuilder<JString>`)
+   - `BuildJsonKString()` 使用 `wwjson::FastBuilder` (`GenericBuilder<KString>`)
+
+2. 新增两个相对性能测试类：
+   - `BuildJsonJStringRelativeTest`: 比较 std::string (RawBuilder) vs JString (Builder)
+   - `BuildJsonKStringRelativeTest`: 比较 std::string (RawBuilder) vs KString (FastBuilder)
+
+3. 合并命名空间，避免重复声明 `namespace test::perf`
+
+4. JString/KString 测试添加显式验证：确认两种方式生成的 JSON 字符串完全相同
+
+### 性能测试结果
+
+- **JString vs std::string**: JString 快 6.6% ~ 28.7%
+- **KString vs std::string**: KString 快 19.4% ~ 30.1%
+
+测试全部通过（45 PASS, 0 FAIL）
