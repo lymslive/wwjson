@@ -603,13 +603,17 @@ KString 是 `StringBuffer<255>` 别名，kUnsafeLevel=0xFF 最大值。
 
 ### DONE:20260104-141057
 
-## TODO: 优化字符串转义方法
+## TODO:2026-01-04/2 优化字符串转义方法
 
 在 include/jbuilder.hpp 增加 UnsafeConfig ，继承 BasicConfig，
 覆盖优化 `BasicConfig::EscapeString` 方法。
 当 `unsafe_level<stringT>` 的值不小于 4 时，可避免临时 buffer 的使用，
 直接向 stringT 末尾写入转义的字符。
 先预留两倍空间，写完调用 `unsafe_set_end` 移动 end 指针。
+
+然后将 Builder 与 FastBuilder 别名所用的第二模板参数改为 UnsafeConfig.
+
+### DONE:20260104-160928
 
 ## TODO: wwjson.hpp 写入浮点数优化
 

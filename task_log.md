@@ -1722,3 +1722,36 @@ using KString = StringBuffer<255>;
 - **KString vs std::string**: KString 快 19.4% ~ 30.1%
 
 测试全部通过（45 PASS, 0 FAIL）
+
+## TASK:20260104-160928
+-----------------------
+
+完成 2026-01-04/2 需求：优化字符串转义方法
+
+### 实施内容
+
+1. **创建 UnsafeConfig 类** (`include/jbuilder.hpp`)
+   - 继承自 `BasicConfig<stringT>`
+   - 覆盖 `EscapeString` 静态方法
+   - 当 `unsafe_level<stringT> >= 4` 时，使用不安全操作优化
+
+2. **UnsafeConfig::EscapeString 优化策略**:
+   - 预申请 2 倍空间 `dst.reserve(dst.size() + len * 2)`
+   - 直接向目标字符串的内部缓冲区写入（指针算术）
+   - 使用 `dst.unsafe_set_end(write_ptr)` 更新结束位置
+   - 对于低 unsafe_level 类型，回退到父类安全实现
+
+3. **更新类型别名使用 UnsafeConfig**:
+   - `Builder` = `GenericBuilder<JString, UnsafeConfig<JString>>`
+   - `FastBuilder` = `GenericBuilder<KString, UnsafeConfig<KString>>`
+   - `JObject` / `JArray` / `FastObject` / `FastArray` 相应更新
+
+### 测试结果
+
+- 编译成功
+- 所有 109 个测试用例全部通过
+
+### 修改文件
+
+- `include/jbuilder.hpp`: 添加 `UnsafeConfig` 模板类，更新所有类型别名
+
