@@ -626,7 +626,7 @@ KString 是 `StringBuffer<255>` 别名，kUnsafeLevel=0xFF 最大值。
 
 ### DONE:20260104-175151
 
-## TODO: wwjson.hpp 写入浮点数优化
+## TODO:2026-01-04/4 wwjson.hpp 写入浮点数优化
 
 优化 `NumberWriter::Output` 浮点数版的正常分支，
 当 `unsafe_level<stringT>` 的值不小于 4 时，直接向 stringT 末尾调用
@@ -636,9 +636,10 @@ KString 是 `StringBuffer<255>` 别名，kUnsafeLevel=0xFF 最大值。
 
 这样可以减少临时 buffer 的使用。
 
-再仔细分析一下浮点数序列化预留多少空间是足够的，有必要现在写的 256 字节那么长
-吗？如果仅因为考虑 long double 才要这么长，可以拒绝支持 sizeof 大于 8 字节的浮
-点数。
+并将栈缓冲的 buffer[256] 上限改为 64 ，定义一个局部静态变量，以便在不同情况下
+复用。根据 unsafe level 将写入指针设为栈区 buffer 或目标字符串(StringBuffer)末尾。
+
+### DONE: 20260104-223107
 
 ## TODO: wwjson.hpp 优化整数序列化
 

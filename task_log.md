@@ -1783,3 +1783,52 @@ using KString = StringBuffer<255>;
 
 - `perf/p_string.cpp`: 新增 4 个构建函数、4 个测试类、扩展 2 个测试用例
 
+## TASK:20260104-223107
+-----------------------
+
+### 任务内容
+
+优化 `NumberWriter::Output` 浮点数版实现，减少临时 buffer 大小，支持直接写入 StringBuffer
+
+### 实施过程
+
+1. **分析 buffer 大小需求**
+   - float: %.9g 格式，最长约 17 字节
+   - double: %.17g 格式，最长约 25 字节
+   - long double: %.21Lg 格式，最长约 53 字节
+   - 结论: buffer[256] 过于保守，改为 buffer[64] 已足够
+
+2. **优化浮点数序列化逻辑**
+   - 将 `buffer[256]` 改为 `static thread_local char buffer[64]`
+   - 使用 `constexpr size_t kFloatBufferSize = 64` 统一管理 buffer 大小
+   - 根据 `unsafe_level_v<stringT>` 智能选择写入目标:
+     - unsafe_level < 4: 写入 thread_local buffer，再 append 到目标
+     - unsafe_level >= 4: 直接预留空间写入目标字符串末尾
+   - 使用 `if constexpr` 编译期判断是否支持 `std::to_chars`
+   - 统一格式化逻辑，避免代码重复
+
+3. **关键优化点**
+   - 减少栈内存使用: 256 → 64 字节
+   - 支持 StringBuffer 直接写入: 避免临时 buffer 拷贝
+   - thread_local 保证线程安全
+   - 逻辑简化: to_chars/snprintf 逻辑复用，仅前后根据 unsafe level 处理
+
+### 测试结果
+
+运行 `make test` 回归测试，全部 109 个测试用例通过。
+
+### 技术细节
+
+**优化前问题**:
+- buffer[256] 过大，浪费栈空间
+- 即使使用 StringBuffer，也需要临时 buffer 拷贝
+
+**优化后改进**:
+- buffer[64] 更合理，仍留有足够安全余量
+- unsafe_level >= 4 时直接写入 StringBuffer，减少拷贝
+- 代码更简洁，可维护性更好
+
+### 修改文件
+
+- `include/wwjson.hpp`: 优化 `NumberWriter::Output` 浮点数版实现
+

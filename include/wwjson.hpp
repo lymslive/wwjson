@@ -447,47 +447,65 @@ template <typename stringT> struct NumberWriter
             return;
         }
 
-        // --- Normal path for regular numbers ---
+        // Normal path for regular numbers
+        constexpr size_t kFloatBufferSize = 64;
+        static thread_local char buffer[kFloatBufferSize];
+        char* write_ptr = buffer;
+        size_t written_len = 0;
+
+        // Set write pointer based on unsafe level
+        if constexpr (unsafe_level_v<stringT> >= 4)
+        {
+            dst.reserve_ex(kFloatBufferSize);
+            write_ptr = dst.end();
+        }
+
         if constexpr (has_float_to_chars_v<floatT>)
         {
-            char buffer[256];
-            auto result = std::to_chars(buffer, buffer + sizeof(buffer), value); // , std::chars_format::general
+            auto result = std::to_chars(write_ptr, write_ptr + kFloatBufferSize, value);
             if (result.ec == std::errc{})
             {
-                dst.append(buffer, static_cast<size_t>(result.ptr - buffer));
-                return;
+                written_len = static_cast<size_t>(result.ptr - write_ptr);
             }
         }
-
-        // --- Fallback path without std::to_chars ---
-        char buffer[256];
-        int len = 0;
-
+        else
+        {
+            // Fallback to snprintf if to_chars  unavailable
+            int len = 0;
 #if WWJSON_USE_SIMPLE_FLOAT_FORMAT
-        // Simple format - shorter output
-        len = std::snprintf(buffer, sizeof(buffer), "%g", value);
+            len = std::snprintf(write_ptr, kFloatBufferSize, "%g", value);
 #else
-        // High precision format - more accurate
-        if constexpr (std::is_same_v<floatT, float>)
-        {
-            len = std::snprintf(buffer, sizeof(buffer), "%.9g", value);
-        }
-        else if constexpr (std::is_same_v<floatT, double>)
-        {
-            len = std::snprintf(buffer, sizeof(buffer), "%.17g", value);
-        }
-        else if constexpr (std::is_same_v<floatT, long double>)
-        {
-            len = std::snprintf(buffer, sizeof(buffer), "%.21Lg", value);
-        }
+            if constexpr (std::is_same_v<floatT, float>)
+            {
+                len = std::snprintf(write_ptr, kFloatBufferSize, "%.9g", value);
+            }
+            else if constexpr (std::is_same_v<floatT, double>)
+            {
+                len = std::snprintf(write_ptr, kFloatBufferSize, "%.17g", value);
+            }
+            else if constexpr (std::is_same_v<floatT, long double>)
+            {
+                len = std::snprintf(write_ptr, kFloatBufferSize, "%.21Lg", value);
+            }
 #endif
+            written_len = static_cast<size_t>(len);
+        }
 
-        if (wwjson_likely(len > 0 && static_cast<size_t>(len) < sizeof(buffer)))
+        // Append result to destination based on unsafe level
+        if (wwjson_likely(written_len > 0 && written_len < kFloatBufferSize))
         {
-            dst.append(buffer, static_cast<size_t>(len));
+            if constexpr (unsafe_level_v<stringT> >= 4)
+            {
+                dst.unsafe_set_end(write_ptr + written_len);
+            }
+            else
+            {
+                dst.append(write_ptr, written_len);
+            }
             return;
         }
 
+        // Last fall back path
         dst.append(std::to_string(value));
     }
 };
