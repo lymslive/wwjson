@@ -389,6 +389,11 @@ template <typename stringT> struct NumberWriter
         
         char buffer[5];
         char* ptr = buffer;
+        if constexpr (unsafe_level_v<stringT> >= 4)
+        {
+            ptr = dst.end();
+        }
+
         *ptr++ = '.';
         ::memcpy(ptr, digit_q, 2);
         ptr += 2;
@@ -397,7 +402,15 @@ template <typename stringT> struct NumberWriter
         
         --ptr;
         while (*ptr == '0') { --ptr; }
-        dst.append(buffer, ptr - buffer + 1);
+
+        if constexpr (unsafe_level_v<stringT> >= 4)
+        {
+            dst.unsafe_set_end(ptr + 1);
+        }
+        else
+        {
+            dst.append(buffer, ptr - buffer + 1);
+        }
 
         return true;
     }
@@ -435,9 +448,23 @@ template <typename stringT> struct NumberWriter
             return;
         }
 
+        constexpr size_t kFloatBufferSize = 64;
+        static thread_local char buffer[kFloatBufferSize];
+        if constexpr (unsafe_level_v<stringT> >= 4)
+        {
+            dst.reserve_ex(kFloatBufferSize);
+        }
+
         if (value < 0)
         {
-            dst.push_back('-');
+            if constexpr (unsafe_level_v<stringT> >= 4)
+            {
+                dst.unsafe_push_back('-');
+            }
+            else
+            {
+                dst.push_back('-');
+            }
             value = -value;
         }
 
@@ -447,16 +474,11 @@ template <typename stringT> struct NumberWriter
             return;
         }
 
-        // Normal path for regular numbers
-        constexpr size_t kFloatBufferSize = 64;
-        static thread_local char buffer[kFloatBufferSize];
-        char* write_ptr = buffer;
-        size_t written_len = 0;
-
         // Set write pointer based on unsafe level
+        size_t written_len = 0;
+        char* write_ptr = buffer;
         if constexpr (unsafe_level_v<stringT> >= 4)
         {
-            dst.reserve_ex(kFloatBufferSize);
             write_ptr = dst.end();
         }
 
