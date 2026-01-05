@@ -4,6 +4,7 @@
 #include "relative_perf.h"
 
 #include "wwjson.hpp"
+#include "jbuilder.hpp"
 #include "xyjson.h"
 #include "yyjson.h"
 
@@ -287,15 +288,17 @@ class RandomIntArray : public RelativeTimer<RandomIntArray>
     // Configuration
     int items;
     int seed;
+    size_t capacity;
 
     // Test data
     std::string result;
     std::vector<int> random_numbers;
 
     RandomIntArray(int items_count, int random_seed)
-        : items(items_count), seed(random_seed)
+        : items(items_count), seed(random_seed), capacity(0)
     {
         generateRandomNumbers();
+        estimateCapacity();
     }
 
     void generateRandomNumbers()
@@ -313,10 +316,16 @@ class RandomIntArray : public RelativeTimer<RandomIntArray>
         }
     }
 
+    void estimateCapacity()
+    {
+        methodA(); // Use methodA to build once
+        capacity = result.size();
+    }
+
     void methodA()
     {
         // Using wwjson builder with random numbers
-        ::wwjson::RawBuilder builder(items * 10); // Estimate capacity
+        ::wwjson::RawBuilder builder(capacity);
         builder.BeginArray();
 
         for (int num : random_numbers)
@@ -383,15 +392,17 @@ class RandomDoubleArray : public RelativeTimer<RandomDoubleArray>
     // Configuration
     int items;
     int seed;
+    size_t capacity;
 
     // Test data
     std::string result;
     std::vector<double> random_doubles;
 
     RandomDoubleArray(int items_count, int random_seed)
-        : items(items_count), seed(random_seed)
+        : items(items_count), seed(random_seed), capacity(0)
     {
         generateRandomNumbers();
+        estimateCapacity();
     }
 
     void generateRandomNumbers()
@@ -412,10 +423,16 @@ class RandomDoubleArray : public RelativeTimer<RandomDoubleArray>
         }
     }
 
+    void estimateCapacity()
+    {
+        methodA(); // Use methodA to build once
+        capacity = result.size();
+    }
+
     void methodA()
     {
         // Using wwjson builder with random doubles
-        ::wwjson::RawBuilder builder(items * 20); // Estimate capacity
+        ::wwjson::RawBuilder builder(capacity);
         builder.BeginArray();
 
         for (double f : random_doubles)
@@ -510,6 +527,344 @@ class RandomDoubleArray : public RelativeTimer<RandomDoubleArray>
 
         return true;
     }
+};
+
+/**
+ * @brief Relative performance test: std::string (RawBuilder) vs JString (Builder) for integers
+ */
+class RandomIntJStringRel : public RelativeTimer<RandomIntJStringRel>
+{
+  public:
+    int items;
+    int seed;
+    size_t capacity;
+    std::string raw_result;
+    std::string jstring_result;
+    std::vector<int> random_numbers;
+
+    RandomIntJStringRel(int items_count, int random_seed)
+        : items(items_count), seed(random_seed), capacity(0)
+    {
+        generateRandomNumbers();
+        estimateCapacity();
+    }
+
+    void generateRandomNumbers()
+    {
+        std::srand(seed);
+        random_numbers.clear();
+        random_numbers.reserve(items);
+
+        for (int i = 0; i < items; i++)
+        {
+            int random_val =
+                std::rand() % 2000001 - 1000000;
+            random_numbers.push_back(random_val);
+        }
+    }
+
+    void estimateCapacity()
+    {
+        // Build once with RawBuilder to get actual output size
+        ::wwjson::RawBuilder builder(items * 10);
+        builder.BeginArray();
+        for (int num : random_numbers)
+        {
+            builder.AddItem(num);
+            builder.AddItem(-num);
+        }
+        builder.EndArray();
+        capacity = builder.MoveResult().size();
+    }
+
+    void methodA()
+    {
+        ::wwjson::RawBuilder builder(capacity);
+        builder.BeginArray();
+
+        for (int num : random_numbers)
+        {
+            builder.AddItem(num);
+            builder.AddItem(-num);
+        }
+
+        builder.EndArray();
+        raw_result = builder.MoveResult();
+    }
+
+    void methodB()
+    {
+        ::wwjson::Builder builder(capacity);
+        builder.BeginArray();
+
+        for (int num : random_numbers)
+        {
+            builder.AddItem(num);
+            builder.AddItem(-num);
+        }
+
+        builder.EndArray();
+        jstring_result = builder.MoveResult();
+    }
+
+    bool methodVerify()
+    {
+        methodA();
+        methodB();
+        return raw_result == jstring_result;
+    }
+
+    static const char* testName() { return "Random Int JString Relative Test"; }
+    static const char* labelA() { return "std::string"; }
+    static const char* labelB() { return "JString"; }
+};
+
+/**
+ * @brief Relative performance test: std::string (RawBuilder) vs KString (FastBuilder) for integers
+ */
+class RandomIntKStringRel : public RelativeTimer<RandomIntKStringRel>
+{
+  public:
+    int items;
+    int seed;
+    size_t capacity;
+    std::string raw_result;
+    std::string kstring_result;
+    std::vector<int> random_numbers;
+
+    RandomIntKStringRel(int items_count, int random_seed)
+        : items(items_count), seed(random_seed), capacity(0)
+    {
+        generateRandomNumbers();
+        estimateCapacity();
+    }
+
+    void generateRandomNumbers()
+    {
+        std::srand(seed);
+        random_numbers.clear();
+        random_numbers.reserve(items);
+
+        for (int i = 0; i < items; i++)
+        {
+            int random_val =
+                std::rand() % 2000001 - 1000000;
+            random_numbers.push_back(random_val);
+        }
+    }
+
+    void estimateCapacity()
+    {
+        methodA(); // Use methodA to build once
+        capacity = raw_result.size();
+    }
+
+    void methodA()
+    {
+        ::wwjson::RawBuilder builder(capacity);
+        builder.BeginArray();
+
+        for (int num : random_numbers)
+        {
+            builder.AddItem(num);
+            builder.AddItem(-num);
+        }
+
+        builder.EndArray();
+        raw_result = builder.MoveResult();
+    }
+
+    void methodB()
+    {
+        ::wwjson::FastBuilder builder(capacity);
+        builder.BeginArray();
+
+        for (int num : random_numbers)
+        {
+            builder.AddItem(num);
+            builder.AddItem(-num);
+        }
+
+        builder.EndArray();
+        kstring_result = builder.MoveResult();
+    }
+
+    bool methodVerify()
+    {
+        methodA();
+        methodB();
+        return raw_result == kstring_result;
+    }
+
+    static const char* testName() { return "Random Int KString Relative Test"; }
+    static const char* labelA() { return "std::string"; }
+    static const char* labelB() { return "KString"; }
+};
+
+/**
+ * @brief Relative performance test: std::string (RawBuilder) vs JString (Builder) for doubles
+ */
+class RandomDoubleJStringRel : public RelativeTimer<RandomDoubleJStringRel>
+{
+  public:
+    int items;
+    int seed;
+    size_t capacity;
+    std::string raw_result;
+    std::string jstring_result;
+    std::vector<double> random_doubles;
+
+    RandomDoubleJStringRel(int items_count, int random_seed)
+        : items(items_count), seed(random_seed), capacity(0)
+    {
+        generateRandomNumbers();
+        estimateCapacity();
+    }
+
+    void generateRandomNumbers()
+    {
+        std::srand(seed);
+        random_doubles.clear();
+        random_doubles.reserve(items);
+
+        for (int i = 0; i < items; i++)
+        {
+            int m = std::rand() % 2000001 - 1000000;
+            int n = std::rand() % 10000;
+            double f = static_cast<double>(m) + n / 10000.0;
+            random_doubles.push_back(f);
+        }
+    }
+
+    void estimateCapacity()
+    {
+        methodA(); // Use methodA to build once
+        capacity = raw_result.size();
+    }
+
+    void methodA()
+    {
+        ::wwjson::RawBuilder builder(capacity);
+        builder.BeginArray();
+
+        for (double f : random_doubles)
+        {
+            builder.AddItem(f);
+            builder.AddItem(-f);
+        }
+
+        builder.EndArray();
+        raw_result = builder.MoveResult();
+    }
+
+    void methodB()
+    {
+        ::wwjson::Builder builder(capacity);
+        builder.BeginArray();
+
+        for (double f : random_doubles)
+        {
+            builder.AddItem(f);
+            builder.AddItem(-f);
+        }
+
+        builder.EndArray();
+        jstring_result = builder.MoveResult();
+    }
+
+    bool methodVerify()
+    {
+        methodA();
+        methodB();
+        return raw_result == jstring_result;
+    }
+
+    static const char* testName() { return "Random Double JString Relative Test"; }
+    static const char* labelA() { return "std::string"; }
+    static const char* labelB() { return "JString"; }
+};
+
+/**
+ * @brief Relative performance test: std::string (RawBuilder) vs KString (FastBuilder) for doubles
+ */
+class RandomDoubleKStringRel : public RelativeTimer<RandomDoubleKStringRel>
+{
+  public:
+    int items;
+    int seed;
+    size_t capacity;
+    std::string raw_result;
+    std::string kstring_result;
+    std::vector<double> random_doubles;
+
+    RandomDoubleKStringRel(int items_count, int random_seed)
+        : items(items_count), seed(random_seed), capacity(0)
+    {
+        generateRandomNumbers();
+        estimateCapacity();
+    }
+
+    void generateRandomNumbers()
+    {
+        std::srand(seed);
+        random_doubles.clear();
+        random_doubles.reserve(items);
+
+        for (int i = 0; i < items; i++)
+        {
+            int m = std::rand() % 2000001 - 1000000;
+            int n = std::rand() % 10000;
+            double f = static_cast<double>(m) + n / 10000.0;
+            random_doubles.push_back(f);
+        }
+    }
+
+    void estimateCapacity()
+    {
+        methodA(); // Use methodA to build once
+        capacity = raw_result.size();
+    }
+
+    void methodA()
+    {
+        ::wwjson::RawBuilder builder(capacity);
+        builder.BeginArray();
+
+        for (double f : random_doubles)
+        {
+            builder.AddItem(f);
+            builder.AddItem(-f);
+        }
+
+        builder.EndArray();
+        raw_result = builder.MoveResult();
+    }
+
+    void methodB()
+    {
+        ::wwjson::FastBuilder builder(capacity);
+        builder.BeginArray();
+
+        for (double f : random_doubles)
+        {
+            builder.AddItem(f);
+            builder.AddItem(-f);
+        }
+
+        builder.EndArray();
+        kstring_result = builder.MoveResult();
+    }
+
+    bool methodVerify()
+    {
+        methodA();
+        methodB();
+        return raw_result == kstring_result;
+    }
+
+    static const char* testName() { return "Random Double KString Relative Test"; }
+    static const char* labelA() { return "std::string"; }
+    static const char* labelB() { return "KString"; }
 };
 
 } // namespace perf
@@ -957,10 +1312,23 @@ DEF_TAST(number_int_rel, "随机整数数组相对性能测试")
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items,
          argv.loop);
 
-    test::perf::RandomIntArray tester(argv.items, argv.start);
-    double ratio = tester.runAndPrint("Random Integer Array", "wwjson builder",
-                                      "yyjson API", argv.loop, 10);
-    DESC("Performance ratio: %.3f", ratio);
+    // Test 1: wwjson vs yyjson
+    test::perf::RandomIntArray tester1(argv.items, argv.start);
+    double ratio1 = tester1.runAndPrint("wwjson vs yyjson", "wwjson builder",
+                                        "yyjson API", argv.loop, 10);
+    DESC("wwjson/yyjson ratio: %.3f", ratio1);
+
+    // Test 2: std::string vs JString
+    test::perf::RandomIntJStringRel tester2(argv.items, argv.start);
+    double ratio2 = tester2.runAndPrint("std::string vs JString", "std::string",
+                                        "JString", argv.loop, 10);
+    DESC("std::string/JString ratio: %.3f", ratio2);
+
+    // Test 3: std::string vs KString
+    test::perf::RandomIntKStringRel tester3(argv.items, argv.start);
+    double ratio3 = tester3.runAndPrint("std::string vs KString", "std::string",
+                                        "KString", argv.loop, 10);
+    DESC("std::string/KString ratio: %.3f", ratio3);
 }
 
 // Relative performance test for random double arrays
@@ -970,8 +1338,21 @@ DEF_TAST(number_double_rel, "随机 double 数组相对性能测试")
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items,
          argv.loop);
 
-    test::perf::RandomDoubleArray tester(argv.items, argv.start);
-    double ratio = tester.runAndPrint("Random Double Array", "wwjson builder",
-                                      "yyjson API", argv.loop, 10);
-    DESC("Performance ratio: %.3f", ratio);
+    // Test 1: wwjson vs yyjson
+    test::perf::RandomDoubleArray tester1(argv.items, argv.start);
+    double ratio1 = tester1.runAndPrint("wwjson vs yyjson", "wwjson builder",
+                                        "yyjson API", argv.loop, 10);
+    DESC("wwjson/yyjson ratio: %.3f", ratio1);
+
+    // Test 2: std::string vs JString
+    test::perf::RandomDoubleJStringRel tester2(argv.items, argv.start);
+    double ratio2 = tester2.runAndPrint("std::string vs JString", "std::string",
+                                        "JString", argv.loop, 10);
+    DESC("std::string/JString ratio: %.3f", ratio2);
+
+    // Test 3: std::string vs KString
+    test::perf::RandomDoubleKStringRel tester3(argv.items, argv.start);
+    double ratio3 = tester3.runAndPrint("std::string vs KString", "std::string",
+                                        "KString", argv.loop, 10);
+    DESC("std::string/KString ratio: %.3f", ratio3);
 }

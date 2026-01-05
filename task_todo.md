@@ -641,6 +641,15 @@ KString 是 `StringBuffer<255>` 别名，kUnsafeLevel=0xFF 最大值。
 
 ### DONE: 20260104-223107
 
+## TODO:2026-01-05/1 测试 jbuilder.cpp 数字序列化相对性能
+
+修改文件 `perf/p_number.cpp` ，扩展用例 `number_int_rel` 与 `number_double_rel` 。
+各增加两个相对性能测试派生类：
+- 比较 `wwjson::RawBuilder`(std::string) 与 `wwjson::Builder`(JString)
+- 比较 `wwjson::RawBuilder`(std::string) 与 `wwjson::FastBuilder`(KString)
+
+### DONE:20260105-142249
+
 ## TODO: wwjson.hpp 优化整数序列化
 
 优化 `NumberWriter::Output` 整数版，当 `unsafe_level<stringT>` 的值不小于 4 时，

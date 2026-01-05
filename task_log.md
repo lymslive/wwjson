@@ -1832,3 +1832,38 @@ using KString = StringBuffer<255>;
 
 - `include/wwjson.hpp`: 优化 `NumberWriter::Output` 浮点数版实现
 
+## TASK:20260105-142249
+-----------------------
+
+### 任务内容
+
+扩展 p_number.cpp 数字序列化相对性能测试，比较 RawBuilder(std::string) vs Builder(JString) vs FastBuilder(KString)
+
+### 实施内容
+
+1. **扩展 `number_int_rel` 测试用例**:
+   - 新增 `RandomIntJStringRel` 测试类：比较 std::string vs JString
+   - 新增 `RandomIntKStringRel` 测试类：比较 std::string vs KString
+   - 原有的 `RandomIntArray` 保留wwjson vs yyjson 比较
+
+2. **扩展 `number_double_rel` 测试用例**:
+   - 新增 `RandomDoubleJStringRel` 测试类：比较 std::string vs JString
+   - 新增 `RandomDoubleKStringRel` 测试类：比较 std::string vs KString
+   - 原有的 `RandomDoubleArray` 保留wwjson vs yyjson 比较
+
+3. **容量预估优化**:
+   - 所有相对测试类新增 `estimateCapacity()` 方法
+   - 通过一次预构建获取实际输出大小，保存为 `capacity` 成员
+   - `methodA` 和 `methodB` 使用精确容量，避免额外分配
+
+### 测试结果
+
+- 整数测试：JString 快 ~5%，KString 快 ~42%
+- 浮点数测试：JString 与 std::string 基本持平，KString 也基本持平
+- yyjson 浮点序列化性能远优于 wwjson (~22倍差距)
+
+### 修改文件
+
+- `perf/p_number.cpp`: 新增 4 个测试类，扩展 2 个测试用例
+- 包含 `jbuilder.hpp` 以使用 Builder/FastBuilder 类型
+
