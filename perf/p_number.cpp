@@ -882,7 +882,7 @@ class RandomDoubleKStringRel : public RelativeTimer<RandomDoubleKStringRel>
  */
 
 // Performance test for wwjson int8 array building
-DEF_TAST(number_int8_wwjson, "wwjson int8 数组构建性能测试")
+DEF_TOOL(number_int8_wwjson, "wwjson int8 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -919,7 +919,7 @@ DEF_TAST(number_int8_wwjson, "wwjson int8 数组构建性能测试")
 }
 
 // Performance test for yyjson int8 array building
-DEF_TAST(number_int8_yyjson, "yyjson int8 数组构建性能测试")
+DEF_TOOL(number_int8_yyjson, "yyjson int8 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -945,7 +945,7 @@ DEF_TAST(number_int8_yyjson, "yyjson int8 数组构建性能测试")
 }
 
 // Performance test for wwjson int16 array building
-DEF_TAST(number_int16_wwjson, "wwjson int16 数组构建性能测试")
+DEF_TOOL(number_int16_wwjson, "wwjson int16 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -983,7 +983,7 @@ DEF_TAST(number_int16_wwjson, "wwjson int16 数组构建性能测试")
 }
 
 // Performance test for yyjson int16 array building
-DEF_TAST(number_int16_yyjson, "yyjson int16 数组构建性能测试")
+DEF_TOOL(number_int16_yyjson, "yyjson int16 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -1009,7 +1009,7 @@ DEF_TAST(number_int16_yyjson, "yyjson int16 数组构建性能测试")
 }
 
 // Performance test for wwjson int32 array building
-DEF_TAST(number_int32_wwjson, "wwjson int32 数组构建性能测试")
+DEF_TOOL(number_int32_wwjson, "wwjson int32 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -1047,7 +1047,7 @@ DEF_TAST(number_int32_wwjson, "wwjson int32 数组构建性能测试")
 }
 
 // Performance test for yyjson int32 array building
-DEF_TAST(number_int32_yyjson, "yyjson int32 数组构建性能测试")
+DEF_TOOL(number_int32_yyjson, "yyjson int32 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -1073,7 +1073,7 @@ DEF_TAST(number_int32_yyjson, "yyjson int32 数组构建性能测试")
 }
 
 // Performance test for wwjson int64 array building
-DEF_TAST(number_int64_wwjson, "wwjson int64 数组构建性能测试")
+DEF_TOOL(number_int64_wwjson, "wwjson int64 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -1111,7 +1111,7 @@ DEF_TAST(number_int64_wwjson, "wwjson int64 数组构建性能测试")
 }
 
 // Performance test for yyjson int64 array building
-DEF_TAST(number_int64_yyjson, "yyjson int64 数组构建性能测试")
+DEF_TOOL(number_int64_yyjson, "yyjson int64 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -1184,7 +1184,7 @@ DEF_TOOL(number_array_compare, "比较 wwjson 和 yyjson BuildIntArray 输出")
 }
 
 // Performance test for wwjson float array building
-DEF_TAST(number_float_wwjson, "wwjson float 数组构建性能测试")
+DEF_TOOL(number_float_wwjson, "wwjson float 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -1220,7 +1220,7 @@ DEF_TAST(number_float_wwjson, "wwjson float 数组构建性能测试")
 }
 
 // Performance test for yyjson float array building
-DEF_TAST(number_float_yyjson, "yyjson float 数组构建性能测试")
+DEF_TOOL(number_float_yyjson, "yyjson float 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -1245,7 +1245,7 @@ DEF_TAST(number_float_yyjson, "yyjson float 数组构建性能测试")
 }
 
 // Performance test for wwjson double array building
-DEF_TAST(number_double_wwjson, "wwjson double 数组构建性能测试")
+DEF_TOOL(number_double_wwjson, "wwjson double 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -1281,7 +1281,7 @@ DEF_TAST(number_double_wwjson, "wwjson double 数组构建性能测试")
 }
 
 // Performance test for yyjson double array building
-DEF_TAST(number_double_yyjson, "yyjson double 数组构建性能测试")
+DEF_TOOL(number_double_yyjson, "yyjson double 数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -1305,7 +1305,9 @@ DEF_TAST(number_double_yyjson, "yyjson double 数组构建性能测试")
     }
 }
 
-// Relative performance test for random integer arrays
+/* ============================================================ */
+/* Relative performance test */
+
 DEF_TAST(number_int_rel, "随机整数数组相对性能测试")
 {
     test::CArgv argv;
@@ -1331,7 +1333,6 @@ DEF_TAST(number_int_rel, "随机整数数组相对性能测试")
     DESC("std::string/KString ratio: %.3f", ratio3);
 }
 
-// Relative performance test for random double arrays
 DEF_TAST(number_double_rel, "随机 double 数组相对性能测试")
 {
     test::CArgv argv;

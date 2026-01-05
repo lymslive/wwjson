@@ -7,7 +7,6 @@
 性能测试框架旨在针对各种性能指标对 WWJSON 库与其他 JSON 库（主要是 yyjson）进行基准测试，包括：
 
 - JSON 序列化速度
-- 内存使用情况
 - 不同数据大小的吞吐量
 
 ## 结构
@@ -15,6 +14,7 @@
 - `p_builder.cpp` - JSON 构建器性能测试
 - `p_number.cpp` - 数字序列化性能测试
 - `p_string.cpp` - 字符串序列化性能测试
+- `p_api.cpp` - 不同 api 风格的性能测试
 - `p_design.cpp` - 设计选择性能测试
 - `argv.h` - 命令行参数处理
 - `relative_perf.h` - 相对性能测试框架
@@ -23,6 +23,10 @@
 ## 用例管理
 
 详细的用例列表请参考 [cases.md](./cases.md)，其中列出了所有性能测试用例的名称和描述。
+
+用例分类：
+- `DEF_TAST` - 相对性能测试，默认自动运行，用于比较 wwjson 与 yyjson 的性能
+- `DEF_TOOL` - 工具类测试，需要显式指定用例名才会运行，适合绝对性能测试和辅助工具
 
 用例命名规范：
 - 同一文件内的用例使用相同的前缀，一般与文件名相同
@@ -61,8 +65,11 @@ make build/perf
 # 列出所有可用测试
 ./build-release/perf/pfwwjson --List
 
-# 运行特定测试
-./build-release/perf/pfwwjson test_name
+# 运行所有相对性能测试（DEF_TAST，默认行为）
+./build-release/perf/pfwwjson
+
+# 运行特定测试（支持多个用例名）
+./build-release/perf/pfwwjson test_name1 test_name2
 
 # 运行所有测试（包括工具类测试）
 ./build-release/perf/pfwwjson --all

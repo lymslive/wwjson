@@ -289,7 +289,7 @@ void BuildJson(std::string &dst, int n)
  */
 
 // Performance test for wwjson builder with ~0.5k JSON (n=6)
-DEF_TAST(build_0_5k_wwjson, "wwjson 构建器性能测试（约 0.5k JSON，n=6）")
+DEF_TOOL(build_0_5k_wwjson, "wwjson 构建器性能测试（约 0.5k JSON，n=6）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -310,7 +310,7 @@ DEF_TAST(build_0_5k_wwjson, "wwjson 构建器性能测试（约 0.5k JSON，n=6�
 }
 
 // Performance test for yyjson builder with ~0.5k JSON (n=6)
-DEF_TAST(build_0_5k_yyjson, "yyjson 构建器性能测试（约 0.5k JSON，n=6）")
+DEF_TOOL(build_0_5k_yyjson, "yyjson 构建器性能测试（约 0.5k JSON，n=6）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -331,7 +331,7 @@ DEF_TAST(build_0_5k_yyjson, "yyjson 构建器性能测试（约 0.5k JSON，n=6�
 }
 
 // Performance test for wwjson builder with ~1k JSON (n=12)
-DEF_TAST(build_1k_wwjson, "wwjson 构建器性能测试（约 1k JSON，n=12）")
+DEF_TOOL(build_1k_wwjson, "wwjson 构建器性能测试（约 1k JSON，n=12）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -352,7 +352,7 @@ DEF_TAST(build_1k_wwjson, "wwjson 构建器性能测试（约 1k JSON，n=12）"
 }
 
 // Performance test for yyjson builder with ~1k JSON (n=12)
-DEF_TAST(build_1k_yyjson, "yyjson 构建器性能测试（约 1k JSON，n=12）")
+DEF_TOOL(build_1k_yyjson, "yyjson 构建器性能测试（约 1k JSON，n=12）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -373,7 +373,7 @@ DEF_TAST(build_1k_yyjson, "yyjson 构建器性能测试（约 1k JSON，n=12）"
 }
 
 // Performance test for wwjson builder with ~10k JSON (n=120)
-DEF_TAST(build_10k_wwjson, "wwjson 构建器性能测试（约 10k JSON，n=120）")
+DEF_TOOL(build_10k_wwjson, "wwjson 构建器性能测试（约 10k JSON，n=120）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -394,7 +394,7 @@ DEF_TAST(build_10k_wwjson, "wwjson 构建器性能测试（约 10k JSON，n=120�
 }
 
 // Performance test for yyjson builder with ~10k JSON (n=120)
-DEF_TAST(build_10k_yyjson, "yyjson 构建器性能测试（约 10k JSON，n=120）")
+DEF_TOOL(build_10k_yyjson, "yyjson 构建器性能测试（约 10k JSON，n=120）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -415,7 +415,7 @@ DEF_TAST(build_10k_yyjson, "yyjson 构建器性能测试（约 10k JSON，n=120�
 }
 
 // Performance test for wwjson builder with ~100k JSON (n=1200)
-DEF_TAST(build_100k_wwjson, "wwjson 构建器性能测试（约 100k JSON，n=1200）")
+DEF_TOOL(build_100k_wwjson, "wwjson 构建器性能测试（约 100k JSON，n=1200）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -436,7 +436,7 @@ DEF_TAST(build_100k_wwjson, "wwjson 构建器性能测试（约 100k JSON，n=12
 }
 
 // Performance test for yyjson builder with ~100k JSON (n=1200)
-DEF_TAST(build_100k_yyjson, "yyjson 构建器性能测试（约 100k JSON，n=1200）")
+DEF_TOOL(build_100k_yyjson, "yyjson 构建器性能测试（约 100k JSON，n=1200）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -457,7 +457,7 @@ DEF_TAST(build_100k_yyjson, "yyjson 构建器性能测试（约 100k JSON，n=12
 }
 
 // default args: --loop=1000 --items=1000
-DEF_TAST(build_ex_wwjson, "wwjson 构建器性能测试（自定义大小）")
+DEF_TOOL(build_ex_wwjson, "wwjson 构建器性能测试（自定义大小）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -488,7 +488,7 @@ DEF_TAST(build_ex_wwjson, "wwjson 构建器性能测试（自定义大小）")
     }
 }
 
-DEF_TAST(build_ex_yyjson, "yyjson 构建器性能测试（自定义大小）")
+DEF_TOOL(build_ex_yyjson, "yyjson 构建器性能测试（自定义大小）")
 {
     test::CArgv argv;
     std::string json_data;
@@ -756,7 +756,9 @@ struct BuildJsonKStringRelativeTest
 
 } // namespace test::perf
 
-// Relative performance test for JSON building
+/* ============================================================ */
+/* Relative performance test */
+
 DEF_TAST(build_relative, "JSON 构建相对性能测试")
 {
     test::CArgv argv;

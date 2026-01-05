@@ -650,6 +650,20 @@ KString 是 `StringBuffer<255>` 别名，kUnsafeLevel=0xFF 最大值。
 
 ### DONE:20260105-142249
 
+## TODO:2026-01-05/2 性能测试用例管理优化
+
+- 重构方向：以相对性能测试为主
+- 涉及目录：perf/
+
+将现有的所有非相对性能测试用例，从 `DEF_TAST` 改为 `DEF_TOOL` ，其唯一区别是在
+命令行参数没有明确指出时默认不会被运行。因为绝对时间测试不方便比较，故改为不自
+动运行了。
+
+检查优化更新 perf/README.md。再用 `make perf/list` 快捷命令更新 perf/cases.md
+用例列表。
+
+### DONE:20260105-173242
+
 ## TODO: wwjson.hpp 优化整数序列化
 
 优化 `NumberWriter::Output` 整数版，当 `unsafe_level<stringT>` 的值不小于 4 时，

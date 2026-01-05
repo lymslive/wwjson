@@ -1867,3 +1867,54 @@ using KString = StringBuffer<255>;
 - `perf/p_number.cpp`: 新增 4 个测试类，扩展 2 个测试用例
 - 包含 `jbuilder.hpp` 以使用 Builder/FastBuilder 类型
 
+## TASK:20260105-173242
+-----------------------
+
+### 任务内容
+
+性能测试用例管理优化：将绝对性能测试用例从 DEF_TAST 改为 DEF_TOOL
+
+### 分类原则
+
+- **DEF_TAST** (相对性能测试): 使用 `RelativeTimer::runAndPrint()` 方法，比较两种方法的性能比
+- **DEF_TOOL** (工具类测试): 使用 `TIME_TIC/TIME_TOC` 计时，仅测量绝对执行时间
+
+### 实施内容
+
+1. **p_number.cpp**: 13 个绝对时间测试改为 DEF_TOOL
+   - number_int8/16/32/64_wwjson/yyjson
+   - number_float/double_wwjson/yyjson
+   - number_array_compare
+
+2. **p_string.cpp**: 6 个绝对时间测试改为 DEF_TOOL
+   - string_array/object/escape_wwjson/yyjson
+   - string_compare
+
+3. **p_builder.cpp**: 10 个绝对时间测试改为 DEF_TOOL
+   - build_0_5k/1k/10k/100k_wwjson/yyjson
+   - build_ex_wwjson/yyjson
+   - build_sample/verify/size
+
+4. **保留为 DEF_TAST**:
+   - p_design.cpp: 7 个相对性能测试
+   - p_api.cpp: 5 个相对性能测试
+   - p_builder.cpp: build_relative
+   - p_string.cpp: string_object_relative, string_escape_relative
+   - p_number.cpp: number_int_rel, number_double_rel
+
+5. **更新文档**:
+   - perf/README.md: 添加用例分类说明
+   - perf/cases.md: 用 `make perf/list` 自动更新
+
+### 测试结果
+
+运行 `./build-release/perf/pfwwjson --all` 验证所有用例正常执行
+
+### 修改文件
+
+- `perf/p_number.cpp`: 13 个 DEF_TAST → DEF_TOOL
+- `perf/p_string.cpp`: 6 个 DEF_TAST → DEF_TOOL
+- `perf/p_builder.cpp`: 10 个 DEF_TAST → DEF_TOOL
+- `perf/README.md`: 添加用例分类说明
+- `perf/cases.md`: 自动更新用例列表
+

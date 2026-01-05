@@ -359,7 +359,7 @@ void BuildEscapeObject(std::string &dst, int start, int count)
  */
 
 // Performance test for wwjson string array building
-DEF_TAST(string_array_wwjson, "wwjson 字符串数组构建性能测试")
+DEF_TOOL(string_array_wwjson, "wwjson 字符串数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -395,7 +395,7 @@ DEF_TAST(string_array_wwjson, "wwjson 字符串数组构建性能测试")
 }
 
 // Performance test for yyjson string array building
-DEF_TAST(string_array_yyjson, "yyjson 字符串数组构建性能测试")
+DEF_TOOL(string_array_yyjson, "yyjson 字符串数组构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -420,7 +420,7 @@ DEF_TAST(string_array_yyjson, "yyjson 字符串数组构建性能测试")
 }
 
 // Performance test for wwjson string object building
-DEF_TAST(string_object_wwjson, "wwjson 字符串对象构建性能测试")
+DEF_TOOL(string_object_wwjson, "wwjson 字符串对象构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -456,7 +456,7 @@ DEF_TAST(string_object_wwjson, "wwjson 字符串对象构建性能测试")
 }
 
 // Performance test for yyjson string object building
-DEF_TAST(string_object_yyjson, "yyjson 字符串对象构建性能测试")
+DEF_TOOL(string_object_yyjson, "yyjson 字符串对象构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -481,7 +481,7 @@ DEF_TAST(string_object_yyjson, "yyjson 字符串对象构建性能测试")
 }
 
 // Performance test for wwjson escaped string object building
-DEF_TAST(string_escape_wwjson, "wwjson 转义字符串对象构建性能测试")
+DEF_TOOL(string_escape_wwjson, "wwjson 转义字符串对象构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -517,7 +517,7 @@ DEF_TAST(string_escape_wwjson, "wwjson 转义字符串对象构建性能测试")
 }
 
 // Performance test for yyjson escaped string object building
-DEF_TAST(string_escape_yyjson, "yyjson 转义字符串对象构建性能测试")
+DEF_TOOL(string_escape_yyjson, "yyjson 转义字符串对象构建性能测试")
 {
     test::CArgv argv;
     std::string json_data;
@@ -881,7 +881,9 @@ struct EscapeObjectKStringRelativeTest
 
 } // namespace test::perf
 
-// Relative performance test for string object building
+/* ============================================================ */
+/* Relative performance test */
+
 DEF_TAST(string_object_relative, "字符串对象构建相对性能测试（wwjson vs yyjson）")
 {
     test::CArgv argv;
@@ -933,7 +935,6 @@ DEF_TAST(string_object_relative, "字符串对象构建相对性能测试（wwjs
     }
 }
 
-// Relative performance test for escaped string object building
 DEF_TAST(string_escape_relative, "转义字符串对象构建相对性能测试（wwjson vs yyjson）")
 {
     test::CArgv argv;
