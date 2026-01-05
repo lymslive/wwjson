@@ -664,6 +664,52 @@ KString 是 `StringBuffer<255>` 别名，kUnsafeLevel=0xFF 最大值。
 
 ### DONE:20260105-173242
 
+## TODO:2026-01-05/3 最小负整数序列化问题
+
+请分析 include/wwjson.hpp 中 NumberWriter::WriteSigned 方法的实现，当传入的参
+数是各种有符号整数的最小负整数时，序列化结果是否正确，是否会发现溢出问题。
+
+### DONE:20260105~213730
+结论不会溢出，int8 的 -128 取负虽然会溢出，仍是 -128(0x80)，但再 cast 为 uint8
+时仍是正确的 128. 之前的单元测试用例 `number_integer_item` 有覆盖该边界情况。
+
+## TODO:2026-01-05/4 设计几个 example 示例应用
+
+- 增加 example/ 子目录
+- 设计三个示例 .cpp ，每个 .cpp 文件编译一个可执行文件，不依赖其他三方库
+- 根目录的 CMakeLists.txt 增加编译选项，与单元测试一样默认可编译
+
+示例一、多层结构体转 json
+- 设计一个有一定业务意义的数据结构体，含多层嵌套，有成员子结构体
+- 每个结构体除了数据外，增加一个 toJson 方法，接收 RawBuilder 引用参数，负责将
+  自己的成员写入正在构建中的 json 串；
+- 顶层结构体再额外加一下无参数的 toJson 重载，返回 std::string 表示的 json 串
+- main 方法，实例化结构体数据，转 json 打印
+
+示例二、估算待构建 json 大小的自定义 Builder
+- 设计一个 EString 特殊字符串类，`c_str()` 方法固定返回 `null` ，所有写入方法
+  只累加已写入的字符串，而无实际写入内存区，尽量少方法，只要能传给
+  GenericBuilder 的第一模板参数；
+- 设计一个 EConfig ，继承 BasicConfig ，用于 GenericBuilder 第二模板参数，
+  EscapeString 方法按最大 2 倍估算长度，NumberString 按不同数字估算最大长度，
+  可以只支持 32/64 位整数，与 64 位双精度浮点三种数字类型
+- 用这个模板参数，定义别名 EstBuilder
+- main 方法，用 EstBuilder 预构建一个 json ，估算长度，再用 FastBuilder 实际构
+  建；打印估算的长度与实际的长度与 json 结果
+
+示例三、构建将所有字符串与整数都十六进制表示的 json
+设计 HexConfig ，继承 BasicConfig
+- kEscapeValue = true
+- EscapeString 方法将字符串的每个字节转为两个十六进制数字字符表示
+- kQuoteNumber = true
+- NumberString 方法将整数转为十六进制，再加上 `0x` 前缀，浮点数简单用 `%g` 格
+  式化即可
+
+在 main 方法中用这个 HexConfig ，加上 JString 实例化 GenericBuilder ，构建一个
+json ，打印结果。
+
+### DONE: 20260106-010124
+
 ## TODO: wwjson.hpp 优化整数序列化
 
 优化 `NumberWriter::Output` 整数版，当 `unsafe_level<stringT>` 的值不小于 4 时，

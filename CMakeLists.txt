@@ -68,6 +68,9 @@ option(BUILD_UNIT_TESTS "Build unit tests" ON)
 # Option to build performance tests
 option(BUILD_PERF_TESTS "Build performance tests" OFF)
 
+# Option to build examples
+option(BUILD_EXAMPLES "Build example programs" ON)
+
 # Dependency management for tests and performance benchmarks
 if(NOT WWJSON_LIB_ONLY)
     # Try to find couttast in local installation first (HOME directory)
@@ -153,5 +156,10 @@ if(NOT WWJSON_LIB_ONLY)
     # Add performance tests subdirectory if enabled
     if(BUILD_PERF_TESTS)
         add_subdirectory(perf)
+    endif()
+
+    # Add examples subdirectory if enabled
+    if(BUILD_EXAMPLES)
+        add_subdirectory(example)
     endif()
 endif()

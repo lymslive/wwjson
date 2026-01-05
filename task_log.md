@@ -1918,3 +1918,79 @@ using KString = StringBuffer<255>;
 - `perf/README.md`: 添加用例分类说明
 - `perf/cases.md`: 自动更新用例列表
 
+## TASK:20260106-010124
+-----------------------
+
+### 任务内容
+
+设计几个 example 示例应用：增加 example/ 子目录，设计三个示例 .cpp 程序，不依赖其他三方库，根目录的 CMakeLists.txt 增加编译选项默认可编译。
+
+### 实施内容
+
+1. **创建 example/ 子目录**:
+   - 新增目录用于存放示例程序
+
+2. **实现示例一：多层结构体转 json (example/struct_to_json.cpp)**:
+   - 设计嵌套结构体：Address → Publisher → Author → Book
+   - 每个结构体提供 `toJson(RawBuilder&) const` 方法
+   - 顶层 Book 结构体额外提供 `toJson() const` 无参重载，返回 `std::string`
+   - 使用 AddMember("key", lambda) 添加嵌套对象和数组
+   - 嵌套的 toJson() 方法不调用 BeginObject()/EndObject()（由 lambda 自动处理）
+   - main 方法实例化数据并调用 toJson() 转换输出
+
+3. **实现示例二：估算待构建 json 大小的自定义 Builder (example/estimate_size.cpp)**:
+   - 设计 `EString` 特殊字符串类，`c_str()` 返回 `nullptr`，append 只累加长度
+   - 设计 `EConfig` 继承 `BasicConfig<EString>`，重写 EscapeString 和 NumberString 估算长度
+     - EscapeString：按最大 2 倍估算长度
+     - NumberString：32位整数估算11字符，64位整数估算21字符，浮点数估算25字符
+   - 定义 `EstBuilder` 别名为 `GenericBuilder<EString, EConfig>`
+   - 使用 `wwjson::FastBuilder`（基于 KString，不扩容），传入估算的容量
+   - 对比估算大小与实际大小，演示容量预分配的意义
+
+4. **实现示例三：十六进制表示的 json (example/hex_json.cpp)**:
+   - 设计模板化的 `HexConfig<stringT>` 继承 `BasicConfig<stringT>`
+     - `kEscapeValue = true`：启用字符串转义
+     - `kQuoteNumber = true`：数字加引号
+     - EscapeString：将字符串每个字节转为2个十六进制字符
+     - NumberString：整数转为十六进制加 `0x` 前缀，浮点数用 `%g` 格式
+   - 使用 `HexConfig<std::string>` 和 `JString` 构建示例 JSON
+   - 展示十六进制转换结果
+
+5. **修改 CMakeLists.txt**:
+   - 添加 `option(BUILD_EXAMPLES "Build example programs" ON)`
+   - 在 `add_subdirectory(example)` 前检查 `BUILD_EXAMPLES`
+
+6. **创建 example/CMakeLists.txt**:
+   - 为三个示例分别创建可执行文件
+   - 添加编译定义 `WWJSON_USE_SIMPLE_FLOAT_FORMAT=1`
+   - 链接 wwjson 库
+   - 创建 `examples` 和 `run_examples` 自定义目标
+
+### 测试结果
+
+所有三个示例程序编译通过并运行正常，输出合法的 JSON：
+
+1. **示例1 输出**: 
+```json
+{"title":"Modern C++ Design","isbn":"978-0-201-70431-0","price":49.99,"publishedYear":2001,"pageCount":352,"genre":"Programming","authors":[{"name":"Andrei Alexandrescu","email":"andrei@example.com","publisher":{"name":"Addison-Wesley Professional","address":{"street":"75 Arlington Street","city":"Boston","country":"USA"}}},{"name":"Scott Meyers","email":"scott@example.com","publisher":{"name":"Addison-Wesley Professional","address":{"street":"75 Arlington Street","city":"Boston","country":"USA"}}}]}
+```
+
+2. **示例2 输出**:
+   - 估算大小: 234 字节
+   - 实际大小: 198 字节
+   - 估算比率: 118.182% (保守高估)
+   - FastBuilder 使用估算的容量预分配，避免扩容
+
+3. **示例3 输出**:
+   - 字符串转十六进制: "Hello" → "48656c6c6f"
+   - 整数转十六进制: 10 → "0xa", 255 → "0xff"
+   - 浮点数保持 %g 格式: 3.14 → "3.14"
+
+### 修改文件
+
+- 新增: `example/struct_to_json.cpp`
+- 新增: `example/estimate_size.cpp`
+- 新增: `example/hex_json.cpp`
+- 新增: `example/CMakeLists.txt`
+- 修改: `CMakeLists.txt` - 添加 BUILD_EXAMPLES 选项和 example 子目录
+
