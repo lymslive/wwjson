@@ -54,8 +54,9 @@ jobs:
     - name: Install wwjson
       run: |
         mkdir -p $HOME/include
-        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=$HOME ..
-        make
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=$HOME -DWWJSON_LIB_ONLY=ON ..
         make install
 
     - name: Build examples (find_package)

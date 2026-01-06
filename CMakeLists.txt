@@ -112,6 +112,7 @@ if(NOT WWJSON_LIB_ONLY)
     find_package(xyjson QUIET)
     if(NOT xyjson_FOUND)
         message(STATUS "xyjson not found locally, fetching from GitHub...")
+        set(XYJSON_LIB_ONLY ON CACHE BOOL "Build only the header-only library" FORCE)
         
         # Configure FetchContent for xyjson
         FetchContent_Declare(
@@ -120,9 +121,10 @@ if(NOT WWJSON_LIB_ONLY)
             GIT_TAG main  # or specific tag/commit
             GIT_SHALLOW TRUE
             GIT_PROGRESS TRUE
-            OPTIONS "-DXYJSON_LIB_ONLY=ON" "-DUSE_FETCHCONTENT=OFF"
+#           OPTIONS "-DXYJSON_LIB_ONLY=ON" "-DUSE_FETCHCONTENT=OFF"
         )
         FetchContent_MakeAvailable(xyjson)
+        message(STATUS "XYJSON_LIB_ONLY = ${XYJSON_LIB_ONLY}")
     endif()
 
     # Get include directories from found packages

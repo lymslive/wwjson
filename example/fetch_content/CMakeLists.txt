@@ -18,6 +18,7 @@ FetchContent_Declare(
     GIT_TAG dev  # or specific tag/commit
     GIT_SHALLOW TRUE
     GIT_PROGRESS TRUE
+    OPTIONS "-DWWJSON_LIB_ONLY=ON"
 )
 
 # Make wwjson available
