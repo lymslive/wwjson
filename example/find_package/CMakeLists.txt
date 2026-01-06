@@ -11,6 +11,22 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Find wwjson package (installed system-wide or via CMAKE_PREFIX_PATH)
 find_package(wwjson REQUIRED)
 
+# Print a single debug line showing where the wwjson package was found/installed
+if(DEFINED wwjson_DIR)
+    set(_WWJSON_INSTALL_LOCATION ${wwjson_DIR})
+elseif(TARGET wwjson::wwjson)
+    get_target_property(_wwjson_includes wwjson::wwjson INTERFACE_INCLUDE_DIRECTORIES)
+    if(_wwjson_includes)
+        list(GET _wwjson_includes 0 _WWJSON_INSTALL_LOCATION)
+    else()
+        set(_WWJSON_INSTALL_LOCATION "<interface dirs unknown>")
+    endif()
+else()
+    set(_WWJSON_INSTALL_LOCATION "<unknown>")
+endif()
+
+message(STATUS "wwjson found installed at: ${_WWJSON_INSTALL_LOCATION}")
+
 # Example 1: struct_to_json
 add_executable(example_struct_to_json
     ${CMAKE_CURRENT_SOURCE_DIR}/../struct_to_json.cpp
