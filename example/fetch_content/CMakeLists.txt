@@ -25,34 +25,23 @@ set(WWJSON_LIB_ONLY ON CACHE BOOL "Build only the header-only library" FORCE)
 # Make wwjson available
 FetchContent_MakeAvailable(wwjson)
 
-# Determine the correct target name depending on whether wwjson was
-# added as an exported/imported target (`wwjson::wwjson`) or as a
-# plain target (`wwjson`) when used as a subproject.
-if(TARGET wwjson::wwjson)
-    set(WWJSON_TARGET wwjson::wwjson)
-elseif(TARGET wwjson)
-    set(WWJSON_TARGET wwjson)
-else()
-    message(FATAL_ERROR "wwjson target not found; expected wwjson::wwjson or wwjson")
-endif()
-
 # Example 1: struct_to_json
 add_executable(example_struct_to_json
     ${CMAKE_CURRENT_SOURCE_DIR}/../struct_to_json.cpp
 )
-target_link_libraries(example_struct_to_json PRIVATE ${WWJSON_TARGET})
+target_link_libraries(example_struct_to_json PRIVATE wwjson::wwjson)
 
 # Example 2: estimate_size
 add_executable(example_estimate_size
     ${CMAKE_CURRENT_SOURCE_DIR}/../estimate_size.cpp
 )
-target_link_libraries(example_estimate_size PRIVATE ${WWJSON_TARGET})
+target_link_libraries(example_estimate_size PRIVATE wwjson::wwjson)
 
 # Example 3: hex_json
 add_executable(example_hex_json
     ${CMAKE_CURRENT_SOURCE_DIR}/../hex_json.cpp
 )
-target_link_libraries(example_hex_json PRIVATE ${WWJSON_TARGET})
+target_link_libraries(example_hex_json PRIVATE wwjson::wwjson)
 
 # Custom target to run all examples
 add_custom_target(run_examples

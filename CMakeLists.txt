@@ -8,6 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Header-only library configuration
 add_library(${PROJECT_NAME} INTERFACE)
+add_library(wwjson::wwjson ALIAS wwjson)
 
 # Target include directories
 # Provide a build-time include layout that matches the installed layout
