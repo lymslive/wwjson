@@ -10,13 +10,14 @@
  * - Floating-point: Formatted using %g (standard format)
  */
 
+#include <wwjson/wwjson.hpp>
+#include <wwjson/jstring.hpp>
+
 #include <iostream>
 #include <string>
 #include <cstdint>
 #include <array>
 #include <cwchar>
-#include <wwjson.hpp>
-#include <jstring.hpp>
 
 // Helper alias for convenience
 using RawBuilder = wwjson::RawBuilder;

@@ -710,6 +710,41 @@ json ，打印结果。
 
 ### DONE: 20260106-010124
 
+## TODO:2026-01-06/1 多个头文件安装优化
+
+本项目在初版只有一个 wwjson.hpp 头文件，现在扩展到多个头文件了。相应的安装与使
+用方式应该作相应变更。
+
+根目录 CMakeLists.txt 的安装规则，要安装 include/ 下面的所有头文件。同时为了使
+所有头文件集合在一起，应该统一安装在 wwjson/ 目录下。例如按常规安装路径，应该
+安装到 /usr/local/include/wwjson 目录下，或 $HOME/include/wwjson 目录下。
+
+外部项目用户若使用 wwjson ，宜推荐使用 `#include wwjson/wwjson.hpp` ，也多加一
+层 wwjson/ 子目录。
+
+example/ 子目录下的几个示例，用于外部使用 wwjson 的参考，其引用头文件的方式也
+应改为加上 `wwjson/` 目录前缀，不仅 `wwjson.hpp` ，还有 `jbuilder.hpp` 等。
+
+但这可能会引发另一个问题，example 的示例可能编译不过了，在当前目录结构中找不到
+`wwjson/wwjson.hpp` 头文件。请推荐一种方案解决这种源码目录结构与安装目录结构不
+同的问题。原则上不想修改目录结构，否则影响单元测试与性能测试的引用方式。
+
+再增加一个编译 exmaple 的流水线 .github/workflows/ci-example.yml
+验证三种编译与使用方式：
+- 像单元测试一样，在本项目的目录结构中，build/ 子目录执行 cmake 与 make
+- 模拟用户先安装 wwjson ，再通过 `find_package` 编译 exmpale 项目
+- 不单独安装 wwjson, 在 exmaple 项目使用 cmake 的 FetchContent 机制集成
+
+如有必要，后两种使用方式可以单独写额外的 CMakeLists.txt 示例与 yml 流水线。
+
+流水允许手动触发运行，以及监听 yml 文件本身与 exmaple 目录的变更自动执行。
+
+另一个相关的调整，是 docs/makefile 有个步骤使用 doxygen 提取头文件的注释文档，
+它也不仅依赖一个 wwjson.hpp 文件，而就依赖所有头文件。以及检查 Doxyfile 是否也
+要修改，而 `.github/workflows/docs.yml` 调用脚本构建文档，可能不必修改。
+
+### DONE:20260106-164348
+
 ## TODO: wwjson.hpp 优化整数序列化
 
 优化 `NumberWriter::Output` 整数版，当 `unsafe_level<stringT>` 的值不小于 4 时，

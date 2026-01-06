@@ -7,12 +7,13 @@
  * This is useful for pre-allocating buffers or determining storage requirements.
  */
 
+#include <wwjson/wwjson.hpp>
+#include <wwjson/jbuilder.hpp>
+
 #include <iostream>
 #include <string>
 #include <cstdint>
 #include <cwchar>
-#include <wwjson.hpp>
-#include <jbuilder.hpp>
 
 // Helper alias for convenience
 using RawBuilder = wwjson::RawBuilder;

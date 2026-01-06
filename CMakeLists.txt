@@ -12,16 +12,17 @@ add_library(${PROJECT_NAME} INTERFACE)
 # Target include directories
 target_include_directories(${PROJECT_NAME} INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:include/wwjson>
 )
 
 # Export library
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
 
-# Install header file
-install(FILES include/wwjson.hpp
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+# Install all header files to wwjson/ subdirectory
+file(GLOB WWJSON_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp")
+install(FILES ${WWJSON_HEADERS}
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/wwjson
 )
 
 # Install CMake configuration files

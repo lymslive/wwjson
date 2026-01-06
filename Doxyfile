@@ -18,7 +18,7 @@ GENERATE_MAN           = NO
 GENERATE_XML           = NO
 
 # Input source files
-INPUT                  = include/wwjson.hpp
+INPUT                  = include
 INPUT_ENCODING         = UTF-8
 RECURSIVE              = NO
 

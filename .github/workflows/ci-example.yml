@@ -1,0 +1,98 @@
+name: Example Tests
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'include/**'
+      - 'example/**'
+      - '.github/workflows/ci-example.yml'
+      - 'CMakeLists.txt'
+  workflow_dispatch:
+
+jobs:
+  # Method 1: Local build (same as unit tests - build from source tree)
+  local-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential
+
+    - name: Build examples (local)
+      run: |
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_UNIT_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_EXAMPLES=ON ..
+        make -j4 examples
+
+    - name: Run examples (local)
+      run: |
+        cd build
+        make run_examples
+
+  # Method 2: find_package (install first, then use)
+  find-package:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential
+
+    - name: Install wwjson
+      run: |
+        mkdir -p $HOME/include
+        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=$HOME ..
+        make
+        make install
+
+    - name: Build examples (find_package)
+      run: |
+        cd example/find_package
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH=$HOME ..
+        make -j4
+
+    - name: Run examples (find_package)
+      run: |
+        cd example/find_package/build
+        make run_examples
+
+  # Method 3: FetchContent (no installation needed)
+  fetch-content:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential
+
+    - name: Build examples (FetchContent)
+      run: |
+        cd example/fetch_content
+        mkdir -p build
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
+        make -j4
+
+    - name: Run examples (FetchContent)
+      run: |
+        cd example/fetch_content/build
+        make run_examples

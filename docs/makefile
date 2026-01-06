@@ -28,7 +28,7 @@ docs: $(HTML_FILES) $(STATIC_FILES) $(API_FILES)
 	@echo "Documentation build completed!"
 
 # API documentation with Doxygen - create a marker file to track updates
-$(BUILD_DIR)/api/.doxygen-stamp: include/wwjson.hpp Doxyfile | $(BUILD_DIR)/api
+$(BUILD_DIR)/api/.doxygen-stamp: include/*.hpp Doxyfile | $(BUILD_DIR)/api
 	@echo "Generating API documentation with Doxygen..."
 	doxygen Doxyfile
 	@touch $@

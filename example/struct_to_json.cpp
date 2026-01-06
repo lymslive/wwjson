@@ -8,10 +8,11 @@
  * The top-level struct also provides an overload that returns a std::string.
  */
 
+#include <wwjson/wwjson.hpp>
+
 #include <iostream>
 #include <string>
 #include <vector>
-#include <wwjson.hpp>
 
 // Helper alias for convenience
 using RawBuilder = wwjson::RawBuilder;

@@ -1994,3 +1994,66 @@ using KString = StringBuffer<255>;
 - 新增: `example/CMakeLists.txt`
 - 修改: `CMakeLists.txt` - 添加 BUILD_EXAMPLES 选项和 example 子目录
 
+## TASK:20260106-164348
+-----------------------
+
+### 任务内容
+
+多个头文件安装优化：根目录 CMakeLists.txt 修改为安装所有头文件到 wwjson/ 子目录；example 源码改为 `<wwjson/wwjson.hpp>` 引用方式；创建外部集成示例和 CI 工作流验证。
+
+### 实施内容
+
+1. **修改根 CMakeLists.txt 安装规则**:
+   - `target_include_directories` 的 INSTALL_INTERFACE 改为 `include/wwjson`
+   - 安装所有 `include/*.hpp` 文件到 `wwjson/` 子目录
+
+2. **修改 example 源码引用方式**:
+   - `struct_to_json.cpp`: `#include <wwjson.hpp>` → `#include <wwjson/wwjson.hpp>`
+   - `estimate_size.cpp`: 同样改为 `wwjson/wwjson.hpp` 和 `wwjson/jbuilder.hpp`
+   - `hex_json.cpp`: 同样改为 `wwjson/wwjson.hpp` 和 `wwjson/jstring.hpp`
+
+3. **创建 example/find_package/ 独立 CMakeLists.txt**:
+   - 用于演示系统安装后 `find_package(wwjson)` 使用方式
+   - 源文件通过 `${CMAKE_CURRENT_SOURCE_DIR}/../*.cpp` 引用
+
+4. **创建 example/fetch_content/ 独立 CMakeLists.txt**:
+   - 用于演示不安装情况下 `FetchContent` 集成方式
+   - GIT_TAG 暂时设为 `dev`（开发期间）
+
+5. **创建 .github/workflows/ci-example.yml**:
+   - **local-build**: 在 build/ 目录本地编译 example
+   - **find-package**: 先安装 wwjson 到 `$HOME/include`，再编译
+   - **fetch-content**: 使用 FetchContent 自动下载集成
+   - 触发条件：监听 `include/`、`example/`、CI 文件变更
+
+6. **解决本地编译的目录结构问题**:
+   - example/CMakeLists.txt 使用 CMake 脚本在 build/include 下创建软链接
+   - `build/include/wwjson` → `../include`
+   - 每个 example target 添加 `${CMAKE_BINARY_DIR}/include` 到 include 路径
+
+7. **删除 WWJSON_USE_SIMPLE_FLOAT_FORMAT**:
+   - 从所有 CMakeLists.txt 中移除该编译定义
+   - 该宏仅用于单元测试比较浮点数格式，实践中不推荐使用
+
+8. **更新 docs 配置**:
+   - docs/makefile: `include/wwjson.hpp` → `include/*.hpp`
+   - Doxyfile: INPUT 添加所有头文件
+
+### 测试结果
+
+- 本地编译 example：通过软链接方案成功编译运行
+- 单元测试：通过 (109 PASS, 0 FAIL)
+- 所有 example 程序正常运行输出正确 JSON
+
+### 修改文件
+
+- 修改: `CMakeLists.txt` - 安装路径和 include 目录配置
+- 修改: `example/CMakeLists.txt` - 添加软链接支持，删除 WWJSON_USE_SIMPLE_FLOAT_FORMAT
+- 修改: `example/struct_to_json.cpp` - 头文件引用方式
+- 修改: `example/estimate_size.cpp` - 头文件引用方式
+- 修改: `example/hex_json.cpp` - 头文件引用方式
+- 新增: `example/find_package/CMakeLists.txt`
+- 新增: `example/fetch_content/CMakeLists.txt`
+- 新增: `.github/workflows/ci-example.yml`
+- 修改: `docs/makefile`
+- 修改: `Doxyfile`
