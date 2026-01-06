@@ -10,8 +10,27 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_library(${PROJECT_NAME} INTERFACE)
 
 # Target include directories
+# Provide a build-time include layout that matches the installed layout
+# by creating `${CMAKE_CURRENT_BINARY_DIR}/include/wwjson` as a symlink to
+# the source `include` directory. This ensures `#include <wwjson/wwjson.hpp>`
+# works both for in-tree builds (including FetchContent/subprojects) and
+# for installed package usage.
+set(_WWJSON_BUILD_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/include)
+file(MAKE_DIRECTORY ${_WWJSON_BUILD_INCLUDE_DIR})
+if(NOT EXISTS ${_WWJSON_BUILD_INCLUDE_DIR}/wwjson)
+    execute_process(
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${_WWJSON_BUILD_INCLUDE_DIR}/wwjson
+        RESULT_VARIABLE _wwjson_symlink_result
+        OUTPUT_QUIET
+        ERROR_QUIET
+    )
+endif()
+
 target_include_directories(${PROJECT_NAME} INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${_WWJSON_BUILD_INCLUDE_DIR}>
     $<INSTALL_INTERFACE:include>
 )
 
