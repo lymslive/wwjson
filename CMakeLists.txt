@@ -12,7 +12,7 @@ add_library(${PROJECT_NAME} INTERFACE)
 # Target include directories
 target_include_directories(${PROJECT_NAME} INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include/wwjson>
+    $<INSTALL_INTERFACE:include>
 )
 
 # Export library
@@ -121,7 +121,6 @@ if(NOT WWJSON_LIB_ONLY)
             GIT_TAG main  # or specific tag/commit
             GIT_SHALLOW TRUE
             GIT_PROGRESS TRUE
-#           OPTIONS "-DXYJSON_LIB_ONLY=ON" "-DUSE_FETCHCONTENT=OFF"
         )
         FetchContent_MakeAvailable(xyjson)
         message(STATUS "XYJSON_LIB_ONLY = ${XYJSON_LIB_ONLY}")

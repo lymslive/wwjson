@@ -18,8 +18,9 @@ FetchContent_Declare(
     GIT_TAG dev  # or specific tag/commit
     GIT_SHALLOW TRUE
     GIT_PROGRESS TRUE
-    OPTIONS "-DWWJSON_LIB_ONLY=ON"
 )
+
+set(WWJSON_LIB_ONLY ON CACHE BOOL "Build only the header-only library" FORCE)
 
 # Make wwjson available
 FetchContent_MakeAvailable(wwjson)

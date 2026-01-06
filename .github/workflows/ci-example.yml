@@ -31,7 +31,7 @@ jobs:
         mkdir -p build
         cd build
         cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_UNIT_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_EXAMPLES=ON ..
-        make -j4 examples
+        make VERBOSE=1 -j4 examples
 
     - name: Run examples (local)
       run: |
@@ -65,7 +65,7 @@ jobs:
         mkdir -p build
         cd build
         cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_PREFIX_PATH=$HOME ..
-        make -j4
+        make VERBOSE=1 -j4
 
     - name: Run examples (find_package)
       run: |
@@ -91,7 +91,7 @@ jobs:
         mkdir -p build
         cd build
         cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo ..
-        make -j4
+        make VERBOSE=1 -j4
 
     - name: Run examples (FetchContent)
       run: |
