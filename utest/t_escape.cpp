@@ -19,11 +19,6 @@ struct EscapeKeyConfig : wwjson::BasicConfig<std::string>
 {
     static constexpr bool kEscapeKey = true;
     static constexpr bool kEscapeValue = false;
-    // The BasicConfig already has EscapeKey implemented
- // static void EscapeKey(std::string &dst, const char *src, size_t len)
- // {
- //     EscapeString(dst, src, len);
- // }
 };
 
 struct EscapeValueConfig : wwjson::BasicConfig<std::string>
@@ -381,5 +376,77 @@ DEF_TAST(escape_edge_cases, "转义功能的边界情况测试")
     wwjson::RawBuilder json;
     json.AddItemEscape("");
     expect = R"("",)";
+    COUT(json.json, expect);
+}
+
+// 自定义配置：将非字母数字字符转为下划线，使键名像标识符
+struct IdentifierEscapeConfig : wwjson::BasicConfig<std::string>
+{
+    static constexpr bool kEscapeKey = true;
+
+    // 覆盖 EscapeKey，明确调用派生类的 EscapeString
+    // 否则会调用基本的 EscapeString （不是虚函数）
+    static void EscapeKey(std::string &dst, const char *key, size_t len)
+    {
+        EscapeString(dst, key, len);
+    }
+
+    // 覆盖 EscapeString，只保留字母数字，其他转为下划线
+    static void EscapeString(std::string &dst, const char *src, size_t len)
+    {
+        for (size_t i = 0; i < len; ++i)
+        {
+            unsigned char c = static_cast<unsigned char>(src[i]);
+            // ASCII 字母或数字
+            if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') ||
+                (c >= 'A' && c <= 'Z'))
+            {
+                dst.push_back(c);
+            }
+            else
+            {
+                dst.push_back('_');  // 其他字符转为下划线
+            }
+        }
+    }
+};
+
+DEF_TAST(escape_ident_key, "自定义配置：键名转义为标识符验证")
+{
+    // 测试派生类覆盖 EscapeKey 后，转义键时是否调用覆盖版本的 EscapeString
+    using IdentifierEscapeBuilder =
+        wwjson::GenericBuilder<std::string, IdentifierEscapeConfig>;
+
+    IdentifierEscapeBuilder json;
+
+    // 测试：键中的特殊字符应该被转为下划线，值不转义
+    json.AddMember("key\"with\"quotes", "value\nwith\ttabs");
+    std::string expect = R"("key_with_quotes":"value
+with	tabs",)";
+    COUT(json.json, expect);
+
+    // 测试更多特殊字符：@、#、-、.
+    json.Clear();
+    json.AddMember("test@key#1", "value");
+    expect = R"("test_key_1":"value",)";
+    COUT(json.json, expect);
+
+    json.Clear();
+    json.AddMember("my-key.name", "value");
+    expect = R"("my_key_name":"value",)";
+    COUT(json.json, expect);
+
+    // 验证 PutKey 使用自定义转义
+    json.Clear();
+    json.PutKey("test-key");
+    json.PutValue("value");
+    expect = R"("test_key":"value")";
+    COUT(json.json, expect);
+
+    // 测试：显式调用 AddMemberEscape 强制转义值
+    json.Clear();
+    json.AddMemberEscape("test@key", "value\nwith\nnewlines");
+    // kEscapeKey=true 所以键会被转义，AddMemberEscape 强制转义值
+    expect = R"("test_key":"value_with_newlines",)";
     COUT(json.json, expect);
 }

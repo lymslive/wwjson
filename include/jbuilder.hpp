@@ -33,20 +33,33 @@ namespace wwjson {
 
 /// @brief Optimized config for high-unsafe-level string types
 /// @details
-/// Inherits from BasicConfig and overrides EscapeString to use unsafe methods
-/// when the string type's unsafe_level >= 4. This avoids temporary buffer
-/// allocation and uses direct pointer writes for better performance.
+/// Inherits from BasicConfig and provides optimized implementations for
+/// string escaping when string type's unsafe_level >= 4.
 ///
-/// @par Optimization Strategy:
-/// - Pre-reserve 2x space to handle worst-case escaping (every char needs escape)
-/// - Write directly to the string's internal buffer using pointer arithmetic
-/// - Use unsafe_set_end() to update the end pointer after writing
-///
-/// @note This config is only effective for string types with unsafe_level >= 4.
-/// For lower unsafe_level types, it falls back to the parent BasicConfig behavior.
+/// @par When to use:
+/// - With JString (kUnsafeLevel=4) for balanced safety and performance
+/// - With KString (kUnsafeLevel=255) for maximum performance
 template <typename stringT>
 struct UnsafeConfig : public BasicConfig<stringT>
 {
+    /// @brief Escape object key using the optimized EscapeString implementation
+    /// @note
+    /// Must override EscapeKey explicitly because static methods don't have
+    /// polymorphism. Without this override, the base class EscapeKey would
+    /// call BasicConfig::EscapeString instead of this derived class's EscapeString.
+    static void EscapeKey(stringT &dst, const char *key, size_t len)
+    {
+        EscapeString(dst, key, len);
+    }
+
+    /// @brief Optimized string escaping for high-unsafe-level types
+    /// @details
+    /// When unsafe_level >= 4, this implementation:
+    /// - Writes directly to the string's internal buffer using pointer arithmetic
+    /// - Uses unsafe_set_end() to update the end pointer after writing
+    /// - Falls back to the parent's safe implementation for low unsafe_level types
+    ///
+    /// @note This avoids temporary buffer allocation for better performance.
     static void EscapeString(stringT &dst, const char *src, size_t len)
     {
         if (wwjson_unlikely(src == nullptr)) { return; }
@@ -130,8 +143,7 @@ using Builder = GenericBuilder<JString, UnsafeConfig<JString>>;
 ///
 /// @par Example:
 /// @code
-/// KString buffer(8192);  // Pre-allocate 8KB
-/// FastBuilder builder(buffer);
+/// FastBuilder builder(8192);  // Pre-allocate 8KB
 /// builder.BeginObject();
 /// builder.AddMember("key", "value");
 /// builder.EndObject();

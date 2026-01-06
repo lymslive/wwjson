@@ -2057,3 +2057,60 @@ using KString = StringBuffer<255>;
 - 新增: `.github/workflows/ci-example.yml`
 - 修改: `docs/makefile`
 - 修改: `Doxyfile`
+
+## TASK:20260106-233456
+-----------------------
+
+### 任务内容
+
+测试验证定制配置只重载 EscapeString 方法的正确性：分析当 UnsafeConfig 覆盖 EscapeString 时，转义键是否会调用派生类版本；实现测试用例验证该行为，并修复 UnsafeConfig 类以正确支持键转义。
+
+### 实施内容
+
+**问题分析**
+
+1. **C++ 静态方法的多态性问题**:
+   - `BasicConfig::EscapeKey` 内部调用 `EscapeString(dst, key, len)`
+   - C++ 静态方法不具备运行时多态性
+   - 派生类覆盖 `EscapeString` 后，基类的 `EscapeKey` 仍调用 `BasicConfig::EscapeString`
+   - 这是一个潜在的陷阱：开发者可能期望覆盖 `EscapeString` 后自动生效
+
+2. **UnsafeConfig 缺失 EscapeKey 覆盖**:
+   - `UnsafeConfig` 覆盖了 `EscapeString` 以优化字符串转义
+   - 但没有覆盖 `EscapeKey`，导致转义键时调用基类版本
+   - 这样键的转义不会使用优化版本
+
+**解决方案**
+
+1. **修改 UnsafeConfig 类** (`include/jbuilder.hpp`):
+   - 添加显式覆盖 `EscapeKey` 方法
+   - `EscapeKey` 内部调用派生类的 `EscapeString`
+   - 添加详细注释说明为什么需要显式覆盖（静态方法无多态性）
+
+2. **优化注释组织**:
+   - 类级别注释简化，说明用途和适用场景
+   - `EscapeKey` 方法注释解释多态性问题
+   - `EscapeString` 方法注释描述具体优化策略
+
+3. **创建测试用例** (`utest/t_escape.cpp`):
+   - 定义 `IdentifierEscapeConfig` 配置类
+   - `EscapeString` 将非字母数字字符转为下划线，使键名像编程语言标识符
+   - 覆盖 `EscapeKey` 方法以确保键转义生效
+   - 测试场景：
+     * 键包含特殊字符（`"`, `@`, `#`, `-`, `.`）应转为下划线
+     * `PutKey` 使用自定义转义
+     * `AddMemberEscape` 强制转义值（值包含换行符应被转义）
+
+### 测试结果
+
+所有测试通过：
+- `escape_ident_key` 用例 5 个断言全部通过
+- 验证键名特殊字符正确转为下划线
+- 验证 `PutKey` 使用自定义转义
+- 验证 `AddMemberEscape` 强制转义值
+
+### 修改文件
+
+- 修改: `include/jbuilder.hpp` - `UnsafeConfig` 添加 `EscapeKey` 方法，优化注释
+- 修改: `utest/t_escape.cpp` - 添加 `IdentifierEscapeConfig` 和 `escape_ident_key` 测试用例
+

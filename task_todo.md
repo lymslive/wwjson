@@ -745,6 +745,18 @@ example/ 子目录下的几个示例，用于外部使用 wwjson 的参考，其
 
 ### DONE:20260106-164348
 
+## TODO:2026-01-06/2 测试验证定制配置只重载 EscapeString 方法的正确性
+
+我有个疑问，在 include/jbuilder.hpp 定义的 UnsafeConfig 只覆盖了 EscapeString
+方法，当用户需要转义键时，它会调用 UnsafeConfig::EscapeString 还是基类的
+BasicConfig::EscapeString 方法？请分析这个问题。
+
+然后在 `utest/t_escape.cpp` 补充一个测试用例。类似 EscapeKeyConfig 再继承一个
+类，并提供 EscpaceString 方法，作一个简单转义替换，将数字、字母以外的字符转为
+下划线（使键名像一个标识符）。验证它是否生效。
+
+### DONE: 20260106-233456
+
 ## TODO: wwjson.hpp 优化整数序列化
 
 优化 `NumberWriter::Output` 整数版，当 `unsafe_level<stringT>` 的值不小于 4 时，
