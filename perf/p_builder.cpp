@@ -601,9 +601,6 @@ DEF_TOOL(build_verify, "验证 wwjson 和 yyjson 生成相同的 JSON 结构")
 
     yyjson_doc_free(docA);
     yyjson_doc_free(docB);
-
-    COUT(wwjson::has_float_to_chars_v<float>);
-    COUT(wwjson::has_float_to_chars_v<double>);
 }
 
 // Tool to test different n values and their corresponding JSON sizes

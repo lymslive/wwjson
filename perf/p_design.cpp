@@ -207,7 +207,7 @@ class SmallFloatOptimizationTest
     template <typename floatT>
     void to_chars(floatT num, char *buffer, size_t bufsz)
     {
-        if constexpr (wwjson::has_float_to_chars_v<double>)
+        if constexpr (wwjson::detail::has_float_to_chars_v<double>)
         {
             auto [ptr, ec] = std::to_chars(buffer, buffer + bufsz, num);
             result.append(buffer, ptr - buffer);
@@ -812,7 +812,7 @@ DEF_TAST(design_small_float, "NumberWriter 小范围浮点数优化验证")
         argv.items, static_cast<uint32_t>(argv.start));
 
     const char *methodB_name = "std::to_chars";
-    if constexpr (!wwjson::has_float_to_chars_v<double>)
+    if constexpr (!wwjson::detail::has_float_to_chars_v<double>)
     {
         methodB_name = "snprintf %.17g";
     }
