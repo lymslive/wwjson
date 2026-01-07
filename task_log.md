@@ -2180,3 +2180,72 @@ using KString = StringBuffer<255>;
 - 修改: `utest/t_jbuilder.cpp` - 更新 detail:: 前缀引用
 - 修改: `utest/t_experiment.cpp` - 更新 detail:: 前缀引用
 
+## TASK:20260107-221431
+-----------------------
+
+**需求 ID**: 2026-01-07/3
+
+**任务内容**:
+完善 example 文档：在 example/ 子目录增加 README.md 介绍示例用法，并优化根目录 README.md 反映版本改进。
+
+**实施内容**:
+
+1. **创建 example/README.md**:
+   - 为三个示例程序编写详细说明：
+     * struct_to_json.cpp - 展示 `wwjson::to_json` API 的两种用法
+     * estimate_size.cpp - 展示自定义 Builder 估算 JSON 大小
+     * hex_json.cpp - 展示自定义配置实现十六进制 JSON 表示
+   - 每个示例包含：
+     * 特性展示
+     * 编译运行方法
+     * 代码片段示例
+   - 添加构建所有示例的命令说明
+   - 说明三种使用 WWJSON 的方式（源码树、find_package、FetchContent）
+   - 提供技术要点和学习建议
+
+2. **优化根目录 README.md（由用户完成）**:
+   - 更新"核心特性"部分：
+     * 添加模块化设计说明（单头文件提供基本功能，其他头文件拓展高级功能）
+     * 添加易用API说明（提供多种风格与不同抽象层次的 API）
+   - 更新"使用方式"部分：
+     * 更新头文件引用说明
+     * 新增关于 wwjson 子目录的说明
+     * 在代码示例中展示 `wwjson/jbuilder.hpp` 和 `TO_JSON` 宏的用法
+   - 更新 CMake 版本要求（1.0 -> 1.1）
+   - 添加构建选项说明（`-DWWJSON_LIB_ONLY=ON`）
+   - 在"架构设计"部分新增"头文件结构"小节：
+     * 说明三个头文件的用途（wwjson.hpp, jstring.hpp, jbuilder.hpp）
+     * 列出各类别名和功能
+     * 提及统一安装到 `wwjson/` 子目录
+   - 在"性能特点"部分新增"额外边界扩容"说明
+   - 在"配置选项"部分后新增"推荐使用方式"小节：
+     * 介绍 RawBuilder/Builder/FastBuilder 三个别名
+     * 推荐使用 `wwjson::to_json` 统一 API
+   - 将"配置选项"改为"配置选项定制"
+   - 在"参考文档"部分添加示例程序链接
+   - 更新 xyjson 描述
+
+3. **更新英文版 README-en.md**:
+   - 完整翻译中文版 README.md 的所有更新内容
+   - 保持英文版与中文版内容一致
+
+**设计决策**:
+- 不在 README 首页生硬添加"版本更新"章节
+- 将新功能说明自然融入现有章节，保持文档连贯性
+- 详细的版本变更记录应放在正式的 release note 中
+
+**测试结果**:
+- 文档内容完整，覆盖三个示例程序
+- README.md 和 README-en.md 内容对等且准确
+
+**新增文件**:
+- 新增: `example/README.md` - 示例程序使用指南
+
+**修改文件**:
+- 修改: `README-en.md` - 同步更新英文版文档
+
+**说明**:
+- `README.md` 由用户自行修改，主要反映模块化设计、易用API、头文件结构等改进
+- `example/README.md` 由 AI 创建，详细说明三个示例程序的用法
+- `README-en.md` 由 AI 翻译，与中文版保持一致
+

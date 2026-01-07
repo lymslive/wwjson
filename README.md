@@ -11,10 +11,12 @@ WWJSON是一个**仅头文件**的C++ JSON构建库，专注于**高性能JSON�
 
 - 🚀 **高性能**: 直接字符串操作，无需DOM树构建开销
 - 🎯 **轻量级**: 头文件only设计，无运行时依赖
-- 🛡️ **类型安全**: 支持C++17编译期类型检查
+- 🛡️ **类型安全**: 支持 C++17 编译期类型检查
 - 🔧 **高度可配置**: 支持自定义字符串类型和序列化配置
-- 📦 **易于集成**: 标准CMake包，支持`find_package`
+- 📦 **易于集成**: 标准 CMake 包，支持 `find_package` 与 `FetchContent` 集成
 - 🧪 **完整测试**: 丰富的单元测试 + 性能基准测试
+- 🏗️ **模块化设计**: 单头文件提供基本功能，其他头文件拓展高级功能
+- 🎨 **易用API**: 提供多种风格与不同抽象层次的 API，可精细控制 JSON 构建过程或快捷转换 JSON.
 
 ## 📋 快速开始
 
@@ -27,6 +29,8 @@ WWJSON是一个**仅头文件**的C++ JSON构建库，专注于**高性能JSON�
 ### 使用方式
 
 #### 1. 直接包含头文件
+
+拷贝单个头文件 `wwjson.hpp` 即可使用基本功能，例如：
 
 ```cpp
 #include "wwjson.hpp"
@@ -44,20 +48,45 @@ int main() {
     });
     builder.EndObject();
     
-    std::string json = builder.GetResult();
+    std::string json = builder.GetResult(); // 可用 MoveResult 更有效率
     // {"name":"wwjson","version":1,"features":["fast","simple","header-only"]}
     return 0;
 }
 ```
 
-#### 2. CMake集成
+#### 2. CMake 集成
+
+建议使用 CMake 集成，完整安装，获得更多功能支持。
 
 ```cmake
 # 查找包
-find_package(wwjson 1.0 REQUIRED)
+find_package(wwjson 1.1 REQUIRED)
 
 # 链接到你的目标
 target_link_libraries(your_target PRIVATE wwjson::wwjson)
+```
+
+安装后，所有头文件位于 `include/wwjson/` 目录下，例如 `/usr/local/include/wwjson/`。
+使用时，也要求包含相对路径的子目录，例如：
+
+```cpp
+#include "wwjson/jbuilder.hpp"
+
+struct User {
+    std::string name;
+    int age;
+    bool active;
+
+    void to_json(wwjson::Builder& builder) const {
+        TO_JSON(name);   // wwjson::to_json(builder, "name", name);
+        TO_JSON(age);    // wwjson::to_json(builder, "age", age);
+        TO_JSON(active); // wwjson::to_json(builder, "active", active);
+    }
+};
+
+User user{"Alice", 30, true};
+std::string json = wwjson::to_json(user);
+// {"name":"Alice","age":30,"active":true}
 ```
 
 ### 构建与测试
@@ -72,24 +101,25 @@ make release
 ./build-release/perf/pfwwjson
 ```
 
-更多构建选项请查看 [docs/usage.md](docs/usage.md)。
+若仅为使用安装的话，向 `cmake` 传入 `-DWWJSON_LIB_ONLY=ON` 选项，可以跳过编译
+测试与示例项目。
 
-## 🎯 适用场景
-
-- **Web API响应**: 快速生成JSON API响应
-- **日志记录**: 高效结构化日志输出
-- **配置管理**: 生成配置文件和参数
-- **消息队列**: 序列化数据传输格式
-- **数据导出**: 将内存数据转换为JSON格式
-
-## 📊 性能特点
-
-- **小整数优化**: 0-99范围使用查表法，显著提升序列化速度
-- **小范围浮点优化**: [0, 9999.9999]范围内快速序列化
-- **智能转义**: 仅在必要时进行字符转义，减少开销
-- **内存预分配**: 支持预估大小，减少内存重分配
+详细使用指南请查看 [docs/usage.md](docs/usage.md)。
 
 ## 🏗️ 架构设计
+
+### 头文件结构
+
+本项目采用模块化头文件设计，可按需选择包含：
+
+- **wwjson/wwjson.hpp** - 核心构建器与配置系统（必需）
+- **wwjson/jstring.hpp** - 高性能字符串缓冲区（可选）
+- **wwjson/jbuilder.hpp** - 高级便捷接口（可选）
+  - `Builder`, `FastBuilder` - 常用构建器别名
+  - `wwjson::to_json` - 统一的序列化 API
+  - `TO_JSON` 宏 - 简化字段序列化
+
+所有头文件统一安装到 `wwjson/` 子目录，使用时需包含完整路径。
 
 ### 核心组件
 
@@ -98,13 +128,36 @@ make release
 - **BasicConfig**: 可配置序列化选项（转义、逗号等）
 - **StringConcept**: 字符串类型接口规范（std::string 小子集）
 
-### 配置选项
+### 性能特点
+
+- **小整数优化**: 0-99范围使用查表法，显著提升序列化速度
+- **小范围浮点优化**: [0, 9999.9999]范围内快速序列化
+- **可控转义**: 仅在必要时进行字符转义，减少开销
+- **内存预分配**: 支持预估大小，减少内存重分配
+- **额外边界扩容**: 定制的字符串扩容时自带额外安全边界，可减少频繁的格式字符的边界检查
+
+### 推荐使用方式
+
+对于大多数场景，建议使用 `wwjson/jbuilder.hpp` 提供的便捷别名：
+
+- **RawBuilder** - 使用 `std::string`，通用性强
+- **Builder** - 使用 `JString`，性能优化（unsafe 操作）
+- **FastBuilder** - 使用 `KString`，性能最优（单次分配模式）
+
+常规结构体序列化时，则推荐 `wwjson::to_json` 统一 API，大幅简化代码。
+
+### 配置选项定制
+
+提供编译期定制选项与序列化算法覆盖，以满足特定需求。
 
 ```cpp
 struct MyConfig : wwjson::BasicConfig<std::string> {
     static constexpr bool kEscapeKey = true;     // 总是转义键名
     static constexpr bool kQuoteNumber = false;  // 数字不加引号
     static constexpr bool kTailComma = false;    // 不允许尾逗号
+
+    // EscapseString: 字符串转义方法定制
+    // NumberString: 数字转字符串算法定制
 };
 
 wwjson::GenericBuilder<std::string, MyConfig> builder;
@@ -123,6 +176,7 @@ wwjson::GenericBuilder<std::string, MyConfig> builder;
 - [📖 完整用户指南](docs/usage.md) - 详细的功能介绍和使用示例
 - [🔧 API参考文档](https://lymslive.github.io/wwjson/api/) - Doxygen生成的完整API文档
 - [📊 性能测试报告](perf/report.md) - 详细的性能分析
+- [💡 示例程序](example/README.md) - 实用的代码示例，展示各种高级用法
 
 ## 🤝 贡献
 

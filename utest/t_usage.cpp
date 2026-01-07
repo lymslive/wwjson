@@ -6,10 +6,53 @@
  */
 #include "couttast/couttast.h"
 #include "wwjson.hpp"
+#include "jbuilder.hpp"
+
 #include <iostream>
 
 // use to mark code snippet from document
 #define MARKDOWN_CODE_SNIPPET
+
+DEF_TAST(readme_1, "example from readme")
+{
+#ifdef MARKDOWN_CODE_SNIPPET
+    wwjson::RawBuilder builder;
+    builder.BeginObject();
+    builder.AddMember("name", "wwjson");
+    builder.AddMember("version", 1.0);
+    builder.AddMember("features", [&]() {
+            auto arr = builder.ScopeArray();
+            arr.AddItem("fast");
+            arr.AddItem("simple");
+            arr.AddItem("header-only");
+            });
+    builder.EndObject();
+
+    std::string json = builder.GetResult();
+    COUT(json, R"({"name":"wwjson","version":1,"features":["fast","simple","header-only"]})");
+#endif
+}
+
+struct User {
+    std::string name;
+    int age;
+    bool active;
+
+    void to_json(wwjson::Builder& builder) const {
+        TO_JSON(name);   // wwjson::to_json(builder, "name", name);
+        TO_JSON(age);    // wwjson::to_json(builder, "age", age);
+        TO_JSON(active); // wwjson::to_json(builder, "active", active);
+    }
+};
+
+DEF_TAST(readme_2, "example from readme")
+{
+#ifdef MARKDOWN_CODE_SNIPPET
+    User user{"Alice", 30, true};
+    std::string json = wwjson::to_json(user);
+#endif
+    COUT(json, R"({"name":"Alice","age":30,"active":true})");
+}
 
 // 期望的JSON结果，用于第4节示例测试
 static const std::string EXPECTED_SECTION_4_JSON = 
@@ -17,24 +60,6 @@ static const std::string EXPECTED_SECTION_4_JSON =
 
 DEF_TAST(usage_2_2_first_example, "example from docs/usage.md")
 {
-    // in readme.md
-    {
-        wwjson::RawBuilder builder;
-        builder.BeginObject();
-        builder.AddMember("name", "wwjson");
-        builder.AddMember("version", 1.0);
-        builder.AddMember("features", [&]() {
-                auto arr = builder.ScopeArray();
-                arr.AddItem("fast");
-                arr.AddItem("simple");
-                arr.AddItem("header-only");
-                });
-        builder.EndObject();
-
-        std::string json = builder.GetResult();
-        COUT(json, R"({"name":"wwjson","version":1,"features":["fast","simple","header-only"]})");
-    }
-
 #ifdef MARKDOWN_CODE_SNIPPET
 //+ #include "wwjson.hpp"
 //+ #include <iostream>

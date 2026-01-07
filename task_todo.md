@@ -827,6 +827,26 @@ BasicConfig::EscapeString 方法？请分析这个问题。
 
 ### DONE:20260107-163804
 
+## TODO:2026-01-07/3 完善 example 文档与主 readme 文档
+
+在 example/ 子目录增加一个 README.md，介绍示例用法。
+
+再优化根目录的 README.md ，简单反映这个版本所做的一些修改：
+- 多个头文件安装到单独的 `wwjson/` 子目录
+- 更方便统一的 `wwjson::to_json` 转换 api 
+
+根 README.md 补充一个示例，并同步到 utdocs 单元测试验证。
+
+### DONE: 20260107-221431
+
+## TODO: 性能测试
+
+## TODO: 文档优化
+
+## TODO: v1.1.0 封版
+
+数字序列化算法的进一步优化研究计划在下个版本。
+
 ## TODO: wwjson.hpp 优化整数序列化
 
 优化 `NumberWriter::Output` 整数版，当 `unsafe_level<stringT>` 的值不小于 4 时，
@@ -834,8 +854,3 @@ BasicConfig::EscapeString 方法？请分析这个问题。
 
 需要重新设计一个能正向序列化整数的合适算法。
 
-## TODO: 性能测试
-
-## TODO: 文档优化
-
-## TODO: v1.2.0 封版
