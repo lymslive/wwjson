@@ -163,6 +163,159 @@ using FastObject = GenericObject<KString, UnsafeConfig<KString>>;
 /// @brief RAII array wrapper for FastBuilder
 using FastArray = GenericArray<KString, UnsafeConfig<KString>>;
 
+// ============================================================================
+// to_json Helper Functions - Simplified struct-to-JSON serialization
+// ============================================================================
+
+/// @brief Type trait to detect if a type is a sequence container
+/// @details Detects containers with begin(), end(), and value_type
+template <typename T, typename = void>
+struct is_sequence_container : std::false_type {};
+
+template <typename T>
+struct is_sequence_container<T, std::void_t<
+    decltype(std::declval<T>().begin()),
+    decltype(std::declval<T>().end()),
+    typename T::value_type
+>> : std::integral_constant<bool,
+    !std::is_same_v<T, std::string> &&
+    !std::is_same_v<T, std::string_view>
+> {};
+
+/// @brief Compile-time check for sequence container types
+template <typename T>
+inline constexpr bool is_sequence_container_v = is_sequence_container<T>::value;
+
+/// @brief Check if type is a scalar (string, number, bool)
+/// @note Uses is_key from wwjson.hpp (strings) + arithmetic types + bool
+template <typename T>
+inline constexpr bool is_scalar_v =
+    is_key_v<T> || std::is_arithmetic_v<std::decay_t<T>>;
+
+namespace detail {
+
+/// @brief Main to_json_impl function using if constexpr
+/// @tparam builderT GenericBuilder type
+/// @tparam valueT Value type to serialize
+/// @param builder Reference to the JSON builder
+/// @param key JSON object key (field name)
+/// @param value Value to serialize
+template <typename builderT, typename valueT>
+void to_json_impl(builderT& builder, const char* key, valueT&& value)
+{
+    using decayT = std::decay_t<valueT>;
+
+    if constexpr (is_scalar_v<decayT>) {
+        // Scalar: use AddMember directly
+        builder.AddMember(key, std::forward<valueT>(value));
+    }
+    else if constexpr (is_sequence_container_v<decayT>) {
+        // Container: build array
+        builder.AddMember(key);
+        builder.BeginArray();
+        for (const auto& elem : value) {
+            to_json_impl(builder, nullptr, elem);
+        }
+        builder.EndArray();
+    }
+    else {
+        // Struct: assume has to_json(builder) method, wrap with Begin/EndObject
+        builder.AddMember(key);
+        builder.BeginObject();
+        value.to_json(builder);
+        builder.EndObject();
+    }
+}
+
+/// @brief to_json_impl overload without key (for array elements)
+template <typename builderT, typename valueT>
+void to_json_impl(builderT& builder, std::nullptr_t /*key*/, valueT&& value)
+{
+    using decayT = std::decay_t<valueT>;
+
+    if constexpr (is_scalar_v<decayT>) {
+        builder.AddItem(std::forward<valueT>(value));
+    }
+    else if constexpr (is_sequence_container_v<decayT>) {
+        builder.BeginArray();
+        for (const auto& elem : value) {
+            to_json_impl(builder, nullptr, elem);
+        }
+        builder.EndArray();
+    }
+    else {
+        builder.BeginObject();
+        value.to_json(builder);
+        builder.EndObject();
+    }
+}
+
+} // namespace detail
+
+/// @brief Serialize a value with a key
+/// @tparam builderT GenericBuilder type
+/// @tparam valueT Scalar, container, or struct type
+/// @param builder Reference to the JSON builder
+/// @param key JSON object key (field name)
+/// @param value Value to serialize
+template <typename builderT, typename valueT>
+void to_json(builderT& builder, const char* key, valueT&& value)
+{
+    detail::to_json_impl(builder, key, std::forward<valueT>(value));
+}
+
+/// @brief Serialize a value without a key (for array elements)
+/// @tparam builderT GenericBuilder type
+/// @tparam valueT Scalar, container, or struct type
+/// @param builder Reference to the JSON builder
+/// @param value Value to serialize
+template <typename builderT, typename valueT>
+void to_json(builderT& builder, valueT&& value)
+{
+    detail::to_json_impl(builder, nullptr, std::forward<valueT>(value));
+}
+
+/// @brief Serialize a struct to JSON string using default Builder
+/// @tparam structT Type with to_json(builder) method
+/// @param st Struct instance to serialize
+/// @return JSON string representation
+template <typename structT>
+std::string to_json(const structT& st)
+{
+    Builder builder;
+    builder.BeginObject();
+    st.to_json(builder);
+    builder.EndObject();
+    return builder.MoveResult().str();
+}
+
+// ============================================================================
+// TO_JSON Macro - Simplified field serialization
+// ============================================================================
+
+/// @brief Macro to simplify struct field serialization
+/// @details Expands to: wwjson::to_json(builder, "field_name", field_value)
+/// @par Example:
+/// @code
+/// struct Person {
+///     std::string name;
+///     int age;
+///
+///     void toJson(Builder& builder) const {
+///         builder.BeginObject();
+///         TO_JSON(name);
+///         TO_JSON(age);
+///         builder.EndObject();
+///     }
+/// };
+/// @endcode
+/// @note Uses # operator to convert field name to string literal automatically
+#ifndef TO_JSON
+#define TO_JSON(field) wwjson::to_json(builder, #field, field)
+#else
+#pragma message("WARNING: TO_JSON macro is already defined elsewhere")
+#endif
+
 } // namespace wwjson
 
 #endif // JBUILDER_HPP__

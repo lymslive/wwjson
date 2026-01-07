@@ -757,6 +757,69 @@ BasicConfig::EscapeString 方法？请分析这个问题。
 
 ### DONE: 20260106-233456
 
+## TODO:2026-01-07/1 结构体转 json 封装
+
+问题来源：`example/struct_to_json.cpp` 所展示的 struct 转 json 实现方法还是略
+复杂，希望进一步降低外部使用门槛，统一 api 用法。
+
+在 `include/jbuilder.hpp` 增加一个 `wwjson::to_json` 模板函数：
+- `void to_json(builderT& builder, const char* key, valueT value)` 相当于调用
+  `builder.AddMember(key, value)`;
+- `void to_json(builderT& builder, valueT value)` 相当于调用
+  `builder.AddItem(key, value)`;
+
+参数说明：
+- builderT: 就是任意 GenericBuilder
+- valueT: 标量值，字符串、数字、bool，也该支持 `nullptr_t`
+- key: 键名，用于表示 struct 字段名，一般是字面量
+- 少一个键名参数的 `to_json` 在 struct 场景下可能用不到，但为了完备性也提供
+
+当最后一个参数不是标量，而是一个结构体时，例如作为父结构体的成员，期望它有一个
+自定义的 `to_json(builderT& builder)` 方法。
+于是 `to_json(builderT& builder, key, structT& st)` 执行如下逻辑：
+- `builder.BeginObject()`
+- `st.to_json(builder)`
+- `builder.EndObject()`
+
+于是，一个数据结构体的 `to_json` 方法可以统一风格实现，为每个成员变量调用
+`wwjson::to_json(builder, "field", field)` 。
+
+另外，如果用户不想侵入式地在结构体内定义 `to_json` 方法，也可以特化一个
+`wwjson::to_json` 函数。将一行通用 `st.to_json(builder)` 展开为一系列的
+`wwjson::to_json(builder, "field", st.field)` 调用。
+
+对于成员是顺序容器时，`wwjson::to_json` 再提供偏特化版本，用 `builder` 构建一
+个数组，再对每个元素调用 `to_json` 。首要针对 `std::vector` 实现一版，再考虑对
+任意顺序容器写个模板。
+
+所以，`wwjson::to_json` 的最后一个参数应该支持以下类型：
+- 常用数据类型的标量，主要是字符串与数字
+- 结构体
+- 以上两种的顺序容器
+
+需要处理模板重载对这些类型的匹配。
+
+再提供一个仅有单参数的 `wwjson::to_json(structT& st)` 入口函数，它默认使用
+`JString` 作为写入目标的 `wwjson::Builder` 作为构建器。执行以下操作：
+- 实例化 `builder`
+- 调用 `to_json(builder, st)`
+- 调用 `builder.MoveResult()` ，将 `JString` 转为 `std::string` 返回
+
+这要求用户结构体的 `to_json` 方法定义也接收默认的 `Builder` 类型。如果使用其他
+定制 builder，单参数的 `to_json`（或无参数的 `to_json` 方法）入口也要同步调整。
+用户也可以定制该入口方法，直接返回 `JString` 避免转 `std:string` 的复制拷贝。
+
+最后也提供一个宏 `TO_JSON(field)` ，展开为
+`wwjson::to_json(builder, "field", field)` 。
+这要求结构体提供的 `to_json` 方法的第一个形参名也使用统一推荐的 `builder` 。
+
+定义 `TO_JSON` 宏，要先判断之前没被定义，已有定义时不要覆盖，而是给出编译警告。
+
+实现这些功能后，再用统一 api 重构 `example/struct_to_json.cpp` 的实现。
+为展示特征用法，可以一半结构体用 `wwjson::to_json` 方法，一半用 `TO_JSON` 宏。
+
+### DONE:20260107-134537
+
 ## TODO: wwjson.hpp 优化整数序列化
 
 优化 `NumberWriter::Output` 整数版，当 `unsafe_level<stringT>` 的值不小于 4 时，

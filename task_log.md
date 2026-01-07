@@ -2114,3 +2114,26 @@ using KString = StringBuffer<255>;
 - 修改: `include/jbuilder.hpp` - `UnsafeConfig` 添加 `EscapeKey` 方法，优化注释
 - 修改: `utest/t_escape.cpp` - 添加 `IdentifierEscapeConfig` 和 `escape_ident_key` 测试用例
 
+## TASK:20260107-134537
+-----------------------
+
+**需求 ID**: 2026-01-07/1
+
+**实现内容**:
+- 在 `include/jbuilder.hpp` 添加 `wwjson::to_json` 模板函数系列
+- 支持标量（字符串、数字、bool）使用 `AddMember/AddItem`
+- 支持结构体自动包装 `BeginObject/EndObject` 并调用 `st.to_json(builder)`
+- 支持顺序容器（vector 等）自动构建 JSON 数组
+- 提供单参数入口函数 `wwjson::to_json(st)` 返回 `std::string`
+- 提供 `TO_JSON(field)` 宏简化字段序列化
+- 重构 `example/struct_to_json.cpp` 展示两种使用方式
+
+**关键设计**:
+- 使用 `if constexpr` 内部判断类型（标量/容器/结构体）
+- 简化模板匹配逻辑，避免之前复杂的 SFINAE 检测
+- 用户 struct 的 `to_json` 方法不再需要 `BeginObject/EndObject`，由 helper 自动处理
+
+**测试结果**:
+- 单元测试: 110 PASS
+- 示例运行正常，输出正确 JSON
+
