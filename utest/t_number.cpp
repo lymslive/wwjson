@@ -151,7 +151,7 @@ DEF_TAST(number_float_serialization, "多种浮点数序列化场景测试")
         R"({"zero":0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1234567.89,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.718281828459045,"precise_float":1.2345679,"precise_double":1.23456789012345})";
 
     // If no to_chars support, adjust expectations based on format choice
-    if (::wwjson::use_simple_float_format)
+    if (::wwjson::detail::use_simple_float_format)
     {
         // Simple format expectations %g
         expect =
@@ -168,9 +168,9 @@ DEF_TAST(number_std_support, "检查当前运行时对 std::to_chars 的支持")
     // --cout=silent
     std::cout << "=== std::to_chars Support Check ===" << std::endl;
     std::cout << "has_float_to_chars_v<double>: "
-              << ::wwjson::has_float_to_chars_v<double> << std::endl;
+              << ::wwjson::detail::has_float_to_chars_v<double> << std::endl;
     std::cout << "WWJSON_USE_SIMPLE_FLOAT_FORMAT: "
-              << (::wwjson::use_simple_float_format ? "1 (enabled)"
+              << (::wwjson::detail::use_simple_float_format ? "1 (enabled)"
                                                     : "0 (disabled)")
               << std::endl;
 

@@ -12,35 +12,35 @@ DEF_TAST(jbuilder_unsafe_level, "unsafe_level 编译期特征萃取测试")
 {
     DESC("标准库类型返回 0");
     {
-        COUT((int)unsafe_level<std::string>::value, 0);
-        COUT((int)unsafe_level_v<std::string>, 0);
-        COUT((int)unsafe_level<const std::string>::value, 0);
+        COUT((int)detail::unsafe_level<std::string>::value, 0);
+        COUT((int)detail::unsafe_level_v<std::string>, 0);
+        COUT((int)detail::unsafe_level<const std::string>::value, 0);
     }
 
     DESC("BufferView 和相关类型");
     {
-        COUT((int)unsafe_level<BufferView>::value, 0);
-        COUT((int)unsafe_level<UnsafeBuffer>::value, 255);
+        COUT((int)detail::unsafe_level<BufferView>::value, 0);
+        COUT((int)detail::unsafe_level<UnsafeBuffer>::value, 255);
     }
 
     DESC("StringBuffer 模板类型");
     {
-        COUT((int)unsafe_level<StringBuffer<0>>::value, 0);
-        COUT((int)unsafe_level<StringBuffer<4>>::value, 4);
-        COUT((int)unsafe_level<StringBuffer<255>>::value, 255);
+        COUT((int)detail::unsafe_level<StringBuffer<0>>::value, 0);
+        COUT((int)detail::unsafe_level<StringBuffer<4>>::value, 4);
+        COUT((int)detail::unsafe_level<StringBuffer<255>>::value, 255);
     }
 
     DESC("类型别名");
     {
-        COUT((int)unsafe_level<JString>::value, 4);
-        COUT((int)unsafe_level<KString>::value, 255);
-        COUT(unsafe_level<JString>::value, unsafe_level_v<JString>);
+        COUT((int)detail::unsafe_level<JString>::value, 4);
+        COUT((int)detail::unsafe_level<KString>::value, 255);
+        COUT(detail::unsafe_level<JString>::value, detail::unsafe_level_v<JString>);
     }
 
     DESC("Builder 内部的 unsafe_level");
     {
-        COUT((int)unsafe_level<Builder::string_type>::value, 4);
-        COUT((int)unsafe_level<FastBuilder::string_type>::value, 255);
+        COUT((int)detail::unsafe_level<Builder::string_type>::value, 4);
+        COUT((int)detail::unsafe_level<FastBuilder::string_type>::value, 255);
     }
 }
 

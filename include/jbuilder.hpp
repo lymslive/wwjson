@@ -64,7 +64,7 @@ struct UnsafeConfig : public BasicConfig<stringT>
     {
         if (wwjson_unlikely(src == nullptr)) { return; }
 
-        if constexpr (unsafe_level_v<stringT> >= 4)
+        if constexpr (detail::unsafe_level_v<stringT> >= 4)
         {
             // For unsafe string types: reserve 2x space and write directly
             dst.reserve(dst.size() + len * 2);
@@ -167,6 +167,8 @@ using FastArray = GenericArray<KString, UnsafeConfig<KString>>;
 // to_json Helper Functions - Simplified struct-to-JSON serialization
 // ============================================================================
 
+namespace detail {
+
 /// @brief Type trait to detect if a type is a sequence container
 /// @details Detects containers with begin(), end(), and value_type
 template <typename T, typename = void>
@@ -191,8 +193,6 @@ inline constexpr bool is_sequence_container_v = is_sequence_container<T>::value;
 template <typename T>
 inline constexpr bool is_scalar_v =
     is_key_v<T> || std::is_arithmetic_v<std::decay_t<T>>;
-
-namespace detail {
 
 /// @brief Main to_json_impl function using if constexpr
 /// @tparam builderT GenericBuilder type

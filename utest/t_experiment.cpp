@@ -36,8 +36,8 @@ DEF_TOOL(ext_to_chars, "test std::to_chars")
         COUT(strMaxInt.size());
     }
 
-    COUT(wwjson::has_float_to_chars_v<float>);
-    COUT(wwjson::has_float_to_chars_v<double>);
+    COUT(wwjson::detail::has_float_to_chars_v<float>);
+    COUT(wwjson::detail::has_float_to_chars_v<double>);
 }
 
 namespace tool

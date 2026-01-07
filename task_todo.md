@@ -820,6 +820,13 @@ BasicConfig::EscapeString 方法？请分析这个问题。
 
 ### DONE:20260107-134537
 
+## TODO:2026-01-07/2 wwjson::detail 内部子空间优化
+
+全面分析 include/wwjson.hpp 与 include/jbuilder.hpp 哪些辅助功能适合放在 detail
+子空间。需要重构一下。
+
+### DONE:20260107-163804
+
 ## TODO: wwjson.hpp 优化整数序列化
 
 优化 `NumberWriter::Output` 整数版，当 `unsafe_level<stringT>` 的值不小于 4 时，

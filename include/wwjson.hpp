@@ -59,29 +59,17 @@ template <typename stringT, typename configT> struct GenericBuilder;
 template <typename stringT, typename configT> struct GenericObject;
 template <typename stringT, typename configT> struct GenericArray;
 
-/// Type trait to detect supported key types (const char*, std::string,
-/// std::string_view).
-template <typename T> struct is_key : std::false_type
+namespace detail
 {
-};
-template <> struct is_key<const char *> : std::true_type
-{
-};
-template <> struct is_key<char *> : std::true_type
-{
-};
-template <> struct is_key<std::string> : std::true_type
-{
-};
-template <> struct is_key<std::string_view> : std::true_type
-{
-};
+/// Type trait to detect supported key types.
+template <typename T> struct is_key : std::false_type { };
+template <> struct is_key<const char *> : std::true_type { };
+template <> struct is_key<char *> : std::true_type { };
+template <> struct is_key<std::string> : std::true_type { };
+template <> struct is_key<std::string_view> : std::true_type { };
 
 template <typename T>
 inline constexpr bool is_key_v = is_key<std::decay_t<T>>::value;
-
-namespace detail
-{
 
 template <typename T>
 using has_fp_to_chars = decltype(std::to_chars(
@@ -90,9 +78,7 @@ using has_fp_to_chars = decltype(std::to_chars(
     ));
 
 template <typename T, typename = void>
-struct supports_to_chars_float : std::false_type
-{
-};
+struct supports_to_chars_float : std::false_type { };
 
 template <typename T>
 struct supports_to_chars_float<T, std::void_t<has_fp_to_chars<T>>>
@@ -100,19 +86,19 @@ struct supports_to_chars_float<T, std::void_t<has_fp_to_chars<T>>>
 {
 };
 
-} // namespace detail
-
 /// Detect if std::to_chars supports floating-point types.
 template <typename T>
 constexpr bool has_float_to_chars_v =
     std::is_floating_point_v<std::remove_cv_t<T>>
-        &&detail::supports_to_chars_float<std::remove_cv_t<T>>::value;
+    && detail::supports_to_chars_float<std::remove_cv_t<T>>::value;
 
 #if WWJSON_USE_SIMPLE_FLOAT_FORMAT
 constexpr bool use_simple_float_format = !has_float_to_chars_v<double>;
 #else
 constexpr bool use_simple_float_format = false;
 #endif
+
+} // namespace detail
 
 /// @brief Concept documentation for custom string types
 /// @details
@@ -139,6 +125,8 @@ struct StringConcept
 {
 };
 
+namespace detail
+{
 /// @brief Compile-time trait to extract unsafe level from string types
 /// @details
 /// This trait determines the "unsafe level" of a string type used in JSON building.
@@ -170,6 +158,8 @@ struct unsafe_level<stringT, std::void_t<decltype(stringT::kUnsafeLevel)>>
 /// @brief Convenience variable template for unsafe_level
 template <typename stringT>
 inline constexpr uint8_t unsafe_level_v = unsafe_level<stringT>::value;
+
+} // namespace detail
 
 /// @brief High-performance number writer for JSON serialization
 /// @details
@@ -389,7 +379,7 @@ template <typename stringT> struct NumberWriter
         
         char buffer[5];
         char* ptr = buffer;
-        if constexpr (unsafe_level_v<stringT> >= 4)
+        if constexpr (detail::unsafe_level_v<stringT> >= 4)
         {
             ptr = dst.end();
         }
@@ -403,7 +393,7 @@ template <typename stringT> struct NumberWriter
         --ptr;
         while (*ptr == '0') { --ptr; }
 
-        if constexpr (unsafe_level_v<stringT> >= 4)
+        if constexpr (detail::unsafe_level_v<stringT> >= 4)
         {
             dst.unsafe_set_end(ptr + 1);
         }
@@ -450,14 +440,14 @@ template <typename stringT> struct NumberWriter
 
         constexpr size_t kFloatBufferSize = 64;
         static thread_local char buffer[kFloatBufferSize];
-        if constexpr (unsafe_level_v<stringT> >= 4)
+        if constexpr (detail::unsafe_level_v<stringT> >= 4)
         {
             dst.reserve_ex(kFloatBufferSize);
         }
 
         if (value < 0)
         {
-            if constexpr (unsafe_level_v<stringT> >= 4)
+            if constexpr (detail::unsafe_level_v<stringT> >= 4)
             {
                 dst.unsafe_push_back('-');
             }
@@ -477,12 +467,12 @@ template <typename stringT> struct NumberWriter
         // Set write pointer based on unsafe level
         size_t written_len = 0;
         char* write_ptr = buffer;
-        if constexpr (unsafe_level_v<stringT> >= 4)
+        if constexpr (detail::unsafe_level_v<stringT> >= 4)
         {
             write_ptr = dst.end();
         }
 
-        if constexpr (has_float_to_chars_v<floatT>)
+        if constexpr (detail::has_float_to_chars_v<floatT>)
         {
             auto result = std::to_chars(write_ptr, write_ptr + kFloatBufferSize, value);
             if (result.ec == std::errc{})
@@ -516,7 +506,7 @@ template <typename stringT> struct NumberWriter
         // Append result to destination based on unsafe level
         if (wwjson_likely(written_len > 0 && written_len < kFloatBufferSize))
         {
-            if constexpr (unsafe_level_v<stringT> >= 4)
+            if constexpr (detail::unsafe_level_v<stringT> >= 4)
             {
                 dst.unsafe_set_end(write_ptr + written_len);
             }
@@ -857,7 +847,7 @@ struct GenericBuilder
     /// use the safe PutChar method for structural integrity.
     void UnsafePutChar(char c)
     {
-        if constexpr (unsafe_level_v<stringT> >= 4)
+        if constexpr (detail::unsafe_level_v<stringT> >= 4)
         {
             json.unsafe_push_back(c);
         }
@@ -944,7 +934,7 @@ struct GenericBuilder
     /// builder.EndObject(); // {"items":["value1","value2"]}
     /// @endcode
     template <typename keyT>
-    std::enable_if_t<is_key_v<keyT>, void> BeginArray(keyT &&key)
+    std::enable_if_t<detail::is_key_v<keyT>, void> BeginArray(keyT &&key)
     {
         PutKey(std::forward<keyT>(key));
         BeginArray();
@@ -1010,7 +1000,7 @@ struct GenericBuilder
     /// builder.EndObject(); // {"config":{"debug":true}}
     /// @endcode
     template <typename keyT>
-    std::enable_if_t<is_key_v<keyT>, void> BeginObject(keyT &&key)
+    std::enable_if_t<detail::is_key_v<keyT>, void> BeginObject(keyT &&key)
     {
         PutKey(std::forward<keyT>(key));
         BeginObject();
@@ -1277,7 +1267,7 @@ struct GenericBuilder
     /// @note This method does not support length-specified key overloads
     /// (pszKey, len) as the length parameter would conflict with the variadic args.
     template <typename keyT, typename... Args>
-    std::enable_if_t<is_key_v<keyT>, void> AddMember(keyT &&key, Args &&... args)
+    std::enable_if_t<detail::is_key_v<keyT>, void> AddMember(keyT &&key, Args &&... args)
     {
         PutKey(std::forward<keyT>(key));
         AddItem(std::forward<Args>(args)...);
@@ -1306,7 +1296,7 @@ struct GenericBuilder
     /// builder.EndObject();              // {"user":{"name":"Alice","age":25}}
     /// @endcode
     template <typename keyT>
-    std::enable_if_t<is_key_v<keyT>, void> AddMember(keyT &&key)
+    std::enable_if_t<detail::is_key_v<keyT>, void> AddMember(keyT &&key)
     {
         PutKey(std::forward<keyT>(key));
     }
@@ -1344,7 +1334,7 @@ struct GenericBuilder
     /// Force to escape string value and add to object.
     /// Note: Not force to escape key, only refer to configT::kEscapeKey.
     template <typename keyT, typename... Args>
-    std::enable_if_t<is_key_v<keyT>, void>
+    std::enable_if_t<detail::is_key_v<keyT>, void>
     AddMemberEscape(keyT&& key, Args&&... args)
     {
         PutKey(std::forward<keyT>(key));
@@ -1355,7 +1345,7 @@ struct GenericBuilder
     /// This enables pattern: AddMemberEscape(key) + BeginObject()
     /// which escapes the key name before creating nested object.
     template <typename keyT>
-    std::enable_if_t<is_key_v<keyT>, void> AddMemberEscape(keyT&& key)
+    std::enable_if_t<detail::is_key_v<keyT>, void> AddMemberEscape(keyT&& key)
     {
         UnsafePutChar('"');
         if constexpr (std::is_pointer_v<std::decay_t<keyT>>)
@@ -1384,7 +1374,7 @@ struct GenericBuilder
 
     /// Sets up the key and returns *this for assignment.
     template <typename keyT>
-    std::enable_if_t<is_key_v<keyT>, GenericBuilder &> operator[](keyT &&key)
+    std::enable_if_t<detail::is_key_v<keyT>, GenericBuilder &> operator[](keyT &&key)
     {
         PutKey(std::forward<keyT>(key));
         return *this;
@@ -1436,7 +1426,7 @@ struct GenericBuilder
     /// Creates a RAII-scoped array with the specified object key. Equivalent
     /// to calling PutKey(key) followed by ScopeArray(), but more convenient.
     template <typename keyT>
-    std::enable_if_t<is_key_v<keyT>, GenericArray<stringT, configT>>
+    std::enable_if_t<detail::is_key_v<keyT>, GenericArray<stringT, configT>>
     ScopeArray(keyT &&key);
 
     /// @brief Create a scoped object that auto-closes when destroyed (RAII)
@@ -1472,7 +1462,7 @@ struct GenericBuilder
     /// Creates a RAII-scoped object with the specified object key. Equivalent
     /// to calling PutKey(key) followed by ScopeObject(), but more convenient.
     template <typename keyT>
-    std::enable_if_t<is_key_v<keyT>, GenericObject<stringT, configT>>
+    std::enable_if_t<detail::is_key_v<keyT>, GenericObject<stringT, configT>>
     ScopeObject(keyT &&key);
 
     /// @}
@@ -1598,7 +1588,7 @@ struct GenericBuilder
     /// Add member with JSON sub-string value without additional quotes or
     /// escaping. User is responsible for ensuring the input is valid JSON.
     template <typename keyT, typename... Args>
-    std::enable_if_t<is_key_v<keyT>, void> AddMemberSub(keyT &&key, Args &&... args)
+    std::enable_if_t<detail::is_key_v<keyT>, void> AddMemberSub(keyT &&key, Args &&... args)
     {
         PutKey(std::forward<keyT>(key));
         AddItemSub(std::forward<Args>(args)...);
@@ -1810,7 +1800,7 @@ template <typename stringT, typename configT> struct GenericObject
     }
 
     template <typename keyT>
-    std::enable_if_t<is_key_v<keyT>, GenericBuilder<stringT, configT> &>
+    std::enable_if_t<detail::is_key_v<keyT>, GenericBuilder<stringT, configT> &>
     operator[](keyT &&key)
     {
         m_builder.PutKey(std::forward<keyT>(key));
@@ -1847,7 +1837,7 @@ template <typename stringT, typename configT> struct GenericObject
     /// @note This operator intelligently switches between PutKey() and AddItem()
     /// based on the builder's state, enabling very fluent object construction.
     template <typename keyT>
-    std::enable_if_t<is_key_v<keyT>, GenericObject &> operator<<(keyT &&key)
+    std::enable_if_t<detail::is_key_v<keyT>, GenericObject &> operator<<(keyT &&key)
     {
         if (m_builder.Back() != ':')
         {
@@ -1878,7 +1868,7 @@ template <typename stringT, typename configT> struct GenericObject
     /// obj << "balance" << 123.45;      // Floating-point value
     /// @endcode
     template <typename T>
-    std::enable_if_t<!is_key_v<T>, GenericObject &> operator<<(const T &value)
+    std::enable_if_t<!detail::is_key_v<T>, GenericObject &> operator<<(const T &value)
     {
         m_builder.AddItem(value);
         return *this;
@@ -1907,7 +1897,7 @@ GenericBuilder<stringT, configT>::ScopeArray()
 
 template <typename stringT, typename configT>
 template <typename keyT>
-inline std::enable_if_t<is_key_v<keyT>, GenericArray<stringT, configT>>
+inline std::enable_if_t<detail::is_key_v<keyT>, GenericArray<stringT, configT>>
 GenericBuilder<stringT, configT>::ScopeArray(keyT &&key)
 {
     return GenericArray<stringT, configT>(*this, std::forward<keyT>(key));
@@ -1922,7 +1912,7 @@ GenericBuilder<stringT, configT>::ScopeObject()
 
 template <typename stringT, typename configT>
 template <typename keyT>
-inline std::enable_if_t<is_key_v<keyT>, GenericObject<stringT, configT>>
+inline std::enable_if_t<detail::is_key_v<keyT>, GenericObject<stringT, configT>>
 GenericBuilder<stringT, configT>::ScopeObject(keyT &&key)
 {
     return GenericObject<stringT, configT>(*this, std::forward<keyT>(key));

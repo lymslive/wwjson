@@ -2137,3 +2137,46 @@ using KString = StringBuffer<255>;
 - 单元测试: 110 PASS
 - 示例运行正常，输出正确 JSON
 
+
+## TASK:20260107-163804
+-----------------------
+
+**需求 ID**: 2026-01-07/2
+
+**任务内容**:
+`wwjson::detail` 内部子空间优化：将内部辅助类型 traits 移入 detail 命名空间，改善代码组织结构。
+
+**实施内容**:
+
+1. **include/wwjson.hpp 修改**:
+   - 移动 `is_key` / `is_key_v` 到 `wwjson::detail` 命名空间
+   - 移动 `has_float_to_chars_v` / `use_simple_float_format` 到 detail
+   - 移动 `unsafe_level` / `unsafe_level_v` 到 detail
+   - 保留 `StringConcept` 在主命名空间（作为文档契约）
+   - 更新所有引用这些 traits 的代码，改用 `detail::` 前缀
+
+2. **include/jbuilder.hpp 修改**:
+   - 移动 `is_sequence_container` / `is_sequence_container_v` 到 detail
+   - 移动 `is_scalar_v` 到 detail
+   - 更新相关引用
+
+3. **测试文件更新**:
+   - `utest/t_number.cpp`: 更新 `has_float_to_chars_v` / `use_simple_float_format` 引用
+   - `utest/t_jbuilder.cpp`: 更新 `unsafe_level` / `unsafe_level_v` 引用
+   - `utest/t_experiment.cpp`: 更新 `has_float_to_chars_v` 引用
+
+**设计决策**:
+- `StringConcept` 和 `UnsafeStringConcept` 保留在主命名空间，因为它们是用户文档契约
+- 只有内部类型 traits 才移到 detail 命名空间
+
+**测试结果**:
+- 编译: 通过
+- 单元测试: 110 PASS, 0 FAIL
+
+**修改文件**:
+- 修改: `include/wwjson.hpp` - 内部 traits 移到 detail 命名空间
+- 修改: `include/jbuilder.hpp` - 内部 traits 移到 detail 命名空间
+- 修改: `utest/t_number.cpp` - 更新 detail:: 前缀引用
+- 修改: `utest/t_jbuilder.cpp` - 更新 detail:: 前缀引用
+- 修改: `utest/t_experiment.cpp` - 更新 detail:: 前缀引用
+
