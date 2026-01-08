@@ -207,3 +207,271 @@ DEF_TAST(jbuilder_fast_basic, "FastBuilder 基本功能测试")
 }
 
 /// @}
+
+// ============================================================================
+// to_json Helper Functions Tests
+// ============================================================================
+
+#include <vector>
+#include <array>
+
+DEF_TAST(to_json_scalars, "to_json scalar types and array elements")
+{
+    // Scalar types in object
+    DESC("scalar types with key");
+    {
+        Builder builder;
+        builder.BeginObject();
+        wwjson::to_json(builder, "int_val", 42);
+        wwjson::to_json(builder, "double_val", 3.14159);
+        wwjson::to_json(builder, "bool_true", true);
+        wwjson::to_json(builder, "bool_false", false);
+        wwjson::to_json(builder, "str_val", std::string("hello"));
+        wwjson::to_json(builder, "cstr_val", "world");
+        builder.EndObject();
+        std::string result = builder.MoveResult().str();
+        std::string expect = R"({"int_val":42,"double_val":3.14159,"bool_true":true,"bool_false":false,"str_val":"hello","cstr_val":"world"})";
+        COUT(result, expect);
+        COUT(test::IsJsonValid(result), true);
+    }
+
+    // Array elements without key
+    DESC("array elements without key");
+    {
+        Builder builder;
+        builder.BeginArray();
+        wwjson::to_json(builder, 1);
+        wwjson::to_json(builder, 2.5);
+        wwjson::to_json(builder, std::string("three"));
+        wwjson::to_json(builder, true);
+        builder.EndArray();
+        std::string result = builder.MoveResult().str();
+        std::string expect = R"([1,2.5,"three",true])";
+        COUT(result, expect);
+        COUT(test::IsJsonValid(result), true);
+    }
+}
+
+DEF_TAST(to_json_containers, "to_json containers and nested structs")
+{
+    // Container types
+    DESC("vector and array");
+    {
+        Builder builder;
+        builder.BeginObject();
+        std::vector<int> numbers = {1, 2, 3, 4, 5};
+        std::vector<std::string> names = {"alice", "bob"};
+        std::array<int, 3> arr = {10, 20, 30};
+        wwjson::to_json(builder, "numbers", numbers);
+        wwjson::to_json(builder, "names", names);
+        wwjson::to_json(builder, "fixed_arr", arr);
+        builder.EndObject();
+        std::string result = builder.MoveResult().str();
+        std::string expect = R"({"numbers":[1,2,3,4,5],"names":["alice","bob"],"fixed_arr":[10,20,30]})";
+        COUT(result, expect);
+        COUT(test::IsJsonValid(result), true);
+    }
+
+    // Nested struct with to_json method
+    DESC("nested struct");
+    {
+        struct Address {
+            std::string street;
+            std::string city;
+            void to_json(Builder& builder) const {
+                wwjson::to_json(builder, "street", street);
+                wwjson::to_json(builder, "city", city);
+            }
+        };
+
+        struct Person {
+            std::string name;
+            int age;
+            Address address;
+            void to_json(Builder& builder) const {
+                wwjson::to_json(builder, "name", name);
+                wwjson::to_json(builder, "age", age);
+                wwjson::to_json(builder, "address", address);
+            }
+        };
+
+        Person person{"John", 30, {"123 Main St", "Boston"}};
+        Builder builder;
+        builder.BeginObject();
+        wwjson::to_json(builder, "person", person);
+        builder.EndObject();
+        std::string result = builder.MoveResult().str();
+        std::string expect = R"({"person":{"name":"John","age":30,"address":{"street":"123 Main St","city":"Boston"}}})";
+        COUT(result, expect);
+        COUT(test::IsJsonValid(result), true);
+    }
+
+    // Complex nested structure
+    DESC("complex nested struct");
+    {
+        struct Book {
+            std::string title;
+            std::vector<std::string> authors;
+            double price;
+            void to_json(Builder& builder) const {
+                wwjson::to_json(builder, "title", title);
+                wwjson::to_json(builder, "authors", authors);
+                wwjson::to_json(builder, "price", price);
+            }
+        };
+
+        struct Library {
+            std::string name;
+            std::vector<Book> books;
+            void to_json(Builder& builder) const {
+                wwjson::to_json(builder, "name", name);
+                wwjson::to_json(builder, "books", books);
+            }
+        };
+
+        Library lib{"City Library"};
+        lib.books.push_back({"C++ Primer", {"Lippman"}, 49.99});
+        lib.books.push_back({"Effective C++", {"Meyers"}, 44.99});
+
+        std::string result = wwjson::to_json(lib);
+        COUT(result);
+        COUT(test::IsJsonValid(result), true);
+    }
+}
+
+DEF_TAST(to_json_macro, "TO_JSON macro usage")
+{
+    // Simple struct with TO_JSON
+    DESC("simple struct with TO_JSON");
+    {
+        struct Person {
+            std::string name;
+            int age;
+            bool active;
+            void to_json(Builder& builder) const {
+                TO_JSON(name);
+                TO_JSON(age);
+                TO_JSON(active);
+            }
+        };
+
+        Person p{"Alice", 30, true};
+        Builder builder;
+        builder.BeginObject();
+        wwjson::to_json(builder, "person", p);
+        builder.EndObject();
+        std::string result = builder.MoveResult().str();
+        std::string expect = R"({"person":{"name":"Alice","age":30,"active":true}})";
+        COUT(result, expect);
+        COUT(test::IsJsonValid(result), true);
+    }
+
+    // Nested structs with TO_JSON
+    DESC("nested structs with TO_JSON");
+    {
+        struct Address {
+            std::string street;
+            std::string city;
+            void to_json(Builder& builder) const {
+                TO_JSON(street);
+                TO_JSON(city);
+            }
+        };
+
+        struct User {
+            std::string username;
+            Address address;
+            void to_json(Builder& builder) const {
+                TO_JSON(username);
+                TO_JSON(address);
+            }
+        };
+
+        User u{"bob", {"456 Oak Ave", "Seattle"}};
+        Builder builder;
+        builder.BeginObject();
+        wwjson::to_json(builder, "user", u);
+        builder.EndObject();
+        std::string result = builder.MoveResult().str();
+        std::string expect = R"({"user":{"username":"bob","address":{"street":"456 Oak Ave","city":"Seattle"}}})";
+        COUT(result, expect);
+        COUT(test::IsJsonValid(result), true);
+    }
+}
+
+namespace test
+{
+struct Address {
+    std::string street;
+    std::string city;
+    void to_json(Builder& builder) const {
+        wwjson::to_json(builder, "street", street);
+        wwjson::to_json(builder, "city", city);
+    }
+};
+
+struct Person {
+    std::string name;
+    int age;
+    Address addr;
+    void to_json(Builder& builder) const {
+        wwjson::to_json(builder, "Name", name);
+        wwjson::to_json(builder, "Age", age);
+        wwjson::to_json(builder, "Addr", addr);
+    }
+};
+} // test::
+
+namespace wwjson
+{
+
+// test::Address 结构体可不提供 to_json 方法，
+// to fix: 为该类型重载 wwjson::to_json 函数优先
+void to_json(wwjson::Builder& dst, const char* key, const test::Address& self)
+{
+    dst.ScopeObject(key);
+    dst.AddMember("City", self.city);
+    wwjson::to_json(dst, "Street", "Unkown");
+}
+
+} // wwjson::
+
+DEF_TAST(to_json_standalone, "standalone wwjson::to_json(struct)")
+{
+    struct Address {
+        std::string street;
+        std::string city;
+        void to_json(Builder& builder) const {
+            wwjson::to_json(builder, "street", street);
+            wwjson::to_json(builder, "city", city);
+        }
+    };
+
+    struct Person {
+        std::string name;
+        int age;
+        Address addr;
+        void to_json(Builder& builder) const {
+            wwjson::to_json(builder, "name", name);
+            wwjson::to_json(builder, "age", age);
+            wwjson::to_json(builder, "addr", addr);
+        }
+    };
+
+    Person p{"Alice", 35, {"789 Pine Rd", "Denver"}};
+    std::string result = wwjson::to_json(p);
+    std::string expect = R"({"name":"Alice","age":35,"addr":{"street":"789 Pine Rd","city":"Denver"}})";
+    COUT(result, expect);
+    COUT(test::IsJsonValid(result), true);
+
+    DESC("custom wwjson::to_json for some struct");
+    {
+        test::Person p{"Alice", 35, {"789 Pine Rd", "Denver"}};
+        std::string result = wwjson::to_json(p);
+        std::string expect = R"({"Name":"Alice","Age":35,"Addr":{"Street":"Unkown","City":"Denver"}})";
+        COUT(result, expect);
+        COUT(test::IsJsonValid(result), true);
+    }
+}
+
+/// @}
