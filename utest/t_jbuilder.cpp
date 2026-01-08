@@ -399,17 +399,34 @@ DEF_TAST(to_json_macro, "TO_JSON macro usage")
     }
 }
 
+// 自定义重载 wwjson::to_json 函数测试
 namespace test
 {
+// 先声明 Address 结构体（含 to_json 方法声明）
 struct Address {
     std::string street;
     std::string city;
-    void to_json(Builder& builder) const {
-        wwjson::to_json(builder, "street", street);
-        wwjson::to_json(builder, "city", city);
-    }
+    void to_json(Builder& builder) const;
 };
+} // test::
 
+namespace wwjson
+{
+// test::Address 结构体可不提供 to_json 方法，
+// 但这个重载必须在调用者 test::Person::to_json 定义之前声明
+void to_json(wwjson::Builder& dst, const char* key, const test::Address& self)
+{
+    DESC("[DEBUG] Non-template to_json called, key=%s", key);
+    auto addr = dst.ScopeObject(key);
+    addr.AddMember("City", self.city);
+    wwjson::to_json(dst, "Street", "Unkown");
+}
+
+} // wwjson::
+
+namespace test
+{
+// 现在可以定义 Person，其 to_json 方法能看到 wwjson::to_json 的重载
 struct Person {
     std::string name;
     int age;
@@ -417,24 +434,19 @@ struct Person {
     void to_json(Builder& builder) const {
         wwjson::to_json(builder, "Name", name);
         wwjson::to_json(builder, "Age", age);
-        wwjson::to_json(builder, "Addr", addr);
+        wwjson::to_json(builder, "Addr", addr);  // 此时能看到 wwjson::to_json(Builder&, const char*, const Address&)
     }
 };
-} // test::
 
-namespace wwjson
-{
-
-// test::Address 结构体可不提供 to_json 方法，
-// to fix: 为该类型重载 wwjson::to_json 函数优先
-void to_json(wwjson::Builder& dst, const char* key, const test::Address& self)
-{
-    dst.ScopeObject(key);
-    dst.AddMember("City", self.city);
-    wwjson::to_json(dst, "Street", "Unkown");
+// Address 的 to_json 方法定义
+// 如果没有重载，会被通用方法调用
+inline void Address::to_json(Builder& builder) const {
+    DESC("[DEBUG] template to_json called, key=%s");
+    wwjson::to_json(builder, "street", street);
+    wwjson::to_json(builder, "city", city);
 }
 
-} // wwjson::
+} // test::
 
 DEF_TAST(to_json_standalone, "standalone wwjson::to_json(struct)")
 {
@@ -468,7 +480,7 @@ DEF_TAST(to_json_standalone, "standalone wwjson::to_json(struct)")
     {
         test::Person p{"Alice", 35, {"789 Pine Rd", "Denver"}};
         std::string result = wwjson::to_json(p);
-        std::string expect = R"({"Name":"Alice","Age":35,"Addr":{"Street":"Unkown","City":"Denver"}})";
+        std::string expect = R"({"Name":"Alice","Age":35,"Addr":{"City":"Denver","Street":"Unkown"}})";
         COUT(result, expect);
         COUT(test::IsJsonValid(result), true);
     }

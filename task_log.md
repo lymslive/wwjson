@@ -2249,3 +2249,31 @@ using KString = StringBuffer<255>;
 - `example/README.md` 由 AI 创建，详细说明三个示例程序的用法
 - `README-en.md` 由 AI 翻译，与中文版保持一致
 
+## TASK:20260108-122950
+-----------------------
+
+**需求 ID**: 2026-01-08/1
+
+**任务内容**:
+完善对 to_json 的测试：在 `utest/t_jbuilder.cpp` 补充单元测试，验证 `wwjson::to_json` 函数的各种用法。
+
+**实施内容**:
+
+1. **设计 4 个主要测试用例**，用 DESC 分段覆盖多个场景：
+   - `to_json_scalars`: 标量类型(int/double/bool/string)与数组元素测试
+   - `to_json_containers`: 容器(vector/array)与嵌套结构体测试
+   - `to_json_macro`: TO_JSON 宏的简单结构体与嵌套结构体用法测试
+   - `to_json_standalone`: 单参数 `wwjson::to_json(struct)` 返回 JSON 字符串测试
+
+2. **测试结构设计**：
+   - 局部结构体定义放在各测试用例内部，避免污染全局命名空间
+   - 使用 DESC 分段组织多个测试场景
+   - 覆盖标量、容器、嵌套结构、宏使用等多种情况
+
+**测试结果**:
+- 全部 4 个测试用例通过
+- 构建成功，无编译警告
+
+**修改文件**:
+- 修改: `utest/t_jbuilder.cpp` - 新增 to_json 单元测试
+

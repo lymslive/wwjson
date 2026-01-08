@@ -839,6 +839,20 @@ BasicConfig::EscapeString 方法？请分析这个问题。
 
 ### DONE: 20260107-221431
 
+## TODO:2026-01-08/1 完善对 to_json 的测试
+
+include/jbuilder.hpp 的 `to_json` 函数设计，一开始是为了优化
+`example/struct_to_json.cpp` 示例的用户体验。
+
+现在要在 `utest/t_jbuilder.cpp` 补充完善的单元测试。单元测试的结构体定义放在
+`test::` 命名空间，不必嵌套太深，但要覆盖各种类型情况。一些结构体可以重载自己
+的 `wwjson::to_json` 函数，验证使用时应该不会调到 `jbuilder.hpp` 的通用模板实
+现中。
+
+正常使用 `to_json` 应该构建出合法的 json ，可用 `utest/test_util.h` 的方法验证。
+
+### DONE: 20260108-122950
+
 ## TODO: 性能测试
 
 ## TODO: 文档优化
