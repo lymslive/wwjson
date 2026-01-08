@@ -16,7 +16,7 @@ on:
       test_args:
         description: 'Command line arguments for performance tests. Default: --cout=silent'
         required: false
-        default: '--cout=silent'
+        default: '--cout=fail'
 
 jobs:
   performance-tests:
@@ -24,7 +24,7 @@ jobs:
     
     env:
       CMAKE_ARGS: ${{ github.event.inputs.cmake_args || '-DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON' }}
-      TEST_ARGS: ${{ github.event.inputs.test_args || '--cout=silent' }}
+      TEST_ARGS: ${{ github.event.inputs.test_args || '--cout=fail' }}
     
     steps:
     - name: Checkout code
