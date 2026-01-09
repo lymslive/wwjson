@@ -28,6 +28,7 @@
 
 #include "wwjson.hpp"
 #include "jstring.hpp"
+#include <optional>
 
 namespace wwjson {
 
@@ -169,24 +170,55 @@ using FastArray = GenericArray<KString, UnsafeConfig<KString>>;
 
 namespace detail {
 
-/// @brief Type trait to detect if a type is a sequence container
-/// @details Detects containers with begin(), end(), and value_type
+/// @brief Type trait to detect if a type is an associative container (map)
+/// @details Detects containers with key_type and mapped_type where key_type is a string type
 template <typename T, typename = void>
-struct is_sequence_container : std::false_type {};
+struct is_map : std::false_type {};
 
 template <typename T>
-struct is_sequence_container<T, std::void_t<
+struct is_map<T, std::void_t<
+    typename T::key_type,
+    typename T::mapped_type,
+    std::enable_if_t<is_key_v<typename T::key_type>>
+>> : std::true_type {};
+
+/// @brief Compile-time check for map types
+template <typename T>
+inline constexpr bool is_map_v = is_map<T>::value;
+
+/// @brief Type trait to detect if a type is a sequence container (vector-like)
+/// @details Detects containers with begin(), end(), and value_type, excluding strings and maps
+template <typename T, typename = void>
+struct is_vector : std::false_type {};
+
+template <typename T>
+struct is_vector<T, std::void_t<
     decltype(std::declval<T>().begin()),
     decltype(std::declval<T>().end()),
     typename T::value_type
 >> : std::integral_constant<bool,
-    !std::is_same_v<T, std::string> &&
-    !std::is_same_v<T, std::string_view>
+    !is_key_v<T> &&
+    !is_map_v<T>
 > {};
 
-/// @brief Compile-time check for sequence container types
+/// @brief Compile-time check for vector types
 template <typename T>
-inline constexpr bool is_sequence_container_v = is_sequence_container<T>::value;
+inline constexpr bool is_vector_v = is_vector<T>::value;
+
+/// @brief Type trait to detect std::optional
+template <typename T, typename = void>
+struct is_optional : std::false_type {};
+
+template <typename T>
+struct is_optional<std::optional<T>> : std::true_type {};
+
+/// @brief Compile-time check for optional types
+template <typename T>
+inline constexpr bool is_optional_v = is_optional<T>::value;
+
+/// @brief Marker class to indicate "not a key" for to_json_impl
+/// @details Used to differentiate between AddMember (with key) and AddItem (without key)
+struct NotKey {};
 
 /// @brief Check if type is a scalar (string, number, bool)
 /// @note Uses is_key from wwjson.hpp (strings) + arithmetic types + bool
@@ -194,56 +226,70 @@ template <typename T>
 inline constexpr bool is_scalar_v =
     is_key_v<T> || std::is_arithmetic_v<std::decay_t<T>>;
 
-/// @brief Main to_json_impl function using if constexpr
+/// @brief Unified to_json_impl function with compile-time key detection
 /// @tparam builderT GenericBuilder type
+/// @tparam keyT Key type (is_key for member, NotKey for array element)
 /// @tparam valueT Value type to serialize
 /// @param builder Reference to the JSON builder
-/// @param key JSON object key (field name)
+/// @param key JSON object key (field name) or NotKey marker
 /// @param value Value to serialize
-template <typename builderT, typename valueT>
-void to_json_impl(builderT& builder, const char* key, valueT&& value)
+template <typename builderT, typename keyT, typename valueT>
+void to_json_impl(builderT& builder, keyT&& key, valueT&& value)
 {
     using decayT = std::decay_t<valueT>;
+    constexpr bool has_key = is_key_v<keyT>;
 
-    if constexpr (is_scalar_v<decayT>) {
-        // Scalar: use AddMember directly
-        builder.AddMember(key, std::forward<valueT>(value));
-    }
-    else if constexpr (is_sequence_container_v<decayT>) {
-        // Container: build array
-        builder.AddMember(key);
-        builder.BeginArray();
-        for (const auto& elem : value) {
-            to_json_impl(builder, nullptr, elem);
+    if constexpr (is_optional_v<decayT>) {
+        // Optional: serialize based on whether it has a value
+        if constexpr (has_key) {
+            if (value.has_value()) {
+                to_json_impl(builder, std::forward<keyT>(key), value.value());
+            } else {
+                builder.AddMember(std::forward<keyT>(key), nullptr); // null
+            }
+        } else {
+            if (value.has_value()) {
+                to_json_impl(builder, std::forward<keyT>(key), value.value());
+            } else {
+                builder.AddItem(nullptr); // null
+            }
         }
-        builder.EndArray();
     }
-    else {
-        // Struct: assume has to_json(builder) method, wrap with Begin/EndObject
-        builder.AddMember(key);
+    else if constexpr (is_scalar_v<decayT>) {
+        // Scalar: use AddMember or AddItem based on key type
+        if constexpr (has_key) {
+            builder.AddMember(std::forward<keyT>(key), std::forward<valueT>(value));
+        } else {
+            builder.AddItem(std::forward<valueT>(value));
+        }
+    }
+    else if constexpr (is_map_v<decayT>) {
+        // Map: build JSON object
+        if constexpr (has_key) {
+            builder.AddMember(std::forward<keyT>(key));
+        }
         builder.BeginObject();
-        value.to_json(builder);
+        for (const auto& [k, v] : value) {
+            to_json_impl(builder, k, v);
+        }
         builder.EndObject();
     }
-}
-
-/// @brief to_json_impl overload without key (for array elements)
-template <typename builderT, typename valueT>
-void to_json_impl(builderT& builder, std::nullptr_t /*key*/, valueT&& value)
-{
-    using decayT = std::decay_t<valueT>;
-
-    if constexpr (is_scalar_v<decayT>) {
-        builder.AddItem(std::forward<valueT>(value));
-    }
-    else if constexpr (is_sequence_container_v<decayT>) {
+    else if constexpr (is_vector_v<decayT>) {
+        // Sequence container: build JSON array
+        if constexpr (has_key) {
+            builder.AddMember(std::forward<keyT>(key));
+        }
         builder.BeginArray();
         for (const auto& elem : value) {
-            to_json_impl(builder, nullptr, elem);
+            to_json_impl(builder, NotKey{}, elem);
         }
         builder.EndArray();
     }
     else {
+        // Struct: assume has to_json(builder) method
+        if constexpr (has_key) {
+            builder.AddMember(std::forward<keyT>(key));
+        }
         builder.BeginObject();
         value.to_json(builder);
         builder.EndObject();
@@ -272,7 +318,7 @@ void to_json(builderT& builder, const char* key, valueT&& value)
 template <typename builderT, typename valueT>
 void to_json(builderT& builder, valueT&& value)
 {
-    detail::to_json_impl(builder, nullptr, std::forward<valueT>(value));
+    detail::to_json_impl(builder, detail::NotKey{}, std::forward<valueT>(value));
 }
 
 /// @brief Serialize a struct to JSON string using default Builder

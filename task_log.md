@@ -2277,3 +2277,75 @@ using KString = StringBuffer<255>;
 **修改文件**:
 - 修改: `utest/t_jbuilder.cpp` - 新增 to_json 单元测试
 
+# AI 协作任务工作日志
+
+格式说明:
+- **任务ID**: YYYYMMDD-HHMMSS ，生成命令 `date +"%Y%m%d-%H%M%S"`
+- 每条日志开始一个二级标题，标题名就是任务ID
+- 可适合分几个三级标题，简明扼要描叙任务过程与结果
+- **追加至文件末尾**，与上条日志隔一空行
+
+## TASK:20260108-122950
+-----------------------
+
+**需求 ID**: 2026-01-08/1
+
+**任务内容**:
+完善对 to_json 的测试：在 `utest/t_jbuilder.cpp` 补充单元测试，验证 `wwjson::to_json` 函数的各种用法。
+
+**实施内容**:
+
+1. **设计 4 个主要测试用例**，用 DESC 分段覆盖多个场景：
+   - `to_json_scalars`: 标量类型(int/double/bool/string)与数组元素测试
+   - `to_json_containers`: 容器(vector/array)与嵌套结构体测试
+   - `to_json_macro`: TO_JSON 宏的简单结构体与嵌套结构体用法测试
+   - `to_json_standalone`: 单参数 `wwjson::to_json(struct)` 返回 JSON 字符串测试
+
+2. **测试结构设计**：
+   - 局部结构体定义放在各测试用例内部，避免污染全局命名空间
+   - 使用 DESC 分段组织多个测试场景
+   - 覆盖标量、容器、嵌套结构、宏使用等多种情况
+
+**测试结果**:
+- 全部 4 个测试用例通过
+- 构建成功，无编译警告
+
+**修改文件**:
+- 修改: `utest/t_jbuilder.cpp` - 新增 to_json 单元测试
+
+## TASK:20260109-104752
+-----------------------
+
+**需求 ID**: 2026-01-09/1
+
+**任务内容**:
+增强 `jbuilder.hpp` 的 `to_json` 功能：支持关联容器(map)和可选类型(optional)，重构 `to_json_impl` 统一处理逻辑。
+
+**实施内容**:
+
+1. **类型 trait 简化与新增**：
+   - `is_sequence_container` → `is_vector`，与 `is_optional` 命名风格统一
+   - `is_associative_container` → `is_map`
+   - `is_map` 要求 `key_type` 必须是字符串类型（`is_key_v`）
+   - `is_vector` 排除 map 类型，避免误判
+   - 新增 `is_optional` trait 支持 `std::optional`
+
+2. **to_json_impl 重构**：
+   - 将两个几乎相同的重载合并为一个统一函数
+   - 使用 `detail::is_key_v<keyT>` 判断是否有 key
+   - key 参数改为完美转发 `keyT&&` + `std::forward`
+   - map 分支使用 `to_json_impl(builder, k, v)` 递归处理键值对
+   - null 值使用 `AddMember(key, nullptr)` 和 `AddItem(nullptr)`
+
+3. **新增测试用例**：
+   - `to_json_associative`: `std::map` 和 `std::unordered_map` 转 JSON 对象
+   - `to_json_optional`: `std::optional` 有值时序列化，无值时输出 null
+
+**测试结果**:
+- 全部 116 个测试通过
+- 构建成功
+
+**修改文件**:
+- `include/jbuilder.hpp` - 类型 trait 简化和 to_json_impl 重构
+- `utest/t_jbuilder.cpp` - 新增 map 和 optional 测试用例
+

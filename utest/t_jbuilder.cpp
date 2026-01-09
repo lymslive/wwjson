@@ -2,6 +2,12 @@
 #include "test_util.h"
 #include "jbuilder.hpp"
 #include <string>
+#include <vector>
+#include <array>
+#include <map>
+#include <unordered_map>
+#include <optional>
+#include <variant>
 
 using namespace wwjson;
 
@@ -481,6 +487,164 @@ DEF_TAST(to_json_standalone, "standalone wwjson::to_json(struct)")
         test::Person p{"Alice", 35, {"789 Pine Rd", "Denver"}};
         std::string result = wwjson::to_json(p);
         std::string expect = R"({"Name":"Alice","Age":35,"Addr":{"City":"Denver","Street":"Unkown"}})";
+        COUT(result, expect);
+        COUT(test::IsJsonValid(result), true);
+    }
+}
+
+DEF_TAST(to_json_associative, "to_json associative containers (map)")
+{
+    // Map to JSON object
+    DESC("std::map with string keys");
+    {
+        std::map<std::string, int> scores = {{"alice", 90}, {"bob", 85}, {"charlie", 92}};
+        Builder builder;
+        builder.BeginObject();
+        wwjson::to_json(builder, "scores", scores);
+        builder.EndObject();
+        std::string result = builder.MoveResult().str();
+        std::string expect = R"({"scores":{"alice":90,"bob":85,"charlie":92}})";
+        COUT(result, expect);
+        COUT(test::IsJsonValid(result), true);
+    }
+
+    // Unordered map to JSON object
+    DESC("std::unordered_map with string keys");
+    {
+        std::unordered_map<std::string, int> scores = {{"alice", 90}, {"bob", 85}, {"charlie", 92}};
+        Builder builder;
+        builder.BeginObject();
+        wwjson::to_json(builder, "scores", scores);
+        builder.EndObject();
+        std::string result = builder.MoveResult().str();
+        COUT(result);
+        COUT(test::IsJsonValid(result), true);
+        // Check all keys exist (order not guaranteed for unordered_map)
+        COUT(result.find("alice") != std::string::npos, true);
+        COUT(result.find("bob") != std::string::npos, true);
+        COUT(result.find("charlie") != std::string::npos, true);
+    }
+
+    // Nested map
+    DESC("nested std::map");
+    {
+        std::map<std::string, std::map<std::string, int>> nested = {
+            {"users", {{"alice", 90}, {"bob", 85}}},
+            {"admins", {{"admin", 100}}}
+        };
+        Builder builder;
+        builder.BeginObject();
+        wwjson::to_json(builder, "data", nested);
+        builder.EndObject();
+        std::string result = builder.MoveResult().str();
+        COUT(result);
+        COUT(test::IsJsonValid(result), true);
+    }
+
+    // Map with vector values
+    DESC("map with vector values");
+    {
+        std::map<std::string, std::vector<int>> groups = {
+            {"evens", {2, 4, 6}},
+            {"odds", {1, 3, 5}}
+        };
+        Builder builder;
+        builder.BeginObject();
+        wwjson::to_json(builder, "groups", groups);
+        builder.EndObject();
+        std::string result = builder.MoveResult().str();
+        std::string expect = R"({"groups":{"evens":[2,4,6],"odds":[1,3,5]}})";
+        COUT(result, expect);
+        COUT(test::IsJsonValid(result), true);
+    }
+}
+
+DEF_TAST(to_json_optional, "to_json std::optional types")
+{
+    // Optional with value
+    DESC("optional with value");
+    {
+        std::optional<int> optVal = 42;
+        Builder builder;
+        builder.BeginObject();
+        wwjson::to_json(builder, "opt_int", optVal);
+        builder.EndObject();
+        std::string result = builder.MoveResult().str();
+        std::string expect = R"({"opt_int":42})";
+        COUT(result, expect);
+        COUT(test::IsJsonValid(result), true);
+    }
+
+    // Optional without value (null)
+    DESC("optional without value (null)");
+    {
+        std::optional<int> optEmpty;
+        Builder builder;
+        builder.BeginObject();
+        wwjson::to_json(builder, "opt_empty", optEmpty);
+        builder.EndObject();
+        std::string result = builder.MoveResult().str();
+        std::string expect = R"({"opt_empty":null})";
+        COUT(result, expect);
+        COUT(test::IsJsonValid(result), true);
+    }
+
+    // Optional string
+    DESC("optional string");
+    {
+        std::optional<std::string> optStr = std::string("hello");
+        std::optional<std::string> optStrEmpty;
+        Builder builder;
+        builder.BeginObject();
+        wwjson::to_json(builder, "opt_str", optStr);
+        wwjson::to_json(builder, "opt_str_empty", optStrEmpty);
+        builder.EndObject();
+        std::string result = builder.MoveResult().str();
+        std::string expect = R"({"opt_str":"hello","opt_str_empty":null})";
+        COUT(result, expect);
+        COUT(test::IsJsonValid(result), true);
+    }
+
+    // Optional in array
+    DESC("optional in array");
+    {
+        std::optional<int> a = 1;
+        std::optional<int> b;
+        std::optional<int> c = 3;
+        Builder builder;
+        builder.BeginArray();
+        wwjson::to_json(builder, a);
+        wwjson::to_json(builder, b);
+        wwjson::to_json(builder, c);
+        builder.EndArray();
+        std::string result = builder.MoveResult().str();
+        std::string expect = R"([1,null,3])";
+        COUT(result, expect);
+        COUT(test::IsJsonValid(result), true);
+    }
+
+    // Nested struct with optional
+    DESC("nested struct with optional");
+    {
+        struct Person {
+            std::string name;
+            std::optional<int> age;
+            void to_json(Builder& builder) const {
+                wwjson::to_json(builder, "name", name);
+                wwjson::to_json(builder, "age", age);
+            }
+        };
+
+        Person p1{"Alice", 30};
+        Person p2{"Bob", std::nullopt};
+
+        Builder builder;
+        builder.BeginObject();
+        wwjson::to_json(builder, "person1", p1);
+        wwjson::to_json(builder, "person2", p2);
+        builder.EndObject();
+        std::string result = builder.MoveResult().str();
+        std::string expect = R"({"person1":{"name":"Alice","age":30},"person2":{"name":"Bob","age":null}})";
         COUT(result, expect);
         COUT(test::IsJsonValid(result), true);
     }

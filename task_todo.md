@@ -853,6 +853,32 @@ include/jbuilder.hpp 的 `to_json` 函数设计，一开始是为了优化
 
 ### DONE: 20260108-122950
 
+## TODO:2026-01-09/1 jbuilder.hpp to_json 功能增强
+
+- 修改文件：include/jbuilder.hpp
+- 修改 API: wwjson::to_json
+
+当前已支持顺序容器如 std::vector，转为 json 数组，
+需要再增加关联容器，如 std::map ，转为 json 对象。也需要模板支持。
+
+再支持 std::optional 可选包装类型，当无值时转为 json 的 null 特殊值。
+
+以及需要重构 `to_json_impl` ，因为现在有两个几乎一模一样的重载，区别只在递归到
+标量时决定是用 AddMember （键值对）还是 AddItem （数组元素或 json root 值）。
+再扩展功能时两份代码会重复太多。
+
+考虑将 `to_json_impl(builder, key, value)` 的第二参数也模板化，如果它是
+`is_key`，就调用 AddMember ，否则调用 AddItem 。
+当 `to_json` 调用它传入非 key 特殊值考虑如下三种备选方案：
+- nullptr (是否会隐式转 const char* 误判)
+- 0
+- 新增一个 detail::NotKey 空类标志
+
+可以先重构，再加新功能。
+然后在 `utest/t_jbuilder.cpp` 增加用例测试新功能。
+
+### DONE:20260109-104752
+
 ## TODO: 性能测试
 
 ## TODO: 文档优化
