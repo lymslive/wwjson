@@ -360,6 +360,156 @@ public:
 
 } // namespace test::perf
 
+// ============================================================================
+// to_json API Performance Test
+// ============================================================================
+
+// Include jbuilder for to_json support
+#include "jbuilder.hpp"
+
+namespace test::perf
+{
+
+// Local struct types for to_json testing
+struct ItemData
+{
+    int id;
+    double value;
+    std::string name;
+    std::vector<std::string> tags;
+
+    // to_json method for struct serialization
+    template <typename builderT>
+    void to_json(builderT& builder) const
+    {
+        wwjson::to_json(builder, "id", id);
+        wwjson::to_json(builder, "value", value);
+        wwjson::to_json(builder, "name", name);
+        wwjson::to_json(builder, "tags", tags);
+    }
+};
+
+struct MetadataData
+{
+    std::string version;
+    long created;
+    std::string author;
+
+    template <typename builderT>
+    void to_json(builderT& builder) const
+    {
+        wwjson::to_json(builder, "version", version);
+        wwjson::to_json(builder, "created", created);
+        wwjson::to_json(builder, "author", author);
+    }
+};
+
+struct RootData
+{
+    std::vector<ItemData> data;
+    MetadataData metadata;
+
+    template <typename builderT>
+    void to_json(builderT& builder) const
+    {
+        wwjson::to_json(builder, "data", data);
+        wwjson::to_json(builder, "metadata", metadata);
+    }
+};
+
+// Performance test class for to_json API vs Basic API
+class ApiToJson : public RelativeTimer<ApiToJson>
+{
+public:
+    int items;
+    int start;
+    RootData root_data;
+    std::string resultA;
+    std::string resultB;
+
+    ApiToJson(int test_items, int test_start)
+        : items(test_items), start(test_start)
+    {
+        // Generate test data
+        GenerateData();
+    }
+
+    void GenerateData()
+    {
+        std::vector<ItemData> item_list;
+        item_list.reserve(items);
+        for (int i = 0; i < items; i++)
+        {
+            int value = start + i;
+            ItemData item;
+            item.id = value;
+            item.value = value * 1.5;
+            item.name = "item_" + std::to_string(value);
+            item.tags = {"tag1", "tag2", std::to_string(value)};
+            item_list.push_back(std::move(item));
+        }
+        root_data.data = std::move(item_list);
+        root_data.metadata.version = "1.0";
+        root_data.metadata.created = 1640995200;
+        root_data.metadata.author = "test_system";
+    }
+
+    // Method A: Use basic API (RawBuilder with Begin/End)
+    void methodA()
+    {
+        ::wwjson::RawBuilder builder(1024 + items * 64);
+        builder.BeginRoot();
+
+        // Build data array
+        builder.BeginArray("data");
+        for (const auto& item : root_data.data)
+        {
+            builder.BeginObject();
+            builder.AddMember("id", item.id);
+            builder.AddMember("value", item.value);
+            builder.AddMember("name", item.name);
+
+            builder.BeginArray("tags");
+            for (const auto& tag : item.tags)
+            {
+                builder.AddItem(tag);
+            }
+            builder.EndArray();
+
+            builder.EndObject();
+        }
+        builder.EndArray();
+
+        // Build metadata
+        builder.BeginObject("metadata");
+        builder.AddMember("version", root_data.metadata.version);
+        builder.AddMember("created", root_data.metadata.created);
+        builder.AddMember("author", root_data.metadata.author);
+        builder.EndObject();
+
+        builder.EndRoot();
+        resultA = std::move(builder.json);
+    }
+
+    // Method B: Use to_json API
+    void methodB()
+    {
+        ::wwjson::RawBuilder builder(1024 + items * 64);
+        wwjson::to_json(builder, root_data);
+        resultB = builder.MoveResult();
+    }
+
+    bool methodVerify()
+    {
+        methodA();
+        std::string tempA = resultA;
+        methodB();
+        std::string tempB = resultB;
+        return tempA == tempB;
+    }
+};
+
+} // namespace test::perf
 // Test case for comparing Basic Method vs Auto-close Method
 DEF_TAST(api_basic_vs_autoclose, "基本方法 vs 自动关闭方法性能对比")
 {
@@ -533,4 +683,40 @@ DEF_TOOL(api_output_sample, "输出各方法构建的JSON示例")
 
     ::yyjson::Document doc(resultB);
     COUT(doc.isValid(), true);
+}
+
+// Test case for comparing Basic Method vs to_json Method
+DEF_TAST(api_basic_vs_tojson, "基本方法 vs to_json方法性能对比")
+{
+    test::CArgv argv;
+    DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items,
+         argv.loop);
+
+    auto tester = test::perf::ApiToJson(argv.items, argv.start);
+
+    double ratio = tester.runAndPrint("Basic vs to_json",
+                                      "Basic Method", "to_json Method",
+                                      argv.loop, 10);
+    DESC("Performance ratio: %.3f", ratio);
+}
+
+// Tool case to verify to_json output
+DEF_TOOL(api_tojson_sample, "输出to_json方法构建的JSON示例")
+{
+    test::CArgv argv;
+    int test_items = std::min(argv.items, 3);
+
+    std::cout << "=== to_json Output Sample ===" << std::endl;
+
+    auto tester = test::perf::ApiToJson(test_items, argv.start);
+
+    tester.methodA();
+    std::cout << "\n--- Basic Method ---" << std::endl;
+    std::cout << tester.resultA << std::endl;
+
+    tester.methodB();
+    std::cout << "\n--- to_json Method ---" << std::endl;
+    std::cout << tester.resultB << std::endl;
+
+    COUT(tester.resultA == tester.resultB, true);
 }

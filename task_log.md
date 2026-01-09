@@ -2349,3 +2349,39 @@ using KString = StringBuffer<255>;
 - `include/jbuilder.hpp` - 类型 trait 简化和 to_json_impl 重构
 - `utest/t_jbuilder.cpp` - 新增 map 和 optional 测试用例
 
+## TASK:20260109-170855
+-----------------------
+
+**需求 ID**: 2026-01-09/2
+
+**任务内容**:
+测试 to_json api 的相对性能：在 `perf/p_api.cpp` 文件中增加相对性能测试，对比使用 jbuilder.hpp 中定义的 `wwjson::to_json` 转换结构体为 json 的方法与使用常规 Begin/End/Add api 的方法。
+
+**实施内容**:
+
+1. **新增结构体定义** (`perf/p_api.cpp`):
+   - `ItemData`: 包含 id、value、name、tags 字段，每个字段都有 `to_json(builder)` 方法
+   - `MetadataData`: 包含 version、created、author 字段
+   - `RootData`: 包含 data(ItemData数组) 和 metadata(MetadataData) 字段
+
+2. **新增 `ApiToJson` 测试类**:
+   - 继承自 `RelativeTimer<ApiToJson>`
+   - 构造函数接收 items 和 start 参数，生成测试数据
+   - `methodA()`: 使用传统 RawBuilder API（Begin/End/AddMember）
+   - `methodB()`: 使用 `wwjson::to_json` API
+   - 两种方法都使用 `RawBuilder` 以统一比较基准
+   - `methodVerify()` 验证两种方法输出完全相同
+
+3. **新增测试用例**:
+   - `api_basic_vs_tojson`: 对比基本方法与 to_json 方法的性能比
+   - `api_tojson_sample`: 工具用例，输出两种方法构建的 JSON 示例用于验证
+
+**测试结果**:
+- 编译成功
+- 输出验证：两种方法生成的 JSON 完全相同
+- 性能测试：`Basic Method` 略快于 `to_json Method`（约 5-6%）
+  - 这符合预期，因为 to_json 增加了模板实例化和递归调用的开销
+
+**修改文件**:
+- `perf/p_api.cpp` - 新增 ApiToJson 类和两个测试用例
+

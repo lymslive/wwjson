@@ -879,6 +879,25 @@ include/jbuilder.hpp 的 `to_json` 函数设计，一开始是为了优化
 
 ### DONE:20260109-104752
 
+## TODO:2026-01-09/2 测试 to_json api 的相对性能
+
+在 perf/p_api.cpp 文件中增加一个相对性能测试，
+测试使用 jbuilder.hpp 中定义的 wwjson::to_json 转换结构体为 json 的方法，
+对比使用常规 Begin/End/Add api 的方法。
+
+方法 A 仍用类似 BasicMethodBuilder 的 api ，但不要再用 AbstractJsonBuilder 模
+式了。方法 B 使用 to_json 的 api 。
+
+从 RelativeTimer 新派生一个 test::perf::ApiToJson 类。
+在它里面定个一组局部结构体，表示原来 BasicMethodBuilder 生成的 json 结构。
+每个子结构定义 to_json 方法。
+构造函数从参数生成结构体内存数据。再分别用方法 A 与 方法 B 从这个结构体数组转
+换为 json 。为了统一比较，这两个方法都使用 RawBuilder 。
+
+再定义一个 DEF_TAST 用例驱动这个相对测试。
+
+### DONE:20260109-170855
+
 ## TODO: 性能测试
 
 ## TODO: 文档优化
