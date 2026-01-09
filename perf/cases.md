@@ -8,6 +8,8 @@
 - `api_basic_vs_lambda` - 基本方法 vs Lambda方法性能对比
 - `api_basic_vs_class` - 基本方法 vs 类方法性能对比
 - `api_output_sample*` - 输出各方法构建的JSON示例
+- `api_basic_vs_tojson` - 基本方法 vs to_json方法性能对比
+- `api_tojson_sample*` - 输出to_json方法构建的JSON示例
 
 ## p_builder.cpp
 
@@ -35,6 +37,12 @@
 - `design_string_escape` - 字符串转义优化方案预测试
 - `design_fractional_serialization` - 4位小数部分序列化优化验证
 - `design_write_unsigned_compare` - 无符号整数序列化方法对比测试
+
+## p_nodom.cpp
+
+- `nodom_raw_vs_snprintf` - wwjson RawBuilder vs snprintf性能对比
+- `nodom_raw_vs_append` - wwjson RawBuilder vs string::append性能对比
+- `nodom_raw_vs_stream` - wwjson RawBuilder vs stringstream性能对比
 
 ## p_number.cpp
 

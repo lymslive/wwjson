@@ -898,6 +898,33 @@ include/jbuilder.hpp 的 `to_json` 函数设计，一开始是为了优化
 
 ### DONE:20260109-170855
 
+## TODO:2026-01-09/3 测试几种 Json 拼装方法的相对性能
+
+增加一个 perf/p_nodom.cpp 测试文件，用于测试几种简单直接的 Json 拼装方法。
+
+- A: 基本的 wwjson::RawBuilder
+- B1: 直接的 snprintf 一次格式化法
+- B2: 使用 std::string append 方法逐步添加
+- B3: 使用 stringstream 的 << 方法
+
+从 RelativeTimer 派生三个相对测试类，方法 A 使用 RawBuilder，方法 B 分别使用 B1-B3 三种。
+
+### DONE:20260109-212430
+
+为了让 snprintf 可用，先设计一个确定的 json 。带有一定实际数据意义的非平凡
+json ：第一层大约 4-5 个元字段，加一个 data 字段，第二层 data 约 100 个字段。
+
+为了消除数字转字符串算法的差异，假设每个字段都是字符串，表示数字语义的字段也加
+引号当字符串类型，RawBuilder 也直接接收字符串参数，而非数字类型。
+
+为了源码可读，设计的 json 字面量可以带缩进格式。然后提供一个函数删除其中的空格
+与回车，返回压缩的单行 json ，以便与各种拼装方法的结果进行比较。因此，字段值里
+面不要有空格。
+
+新增测试文件要添加到 perf/CMakeLists.txt 中，并检查更新一下 perf/README.md
+
+### DONE:20260109-212430
+
 ## TODO: 性能测试
 
 ## TODO: 文档优化

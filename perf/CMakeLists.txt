@@ -8,6 +8,7 @@ add_executable(pfwwjson
     p_string.cpp
     p_design.cpp
     p_api.cpp
+    p_nodom.cpp
 )
 
 # Link with wwjson library

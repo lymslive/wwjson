@@ -2385,3 +2385,30 @@ using KString = StringBuffer<255>;
 **修改文件**:
 - `perf/p_api.cpp` - 新增 ApiToJson 类和两个测试用例
 
+## TASK:20260109-212430
+-----------------------
+
+**需求来源**: TODO:2026-01-09/3 测试几种 Json 拼装方法的相对性能
+
+**任务内容**: 新增 perf/p_nodom.cpp 性能测试文件，对比 wwjson::RawBuilder 与其他原生字符串拼装方法的性能。
+
+**实现方案**:
+1. 设计测试数据: RootData（4字段）+ DataItem（50字段，字符串值）
+2. 四种拼装方法:
+   - A: wwjson::RawBuilder（使用 ScopeObject/AddMember）
+   - B1: snprintf 一次性格式化（所有字段名嵌入格式串）
+   - B2: std::string::append 逐步添加
+   - B3: std::ostringstream << 逐步添加
+3. 三个相对测试: RawBuilder vs snprintf/append/streamstream
+4. 使用 REFERENCE_JSON 字面量进行验证
+
+**测试结果** (100000次循环):
+- RawBuilder vs snprintf: RawBuilder 快 50%（122ms vs 183ms）
+- RawBuilder vs append: append 快 62%（79ms vs 128ms）
+- RawBuilder vs stream: RawBuilder 快 98%（117ms vs 232ms）
+
+**修改文件**:
+- `perf/p_nodom.cpp` - 新增测试文件（850行）
+- `perf/CMakeLists.txt` - 添加 p_nodom.cpp
+- `perf/README.md` - 更新文件列表
+

@@ -16,6 +16,7 @@
 - `p_string.cpp` - 字符串序列化性能测试
 - `p_api.cpp` - 不同 api 风格的性能测试
 - `p_design.cpp` - 设计选择性能测试
+- `p_nodom.cpp` - 无 DOM 方式的 JSON 拼装性能测试
 - `argv.h` - 命令行参数处理
 - `relative_perf.h` - 相对性能测试框架
 - `pfwwjson` - 主要的性能测试可执行文件
