@@ -2456,3 +2456,48 @@ using KString = StringBuffer<255>;
 **修改文件**:
 - `perf/p_nodom.cpp` - 重构模板类，新增测试用例，清理冗余代码
 
+## TASK:20260110-222559
+-----------------------
+
+**需求来源**: TODO:2026-01-10/4 优化性能测试输出
+
+**任务内容**:
+1. 在根目录的 makefile 增加一个快捷开发命令 make perf/log，功能与已有的 make perf 类似运行性能测试程序，但是将输出结果重定向保存到 perf/report.log/ 目录下，文件名取 local-yyyymmdd-hhmmss.log 格式
+2. 分析性能测试程序的输出文本，删除 tester.runAndPrint 调用之后的冗余 DESC 输出
+
+**实现方案**:
+
+**1. 添加 make perf/log 命令**:
+- 在 `.PHONY` 中添加 `perf/log` 目标
+- 在 help 信息中添加 `perf/log` 的说明
+- 创建 `perf/log` 目标，执行以下操作：
+  - 自动创建 `perf/report.log/` 目录（如果不存在）
+  - 生成日志文件名：`local-yyyymmdd-hhmmss.log`
+  - 运行性能测试程序并将输出重定向到日志文件
+  - 显示日志文件保存路径
+
+**2. 删除冗余 DESC 输出**:
+- 分析所有性能测试文件（perf/p_*.cpp）
+- 识别在 `tester.runAndPrint()` 调用之后的冗余 DESC 输出
+- 删除以下文件中的冗余输出：
+  - `perf/p_api.cpp`: 删除 6 处 `DESC("Performance ratio: %.3f", ratio);`
+  - `perf/p_number.cpp`: 删除 6 处 `DESC("xxx ratio: %.3f", ratio);`
+  - `perf/p_design.cpp`: 无冗余 DESC，WARNING 信息保留（在 if 条件中，用于错误提示）
+  - `perf/p_nodom.cpp`: 无冗余 DESC
+
+**修改文件**:
+- `makefile` - 添加 `perf/log` 命令和相关说明
+- `perf/p_api.cpp` - 删除 6 处冗余 DESC 输出（第 528, 546, 564, 582, 600, 700 行）
+- `perf/p_number.cpp` - 删除 6 处冗余 DESC 输出（number_int_rel 和 number_double_rel 测试）
+
+**测试验证**:
+- ✅ 构建性能测试程序成功
+- ✅ 运行单个测试用例，验证冗余 DESC 已删除
+- ✅ 运行 `make perf/log`，确认日志文件正确生成
+- ✅ 检查日志文件内容，确认输出完整且格式正确
+- ✅ 确认 `perf/report.log/` 目录自动创建
+
+**效果**:
+- 性能测试输出更加简洁，去除了重复的性能比例信息
+- `make perf/log` 命令方便地将性能测试结果保存到日志文件
+- 日志文件按时间戳命名，便于追踪历史记录

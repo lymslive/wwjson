@@ -1318,19 +1318,16 @@ DEF_TAST(number_int_rel, "随机整数数组相对性能测试")
     test::perf::RandomIntArray tester1(argv.items, argv.start);
     double ratio1 = tester1.runAndPrint("wwjson vs yyjson", "wwjson builder",
                                         "yyjson API", argv.loop, 10);
-    DESC("wwjson/yyjson ratio: %.3f", ratio1);
 
     // Test 2: std::string vs JString
     test::perf::RandomIntJStringRel tester2(argv.items, argv.start);
     double ratio2 = tester2.runAndPrint("std::string vs JString", "std::string",
                                         "JString", argv.loop, 10);
-    DESC("std::string/JString ratio: %.3f", ratio2);
 
     // Test 3: std::string vs KString
     test::perf::RandomIntKStringRel tester3(argv.items, argv.start);
     double ratio3 = tester3.runAndPrint("std::string vs KString", "std::string",
                                         "KString", argv.loop, 10);
-    DESC("std::string/KString ratio: %.3f", ratio3);
 }
 
 DEF_TAST(number_double_rel, "随机 double 数组相对性能测试")
@@ -1343,17 +1340,14 @@ DEF_TAST(number_double_rel, "随机 double 数组相对性能测试")
     test::perf::RandomDoubleArray tester1(argv.items, argv.start);
     double ratio1 = tester1.runAndPrint("wwjson vs yyjson", "wwjson builder",
                                         "yyjson API", argv.loop, 10);
-    DESC("wwjson/yyjson ratio: %.3f", ratio1);
 
     // Test 2: std::string vs JString
     test::perf::RandomDoubleJStringRel tester2(argv.items, argv.start);
     double ratio2 = tester2.runAndPrint("std::string vs JString", "std::string",
                                         "JString", argv.loop, 10);
-    DESC("std::string/JString ratio: %.3f", ratio2);
 
     // Test 3: std::string vs KString
     test::perf::RandomDoubleKStringRel tester3(argv.items, argv.start);
     double ratio3 = tester3.runAndPrint("std::string vs KString", "std::string",
                                         "KString", argv.loop, 10);
-    DESC("std::string/KString ratio: %.3f", ratio3);
 }

@@ -3,7 +3,7 @@
 
 .PHONY: help
 .PHONY: build test install clean
-.PHONY: release build/perf perf clean/perf
+.PHONY: release build/perf perf perf/log clean/perf
 .PHONY: test/list perf/list docs
 
 # Default target
@@ -17,6 +17,7 @@ help:
 	@echo "  release    - Build in release mode (build-release/ directory)"
 	@echo "  build/perf - Build performance test in release mode"
 	@echo "  perf       - Run performance tests (requires BUILD_PERF_TESTS)"
+	@echo "  perf/log   - Run performance tests and save output to perf/report.log/"
 	@echo "  test/list  - Update utest/cases.md from test program --List output"
 	@echo "  perf/list  - Update perf/cases.md from perf program --List output"
 	@echo "  docs       - Build docs html web pages"
@@ -68,6 +69,14 @@ clean/perf:
 perf: build/perf
 	@echo "Running performance tests..."
 	./build-release/perf/pfwwjson
+
+# Run performance tests and save output to perf/report.log/
+perf/log: build/perf
+	@echo "Running performance tests and saving to log..."
+	@mkdir -p perf/report.log
+	@LOG_FILE="perf/report.log/local-$$(date +%Y%m%d-%H%M%S).log" && \
+	./build-release/perf/pfwwjson > "$$LOG_FILE" && \
+	echo "Output saved to: $$LOG_FILE"
 
 # Update test cases list
 test/list: build

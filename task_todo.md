@@ -970,6 +970,19 @@ tester.runAndPrint 已经有类似的打印信息，不必冗余打印了。
 另外，github ci 上，也是 RawBuilder 比 append 快一些。但 snprintf 更快。
 不同环境也有差别，挺奇怪的。
 
+## TODO:2026-01-10/4 优化性能测试输出
+
+先在根目录的 makefile 增加一个快捷开发命令 make perf/log
+功能与已有的 make perf 类似运行性能测试程序，
+但是将输出结果重定向保存到 perf/report.log/ 目录下，
+文件名取 `local-yyyymmdd-hhmmss.log` 格式，时间精确到秒即可。
+
+然后再分析性能测试程序的输出文本，有些用例在 tester.runAndPrint 调用之后，
+似乎又用 DESC 打印了一条冗余信息，它没有提供更多有效信息。
+在 perf/ 目录的源码中找出所有这些冗余 DESC ，可以删除之。
+
+### DONE: 20260110-222559
+
 ## TODO: 性能测试
 
 ## TODO: 文档优化
