@@ -2412,3 +2412,47 @@ using KString = StringBuffer<255>;
 - `perf/CMakeLists.txt` - 添加 p_nodom.cpp
 - `perf/README.md` - 更新文件列表
 
+## TASK:20260110-214323
+-----------------------
+
+**需求来源**: TODO:2026-01-10/3 p_nodom.cpp 测试分析与补充
+
+**任务内容**: 完善 perf/p_nodom.cpp 性能测试，分析性能差异，增加 Builder 和 FastBuilder 测试用例。
+
+**实现方案**:
+1. **重构 BuilderMethod 为模板类**:
+   - 创建 `BuilderMethodT<BuilderT>` 模板类
+   - 通过类型别名定义 RawBuilderMethod、BuilderMethod、FastBuilderMethod
+   - 减少代码重复，提高可维护性
+
+2. **改用 BeginObject/EndObject**:
+   - 替换 ScopeObject 为 BeginObject/EndObject 调用
+   - 使用最平实的 API，代码更清晰直观
+
+3. **新增两个测试用例**:
+   - `BuilderVsAppend`: 对比 Builder (JString+UnsafeConfig) vs string::append
+   - `FastBuilderVsAppend`: 对比 FastBuilder (KString+UnsafeConfig) vs string::append
+
+4. **清理冗余打印**:
+   - 删除所有测试用例中的 `DESC("Performance ratio: %.3f", ratio);`
+   - 避免与 tester.runAndPrint 重复打印
+
+5. **性能分析与验证**:
+   - 运行原始测试分析性能差异
+   - 使用 JString/KString 优化验证性能提升
+
+**测试结果** (1000次循环):
+- RawBuilder vs snprintf: RawBuilder 快 79.36%
+- RawBuilder vs append: RawBuilder 快 19.60% (Begin/End 后性能提升)
+- RawBuilder vs stream: RawBuilder 快 136.15%
+- Builder vs append: Builder 快 116.71% (JString 优化)
+- FastBuilder vs append: FastBuilder 快 103.27% (KString 优化)
+
+**关键发现**:
+- 使用 BeginObject/EndObject 替代 ScopeObject 后，RawBuilder 性能从比 append 慢 32.98% 变为快 19.60%
+- Builder 和 FastBuilder 通过 JString/KString 优化后，性能优势明显
+- StringBuilder 仍是最快的，但 Builder 提供了更完善的 JSON 构建功能
+
+**修改文件**:
+- `perf/p_nodom.cpp` - 重构模板类，新增测试用例，清理冗余代码
+

@@ -4,6 +4,7 @@
 #include "relative_perf.h"
 
 #include "wwjson.hpp"
+#include "jbuilder.hpp"
 
 #include <string>
 #include <vector>
@@ -83,80 +84,87 @@ struct RootData
 };
 
 // ============================================================================
-// Method A: wwjson::RawBuilder
+// Builder Method Template
 // ============================================================================
-class RawBuilderMethod
+template <typename BuilderT>
+class BuilderMethodT
 {
 public:
     void Build(RootData& data, std::string& out)
     {
-        ::wwjson::RawBuilder builder(4096);
+        BuilderT builder(4096);
 
-        if (auto root = builder.ScopeObject())
-        {
-            root.AddMember("status", data.status);
-            root.AddMember("code", data.code);
-            root.AddMember("message", data.message);
+        builder.BeginObject();
 
-            if (auto data_obj = root.ScopeObject("data"))
-            {
-                auto& item = data.data;
-                data_obj.AddMember("field_1", item.field_1);
-                data_obj.AddMember("field_2", item.field_2);
-                data_obj.AddMember("field_3", item.field_3);
-                data_obj.AddMember("field_4", item.field_4);
-                data_obj.AddMember("field_5", item.field_5);
-                data_obj.AddMember("field_6", item.field_6);
-                data_obj.AddMember("field_7", item.field_7);
-                data_obj.AddMember("field_8", item.field_8);
-                data_obj.AddMember("field_9", item.field_9);
-                data_obj.AddMember("field_10", item.field_10);
-                data_obj.AddMember("field_11", item.field_11);
-                data_obj.AddMember("field_12", item.field_12);
-                data_obj.AddMember("field_13", item.field_13);
-                data_obj.AddMember("field_14", item.field_14);
-                data_obj.AddMember("field_15", item.field_15);
-                data_obj.AddMember("field_16", item.field_16);
-                data_obj.AddMember("field_17", item.field_17);
-                data_obj.AddMember("field_18", item.field_18);
-                data_obj.AddMember("field_19", item.field_19);
-                data_obj.AddMember("field_20", item.field_20);
-                data_obj.AddMember("field_21", item.field_21);
-                data_obj.AddMember("field_22", item.field_22);
-                data_obj.AddMember("field_23", item.field_23);
-                data_obj.AddMember("field_24", item.field_24);
-                data_obj.AddMember("field_25", item.field_25);
-                data_obj.AddMember("field_26", item.field_26);
-                data_obj.AddMember("field_27", item.field_27);
-                data_obj.AddMember("field_28", item.field_28);
-                data_obj.AddMember("field_29", item.field_29);
-                data_obj.AddMember("field_30", item.field_30);
-                data_obj.AddMember("field_31", item.field_31);
-                data_obj.AddMember("field_32", item.field_32);
-                data_obj.AddMember("field_33", item.field_33);
-                data_obj.AddMember("field_34", item.field_34);
-                data_obj.AddMember("field_35", item.field_35);
-                data_obj.AddMember("field_36", item.field_36);
-                data_obj.AddMember("field_37", item.field_37);
-                data_obj.AddMember("field_38", item.field_38);
-                data_obj.AddMember("field_39", item.field_39);
-                data_obj.AddMember("field_40", item.field_40);
-                data_obj.AddMember("field_41", item.field_41);
-                data_obj.AddMember("field_42", item.field_42);
-                data_obj.AddMember("field_43", item.field_43);
-                data_obj.AddMember("field_44", item.field_44);
-                data_obj.AddMember("field_45", item.field_45);
-                data_obj.AddMember("field_46", item.field_46);
-                data_obj.AddMember("field_47", item.field_47);
-                data_obj.AddMember("field_48", item.field_48);
-                data_obj.AddMember("field_49", item.field_49);
-                data_obj.AddMember("field_50", item.field_50);
-            }
-        }
+        builder.AddMember("status", data.status);
+        builder.AddMember("code", data.code);
+        builder.AddMember("message", data.message);
+
+        builder.BeginObject("data");
+
+        auto& item = data.data;
+        builder.AddMember("field_1", item.field_1);
+        builder.AddMember("field_2", item.field_2);
+        builder.AddMember("field_3", item.field_3);
+        builder.AddMember("field_4", item.field_4);
+        builder.AddMember("field_5", item.field_5);
+        builder.AddMember("field_6", item.field_6);
+        builder.AddMember("field_7", item.field_7);
+        builder.AddMember("field_8", item.field_8);
+        builder.AddMember("field_9", item.field_9);
+        builder.AddMember("field_10", item.field_10);
+        builder.AddMember("field_11", item.field_11);
+        builder.AddMember("field_12", item.field_12);
+        builder.AddMember("field_13", item.field_13);
+        builder.AddMember("field_14", item.field_14);
+        builder.AddMember("field_15", item.field_15);
+        builder.AddMember("field_16", item.field_16);
+        builder.AddMember("field_17", item.field_17);
+        builder.AddMember("field_18", item.field_18);
+        builder.AddMember("field_19", item.field_19);
+        builder.AddMember("field_20", item.field_20);
+        builder.AddMember("field_21", item.field_21);
+        builder.AddMember("field_22", item.field_22);
+        builder.AddMember("field_23", item.field_23);
+        builder.AddMember("field_24", item.field_24);
+        builder.AddMember("field_25", item.field_25);
+        builder.AddMember("field_26", item.field_26);
+        builder.AddMember("field_27", item.field_27);
+        builder.AddMember("field_28", item.field_28);
+        builder.AddMember("field_29", item.field_29);
+        builder.AddMember("field_30", item.field_30);
+        builder.AddMember("field_31", item.field_31);
+        builder.AddMember("field_32", item.field_32);
+        builder.AddMember("field_33", item.field_33);
+        builder.AddMember("field_34", item.field_34);
+        builder.AddMember("field_35", item.field_35);
+        builder.AddMember("field_36", item.field_36);
+        builder.AddMember("field_37", item.field_37);
+        builder.AddMember("field_38", item.field_38);
+        builder.AddMember("field_39", item.field_39);
+        builder.AddMember("field_40", item.field_40);
+        builder.AddMember("field_41", item.field_41);
+        builder.AddMember("field_42", item.field_42);
+        builder.AddMember("field_43", item.field_43);
+        builder.AddMember("field_44", item.field_44);
+        builder.AddMember("field_45", item.field_45);
+        builder.AddMember("field_46", item.field_46);
+        builder.AddMember("field_47", item.field_47);
+        builder.AddMember("field_48", item.field_48);
+        builder.AddMember("field_49", item.field_49);
+        builder.AddMember("field_50", item.field_50);
+
+        builder.EndObject();
+        builder.EndObject();
 
         out = builder.MoveResult();
     }
 };
+
+// Type aliases for convenience
+using RawBuilderMethod = BuilderMethodT<::wwjson::RawBuilder>;
+using BuilderMethod = BuilderMethodT<::wwjson::Builder>;
+using FastBuilderMethod = BuilderMethodT<::wwjson::FastBuilder>;
 
 // ============================================================================
 // Method B1: snprintf (single format string with all fields)
@@ -792,6 +800,70 @@ public:
     }
 };
 
+// Test: Builder vs string::append
+class BuilderVsAppend : public RelativeTimer<BuilderVsAppend>
+{
+public:
+    RootData data;
+    std::string resultA;
+    std::string resultB;
+
+    BuilderVsAppend() = default;
+
+    void methodA()
+    {
+        BuilderMethod builder;
+        builder.Build(data, resultA);
+    }
+
+    void methodB()
+    {
+        StringAppendMethod builder;
+        builder.Build(data, resultB);
+    }
+
+    bool methodVerify()
+    {
+        methodA();
+        std::string tempA = resultA;
+        methodB();
+        std::string tempB = resultB;
+        return tempA == tempB && tempA == REFERENCE_JSON;
+    }
+};
+
+// Test: FastBuilder vs string::append
+class FastBuilderVsAppend : public RelativeTimer<FastBuilderVsAppend>
+{
+public:
+    RootData data;
+    std::string resultA;
+    std::string resultB;
+
+    FastBuilderVsAppend() = default;
+
+    void methodA()
+    {
+        FastBuilderMethod builder;
+        builder.Build(data, resultA);
+    }
+
+    void methodB()
+    {
+        StringAppendMethod builder;
+        builder.Build(data, resultB);
+    }
+
+    bool methodVerify()
+    {
+        methodA();
+        std::string tempA = resultA;
+        methodB();
+        std::string tempB = resultB;
+        return tempA == tempB && tempA == REFERENCE_JSON;
+    }
+};
+
 } // namespace test::perf
 
 // ============================================================================
@@ -805,10 +877,9 @@ DEF_TAST(nodom_raw_vs_snprintf, "wwjson RawBuilder vs snprintf性能对比")
 
     auto tester = test::perf::RawBuilderVsSnprintf();
 
-    double ratio = tester.runAndPrint("RawBuilder vs Snprintf",
+    double ratio =     tester.runAndPrint("RawBuilder vs Snprintf",
                                       "RawBuilder", "snprintf",
                                       argv.loop, 10);
-    DESC("Performance ratio: %.3f", ratio);
 }
 
 DEF_TAST(nodom_raw_vs_append, "wwjson RawBuilder vs string::append性能对比")
@@ -818,10 +889,9 @@ DEF_TAST(nodom_raw_vs_append, "wwjson RawBuilder vs string::append性能对比")
 
     auto tester = test::perf::RawBuilderVsAppend();
 
-    double ratio = tester.runAndPrint("RawBuilder vs Append",
+    double ratio =     tester.runAndPrint("RawBuilder vs Append",
                                       "RawBuilder", "string::append",
                                       argv.loop, 10);
-    DESC("Performance ratio: %.3f", ratio);
 }
 
 DEF_TAST(nodom_raw_vs_stream, "wwjson RawBuilder vs stringstream性能对比")
@@ -831,9 +901,32 @@ DEF_TAST(nodom_raw_vs_stream, "wwjson RawBuilder vs stringstream性能对比")
 
     auto tester = test::perf::RawBuilderVsStream();
 
-    double ratio = tester.runAndPrint("RawBuilder vs Stream",
+    double ratio =     tester.runAndPrint("RawBuilder vs Stream",
                                       "RawBuilder", "stringstream",
                                       argv.loop, 10);
-    DESC("Performance ratio: %.3f", ratio);
+}
+
+DEF_TAST(nodom_builder_vs_append, "wwjson Builder vs string::append性能对比")
+{
+    test::CArgv argv;
+    DESC("Args: --loop=%d", argv.loop);
+
+    auto tester = test::perf::BuilderVsAppend();
+
+    double ratio =     tester.runAndPrint("Builder vs Append",
+                                      "Builder", "string::append",
+                                      argv.loop, 10);
+}
+
+DEF_TAST(nodom_fastbuilder_vs_append, "wwjson FastBuilder vs string::append性能对比")
+{
+    test::CArgv argv;
+    DESC("Args: --loop=%d", argv.loop);
+
+    auto tester = test::perf::FastBuilderVsAppend();
+
+    double ratio =     tester.runAndPrint("FastBuilder vs Append",
+                                      "FastBuilder", "string::append",
+                                      argv.loop, 10);
 }
 

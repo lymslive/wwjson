@@ -932,7 +932,7 @@ json ：第一层大约 4-5 个元字段，加一个 data 字段，第二层 dat
 
 ### DONE:20260110~112530
 
-## TODO: docs/usage.md 补充结构体 to_json api 用法
+## TODO:2026-01-10/2 docs/usage.md 补充结构体 to_json api 用法
 
 示例 `usage_4_5_struct_builder` 未与 `t_usage.cpp` 同步，
 将结构体拆出来，改名为 `usage_4_5_struct_builder_call` 了。
@@ -942,6 +942,33 @@ json ：第一层大约 4-5 个元字段，加一个 data 字段，第二层 dat
 。
 
 ### DONE:20260110~182330
+
+## TODO:2026-01-10/3 p_nodom.cpp 测试分析与补充
+
+分析 perf/p_nodom.cpp 的性能比较测试，先尝试从理论上分析哪种方法更快。
+然后用命令 `./build-release/perf/pfwwjson p_nodom.cpp` 运行一下，
+看结果是否正常。
+本地开发环境是 win10-WSL1-Ubuntu-20.04 。
+
+再增加两个相对性能测试用例，类似 RawBuilderVsAppend 但是用
+在 include/jbuilder.hpp 定义的 Builder 与 FastBuilder 代替 RawBuilder.
+
+RawBuilderMethod 改用模板实现，支持三种 builder 类型。
+同时将 ScopeObject 改为用两对最平实的 BeginOjbect/EndObject 实现。
+
+另外，将 `DESC("Performance ratio: %.3f", ratio);` 行删除，因为在
+tester.runAndPrint 已经有类似的打印信息，不必冗余打印了。
+
+### DONE:20260110-214323
+
+之前几次测试是直接的 string.append 方法比 RawBuilder 快一半，
+我以为是 append 合并写入已知键名与前后的引号冒号等。
+但后来测试突然就变成 RawBuilder 更快一些了，而且是在改 Begin/End 之前变化的。
+因为在另一项 api 测试中显示，Scope 方法与 Begin/End 方法性能差不多的，5% 差距
+以内。
+
+另外，github ci 上，也是 RawBuilder 比 append 快一些。但 snprintf 更快。
+不同环境也有差别，挺奇怪的。
 
 ## TODO: 性能测试
 
