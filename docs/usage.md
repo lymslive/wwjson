@@ -53,7 +53,7 @@ make install
 
 <!-- example:usage_2_2_first_example -->
 ```cpp
-#include "wwjson.hpp"
+#include "wwjson/wwjson.hpp"
 #include <iostream>
 
 int main()
@@ -82,6 +82,9 @@ int main()
 ```json
 {"name":"WWJSON","version":1,"type":"header-only","language":"C++","license":"MIT"}
 ```
+
+更多示例及编译方式请参考源码仓库
+[example](https://github.com/lymslive/wwjson/tree/main/example) 子目录。
 
 ## 3 基本思路
 <!-- WWJSON 构建原理详解 -->
@@ -759,20 +762,20 @@ struct Project
         builder["name"] = name;
         builder["version"] = version;
         builder["author"] = author;
-        if (url.empty)
+        if (url.empty())
         {
             builder["url"] = nullptr;
         }
         else
         {
-          builder["url"] = url;
+            builder["url"] = url;
         }
 
         builder.AddMember("feature");
-        BuildFeature(builer);
+        BuildFeature(builder);
 
         builder.AddMember("refer");
-        BuildRefer(builer);
+        BuildRefer(builder);
 
         builder.EndRoot();
         return builder.MoveResult();
@@ -794,7 +797,7 @@ struct Project
             Jrefer[-1] = item;
             // 或者 Jrefer << item;
         }
-        BuildRefer2(wwjson::RawBuilder &builder);
+        BuildRefer2(builder);
     }
 
     void BuildRefer2(wwjson::RawBuilder &builder)
@@ -804,6 +807,10 @@ struct Project
         Jrefer["lang"] = special_refer.lang;
     }
 };
+
+Project wwProject;
+std::string json = wwProject.BuildJson();
+std::cout << json << std::endl;
 ```
 
 进一步地，如果为每个嵌套子结构体也定义一个相同的 `BuildJson` 方法。每个结构体
@@ -838,6 +845,209 @@ struct Data
 有些反射库支持一个方法调用将结构体转为 json ，但使用 wwjson 手动拼装能提供更好
 的定制化性能与灵活性，比如某些字段需要经过一些较复杂的逻辑判断来决定输出或不输
 出。而在没有特殊处理需求时，那些相同模式的重复代码，也是很容易自动生成的。
+
+## 4.6 统一的 to_json 转换函数
+
+由于将结构体的每个字段转为 json 的键值对是个很常见的需求，wwjson 库为此再提供
+了一个统一的 `to_json` 函数来进一步简化这项工作。
+
+它要求用户为自己的结构体定义一个 `to_json` 成员方法，接收 builder 引用参数，在
+该方法中可用常规的 `AddMember` 将每个字段添加进去，但更推荐也使用统一的
+`wwjson::to_json` 函数。因为 `AddMember` 方法不能处理嵌套子结构体成员，而
+`to_json` 函数能统一处理简单标量字段或子结构体，当然子结构体也要求有 `to_json`
+方法。
+
+用这个思路改写上个示例，大概如下：
+
+<!-- example:usage_4_6_struct_tojson -->
+```cpp
+// 按更常规的模式将各子结构体先在相同作用域平坦定义
+struct Feature
+{
+    std::string standar = "C++17";
+    bool dom = false;
+    std::string config = "compile-time";
+
+    void to_json(wwjson::RawBuilder& builder) const
+    {
+        wwjson::to_json(builder, "standar", standar);
+        wwjson::to_json(builder, "dom", dom);
+        wwjson::to_json(builder, "config", config);
+    }
+};
+
+struct Refer
+{
+    std::string name = "yyjson";
+    std::string lang = "C";
+
+    void to_json(wwjson::RawBuilder& builder) const
+    {
+        // 可用宏进一步简化等效写法
+        TO_JSON(name); // wwjson::to_json(builder, "name", name)
+        TO_JSON(lang); // wwjson::to_json(builder, "lang", lang)
+    }
+};
+
+struct Project
+{
+    std::string name = "wwjson";
+    double version = 1.01;
+    std::string author = "lymslive";
+    std::string url;
+
+    Feature feature;
+
+    std::vector<std::string> refer = {"rapidjson", "nlohmann/json"};
+
+    Refer special_refer;
+
+    void to_json(wwjson::RawBuilder& builder) const
+    {
+        TO_JSON(name);
+        TO_JSON(version);
+        TO_JSON(author);
+        TO_JSON(url);
+        TO_JSON(feature);
+        TO_JSON(refer);
+        TO_JSON(special_refer);
+    }
+
+    // 入口方法
+    std::string to_json() const
+    {
+        wwjson::RawBuilder builder;
+        wwjson::to_json(builder, *this);
+        return builder.MoveResult();
+    }
+};
+
+Project prj;
+std::cout << prj.to_json() << std::endl;
+```
+
+这样看起来就简洁清爽许多。然而结果有个细微的不同，它的输出结果是：
+
+```json
+{
+  "name":"wwjson","version":1.01,"author":"lymslive","url":"",
+  "feature":{"standar":"C++17","dom":false,"config":"compile-time"},
+  "refer":["rapidjson","nlohmann/json"],
+  "special_refer":{"name":"yyjson","lang":"C"}
+}
+```
+
+区别在后两个字段，之前的构建结果是
+```json
+{
+  ...
+  "refer":["rapidjson","nlohmann/json",{"name":"yyjson","lang":"C"}]
+}
+```
+
+`wwjson::to_json` 能自动处理 `vector` 数组与嵌套结构体，严格将每个字段转为一个
+json 字段。在 C++ 的结构体，没有简单直观的方法将 `Refer` 结构体与另外两个标量
+字符串放在一个 `vector` 容器中，所以就序列化成两个字段了。
+
+其实更严谨的数据定义方式是每个 `refer` 都应该是同类类型结构体，转为 json 的对
+象数组。如果允许缺失某些字段，`to_json` 也支持 `std::optional` 表示可空，空值
+时转为 `null` 。例如，将上例的 `Refer` 结构体重定义一下（并简化其他定义）：
+
+<!-- example:usage_4_6_struct_array -->
+```cpp
+struct Refer
+{
+    std::string name = "yyjson";
+    std::optional<std::string> lang;
+
+    void to_json(wwjson::RawBuilder& builder) const
+    {
+        TO_JSON(name);
+        TO_JSON(lang);
+    }
+};
+
+struct Project
+{
+    std::string name = "wwjson";
+    std::string url;
+    std::vector<Refer> refer;
+
+    void to_json(wwjson::RawBuilder& builder) const
+    {
+        TO_JSON(name);
+        TO_JSON(url);
+        TO_JSON(refer);
+    }
+};
+
+// 实例化数据结构体
+Project prj;
+prj.refer = {{"yyjson","C"}, {"rapidjson","C++"}, {"nlohmann/json"}};
+
+wwjson::RawBuilder builder;
+wwjson::to_json(builder, prj);
+std::string json = builder.MoveResult();
+
+std::cout << json << std::endl;
+```
+
+其输出结果是：
+```json
+{
+  "name":"wwjson","url":"","refer":[{"name":"yyjson","lang":"C"},
+  {"name":"rapidjson","lang":"C++"},{"name":"nlohmann/json","lang":null}]
+}
+```
+
+另外要注意的是，只有 `Refer.lang` 字段由于定义成 `std::optional` 才会在空值时
+输出 `null`。而 `Prjoect.url` 是字符串类型，空值时输出 `""` 。
+
+所以 `to_json` 适合序列化那种常规的结构体数据表示，当有特殊需求时仍可用基
+本的 `AddMember` 方法精细加工。而 `TO_JSON` 只是个简单的宏替换，可减少写两次字
+段名的工作，但如果在输出 json 的字段想与结构体字段名不一样时，该用 `to_json`
+函数修改第二参数。
+
+最后，顶层结构体（如上例的 `Project` ）的空参数 `to_json` 方法其实是不必要的。
+直接调用 `wwjson::to_json(prj)` 也行，但是要将每个结构体的其他 `to_json` 方法
+的参数从 `RawBuilder` 改为 `Builder` 。后者是优化版的 json 构建器，详见 6.4 节
+。所以默认使用 `Builder` 类。也允许使用任意自定义 builder 类，只要整个结构体层
+次中使用相同的 builder 类。
+
+小结一下，`wwjson::to_json` 实际是做了以下事情：
+- 统一 `AddMember` 与 `AddItem` 方法，有键名参数的调用前者，少一个键名参数的调
+  用后者；
+- 通过模板匹配机制自动识别处理嵌套结构体与数组等容器；
+- 序列化结构体时在前后自动调用了 `BeginObject` 与 `EndObject` ，中间调用结构体
+  自己的 `to_json` 方法，传入当前构建器 `builder`;
+- 序列化数组类容器时也会自动调用 `BeginArray` 与 `EndArray` ；
+- 处理递归，尽可能为用户处理细节，用户只要为自己的结构体字段调用 `to_json` ；
+
+如果有反射库支持，最后一步也可以替用户做了。但目前，wwjson 是要求用户自定义
+`to_json` 方法。这也不复杂，与结构体定义字段一一对应写下每一行即可，在处理含大
+量字段的结构体时，`to_json` 的相似代码可以利用其他工具生成。
+
+如果不想侵入式地为自定义结构体增加 `to_json` 方法，也可以在 `wwjson` 命名空间
+重载 `to_json` 函数，特化处理自定义结构体。例如：
+
+```cpp
+namespace wwjson
+{
+to_json(RawBuilder& builder, const char* key, const Feature& st)
+{
+    // 需要自己处理 Begin/EndObject
+    builder.BeginObject(key);
+    builder.AddMember("standar", st.standar);
+    builder.AddMember("dom", st.dom);
+    builder.AddMember("config", st.config);
+    builder.EndObject();
+}
+} // wwjson::
+```
+
+这样，在父结构体的 `to_json` 方法中，`TO_JSON(feature)` 就会调用这个特化版的
+`wwjson::to_json` 函数，而不会调用 wwjson 库提供的通用模板函数（仅就这个示例而
+言，它们所做的事情是一样的）。
 
 ## 5 特殊用法
 

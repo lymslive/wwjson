@@ -63,7 +63,7 @@ static const std::string EXPECTED_SECTION_4_JSON =
 DEF_TAST(usage_2_2_first_example, "example from docs/usage.md")
 {
 #ifdef MARKDOWN_CODE_SNIPPET
-//+ #include "wwjson.hpp"
+//+ #include "wwjson/wwjson.hpp"
 //+ #include <iostream>
     
 //+ int main()
@@ -456,93 +456,209 @@ DEF_TAST(usage_4_5_step_entrance, "example from docs/usage.md")
 #endif
 }
 
-struct Project
+DEF_TAST(usage_4_5_struct_builder, "example from docs/usage.md")
 {
-    // 为简单起见，各成员直接赋默认值了
-    std::string name = "wwjson";
-    double version = 1.01;
-    std::string author = "lymslive";
-    std::string url;
+#ifdef MARKDOWN_CODE_SNIPPET
+    struct Project
+    {
+        // 为简单起见，各成员直接赋默认值了
+        std::string name = "wwjson";
+        double version = 1.01;
+        std::string author = "lymslive";
+        std::string url;
 
+        struct Feature
+        {
+            std::string standar = "C++17";
+            bool dom = false;
+            std::string config = "compile-time";
+        } feature;
+
+        std::vector<std::string> refer = {"rapidjson", "nlohmann/json"};
+
+        struct Refer
+        {
+            std::string name = "yyjson";
+            std::string lang = "C";
+        } special_refer;
+
+        // 其他数据成员或方法 ...
+
+        // 构建 Json 的方法
+        std::string BuildJson()
+        {
+            wwjson::RawBuilder builder;
+            builder.BeginRoot();
+
+            // 基本字段
+            builder["name"] = name;
+            builder["version"] = version;
+            builder["author"] = author;
+            if (url.empty())
+            {
+                builder["url"] = nullptr;
+            }
+            else
+            {
+                builder["url"] = url;
+            }
+
+            builder.AddMember("feature");
+            BuildFeature(builder);
+
+            builder.AddMember("refer");
+            BuildRefer(builder);
+
+            builder.EndRoot();
+            return builder.MoveResult();
+        }
+
+        void BuildFeature(wwjson::RawBuilder &builder)
+        {
+            auto Jfeature = builder.ScopeObject();
+            Jfeature["standar"] = feature.standar;
+            Jfeature["dom"] = feature.dom;
+            Jfeature["config"] = feature.config;
+        }
+
+        void BuildRefer(wwjson::RawBuilder &builder)
+        {
+            auto Jrefer = builder.ScopeArray();
+            for (auto &item: refer)
+            {
+                Jrefer[-1] = item;
+                // 或者 Jrefer << item;
+            }
+            BuildRefer2(builder);
+        }
+
+        void BuildRefer2(wwjson::RawBuilder &builder)
+        {
+            auto Jrefer = builder.ScopeObject();
+            Jrefer["name"] = special_refer.name;
+            Jrefer["lang"] = special_refer.lang;
+        }
+    };
+
+    Project wwProject;
+    std::string json = wwProject.BuildJson();
+//+ std::cout << json << std::endl;
+    COUT(json, EXPECTED_SECTION_4_JSON);
+#endif
+}
+
+DEF_TAST(usage_4_6_struct_tojson, "example from docs/usage.md")
+{
+#ifdef MARKDOWN_CODE_SNIPPET
+    // 按更常规的模式将各子结构体先在相同作用域平坦定义
     struct Feature
     {
         std::string standar = "C++17";
         bool dom = false;
         std::string config = "compile-time";
-    } feature;
 
-    std::vector<std::string> refer = {"rapidjson", "nlohmann/json"};
+        void to_json(wwjson::RawBuilder& builder) const
+        {
+            wwjson::to_json(builder, "standar", standar);
+            wwjson::to_json(builder, "dom", dom);
+            wwjson::to_json(builder, "config", config);
+        }
+    };
 
     struct Refer
     {
         std::string name = "yyjson";
         std::string lang = "C";
-    } special_refer;
 
-    // 其他数据成员或方法 ...
-
-    // 构建 Json 的方法
-    std::string BuildJson()
-    {
-        wwjson::RawBuilder builder;
-        builder.BeginRoot();
-
-        // 基本字段
-        builder["name"] = name;
-        builder["version"] = version;
-        builder["author"] = author;
-        if (url.empty())
+        void to_json(wwjson::RawBuilder& builder) const
         {
-            builder["url"] = nullptr;
+            // 可用宏进一步简化等效写法
+            TO_JSON(name); // wwjson::to_json(builder, "name", name)
+            TO_JSON(lang); // wwjson::to_json(builder, "lang", lang)
         }
-        else
+    };
+
+    struct Project
+    {
+        std::string name = "wwjson";
+        double version = 1.01;
+        std::string author = "lymslive";
+        std::string url;
+
+        Feature feature;
+
+        std::vector<std::string> refer = {"rapidjson", "nlohmann/json"};
+
+        Refer special_refer;
+
+        void to_json(wwjson::RawBuilder& builder) const
         {
-            builder["url"] = url;
+            TO_JSON(name);
+            TO_JSON(version);
+            TO_JSON(author);
+            TO_JSON(url);
+            TO_JSON(feature);
+            TO_JSON(refer);
+            TO_JSON(special_refer);
         }
 
-        builder.AddMember("feature");
-        BuildFeature(builder);
-
-        builder.AddMember("refer");
-        BuildRefer(builder);
-
-        builder.EndRoot();
-        return builder.MoveResult();
-    }
-
-    void BuildFeature(wwjson::RawBuilder &builder)
-    {
-        auto Jfeature = builder.ScopeObject();
-        Jfeature["standar"] = feature.standar;
-        Jfeature["dom"] = feature.dom;
-        Jfeature["config"] = feature.config;
-    }
-
-    void BuildRefer(wwjson::RawBuilder &builder)
-    {
-        auto Jrefer = builder.ScopeArray();
-        for (auto &item: refer)
+        // 入口方法
+        std::string to_json() const
         {
-            Jrefer[-1] = item;
-            // 或者 Jrefer << item;
+            wwjson::RawBuilder builder;
+            wwjson::to_json(builder, *this);
+            return builder.MoveResult();
         }
-        BuildRefer2(builder);
-    }
+    };
 
-    void BuildRefer2(wwjson::RawBuilder &builder)
-    {
-        auto Jrefer = builder.ScopeObject();
-        Jrefer["name"] = special_refer.name;
-        Jrefer["lang"] = special_refer.lang;
-    }
-};
-DEF_TAST(usage_4_5_struct_builder_call, "example from docs/usage.md")
+    Project prj;
+//+ std::cout << prj.to_json() << std::endl;
+#endif
+    std::string expect = R"({"name":"wwjson","version":1.01,"author":"lymslive","url":"","feature":{"standar":"C++17","dom":false,"config":"compile-time"},"refer":["rapidjson","nlohmann/json"],"special_refer":{"name":"yyjson","lang":"C"}})";
+    COUT(prj.to_json());
+}
+
+DEF_TAST(usage_4_6_struct_array, "example from docs/usage.md")
 {
 #ifdef MARKDOWN_CODE_SNIPPET
-    Project wwProject;
-    std::string json = wwProject.BuildJson();
-    COUT(json, EXPECTED_SECTION_4_JSON);
+    struct Refer
+    {
+        std::string name = "yyjson";
+        std::optional<std::string> lang;
+
+        void to_json(wwjson::RawBuilder& builder) const
+        {
+            TO_JSON(name);
+            TO_JSON(lang);
+        }
+    };
+
+    struct Project
+    {
+        std::string name = "wwjson";
+        std::string url;
+        std::vector<Refer> refer;
+
+        void to_json(wwjson::RawBuilder& builder) const
+        {
+            TO_JSON(name);
+            TO_JSON(url);
+            TO_JSON(refer);
+        }
+    };
+
+    // 实例化数据结构体
+    Project prj;
+    prj.refer = {{"yyjson","C"}, {"rapidjson","C++"}, {"nlohmann/json"}};
+
+    wwjson::RawBuilder builder;
+    wwjson::to_json(builder, prj);
+    std::string json = builder.MoveResult();
+
+//+ std::cout << json << std::endl;
 #endif
+    std::string expect = R"({"name":"wwjson","url":"","refer":[{"name":"yyjson","lang":"C"},{"name":"rapidjson","lang":"C++"},{"name":"nlohmann/json","lang":null}]})";
+    COUT(json);
 }
 
 DEF_TAST(usage_5_1_add_substring, "example from docs/usage.md")
