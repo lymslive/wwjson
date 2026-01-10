@@ -1248,6 +1248,252 @@ builder.EndLine();
 其中，`EndLine` 方法顾名思义也很简单，就是写入一个换行符。内部对象可以监听换行
 符作特殊处理，比如刷入硬盘文件，或通过 tcp socket 发送出去。
 
+### 6.4 Json 字符串优化
+
+WWJSON 自 v1.1 版本始，也专门针对 json 序列化定制了一种字符串，严格来说是一种
+字符串缓冲类。它定义为带一个 `uint8_t` 整数模板参数的类，但有两个常用别名：
+
+```cpp
+using JString = StringBuffer<4>;
+using KString = StringBuffer<255>;
+```
+
+以及利用它们实例化的 `GenericBuilder` 构建器类：
+
+```cpp
+using Builder = GenericBuilder<JString>;
+using FastBuilder = GenericBuilder<KString>;
+```
+
+它们在用法上与基于 `std::string` 的 `RawBuilder` 几乎一样。
+
+### 6.4.1 不安全等级的概念
+
+这个整数模板参数叫做“不安全等级”，也是静态常量 `StringBuffer::kUnsafeLevel` 。
+它的意思是每当使用安全的写入方法后，还能保证安全地使用不安全方法写入多少字节。
+
+安全的写入方法，就如常见的标准 `push_back` 与 `append` 方法，它会像
+`std::string` 一样检查字符串容量是否足够当前写入，不够的话扩容。
+
+`wwjson::StringBuffer` 类定义了对应的不安全方法如 `unsafe_push_back` 与
+`unsafe_append` ，它假定容量足够，不会检查边界，也自然不会触发扩容。那如何预知
+不会写越界呢，那就是不安全等级 `kUnsafeLevel` 的意义了。
+
+例如，当调用 `append(str, n)` 准备写入 `n` 个字节时，常规的字符串类只会检查剩
+余容量是否满足 `n` ，如果恰好只剩下 `n` 容量，它也允许写入。但 `StringBuffer`
+会检查是否满足 `n + kUnsafeLevel` ，如果不满足，就会扩容。也就是说，当写完这
+`n` 个字节后，还能保证至少剩余 `kUnsafeLevel` 个字节的边界余量，允许用户不加检
+查地写入这么多的额外字节。
+
+这个小小的改动，为什么在 json 序列化中能提升效率呢？观察如下 json 数据:
+
+```json
+{"name":"WWJSON","language":"C++"}
+```
+
+它有信息含量的东西就是两个键与两个值，当然一对大括号也提供了结构化信息。除此之
+外的引号、冒号与逗号就纯粹是无信息含量的格式字符了，在那些解析为 DOM 的 json
+库处理后也不会存这些格式字符（但大括号与中括号会保存为容器结点）。
+
+所以简单统计一下，有意义的 token 共有 `6` 个，无意义但必需的格式字符 token 有
+`2 * 4 + 3 = 11` 个。
+
+于是，wwjson 在利用 `JString` 序列化时，对有意义的 token 也就是主要内容使用安
+全的写入方法，对次要的格式字符使用不安全的写入方法。一个合法的 json ，最多会有
+`3` 个连续的格式字符，这就是为什么 `JString` 的不安全等级设定为 `4` 。
+
+从这个角度也能反观为什么括号在 json 是有信息意义的，因为我们没法界定一个合法的
+json ，它最多允许几个连续的括号。例如：
+
+```json
+[[[[[[[[[[]]]]]]]]]]
+```
+
+这串中括号虽然似乎没有实质内容，但它确实是合法有效的 json 。在实践中，虽然连续
+开大括号不存在，但在复杂多层的 json 末尾，一串闭大括号却是司空见惯的。所以，尽
+管括号与引号看似一样，都只一个字符，但在 `JString` 中，它们必须以安全的
+`push_back` 方法写入。
+
+至于 `KString` ，它的不安全等级达到 `uint8_t` 的最大值。除了满足正常定义会附带
+`255` 字节的额外边界外，它还表达一种“极不安全”的意义。也就是说即使使用常规的
+安全写入方法如 `push_back` 与 `append` ，它也不会检查边界，相信可写就直接写了
+。因此它能比 `JString` 节省更多的边界检查开销，进一步提升性能。代价是必须预估
+容量，在构造函数时传入足够大的初始容量，或者中途某个时刻显式地再次调用
+`reserve` 预留容量。
+
+### 6.4.2 边界检查节约度
+
+先看一个 `wwjson::KString` 的应用于 json 构建的简单示例：
+
+<!-- example:usage_6_4_2_check_ratio -->
+```cpp
+wwjson::FastBuilder builder(8*1024); // 初始容量 8K + 255
+
+builder.BeginArray();
+for (int i = 0; i < 10; ++i)
+{
+    for (int j = 0; j < 1024; ++j)
+    {
+        builder.AddItem("abcde"); // 每次写入 8 字节，包括引号与逗号
+    }
+    builder.json.reserve_ex(8*1024); // 每千次再扩容 8K + 255
+}
+builder.EndArray();
+
+if (builder.json.overflow()) return;
+std::string result = builder.GetResult().str();
+```
+
+其中，`reserve_ex` 是相对于当前 `size()` 预留额外容量，与标准的 `reserve` 方法
+预留绝对容量略有不同含义。如果使用 `std::string` 或 `wwjson::JString` 的话，构
+建过程中是没必要手动调用 `reserve` 的，它们会在每次写入前检查容量自动扩容。
+
+上例的每次 `builder.AddItem` 调用，会写入 4 个 token ，在使用不同底层字符串类
+型时所需做边界检查（类似 `if (size() < capacity())` 的操作）的对照表如下：
+
+| Token | std::string | JString | KString |
+|-------|-------------|---------|---------|
+| "     | YES         | NO      | NO      |
+| abcde | YES         | YES     | NO      |
+| "     | YES         | NO      | NO      |
+| ,     | YES         | NO      | NO      |
+
+可见 `KString` 完全不做边界的安全检查，只是为了可用性，约每千次显式调用
+`reserve_ex` 会做一次检查。所以相对于 `JString` 的边界检查频率大约是千分之一，
+相对于 `std::string` 是四千分之一。
+
+当然这个数值仅针对这个简单示例的参考。`KString` 一般适用的场景是能预估容量，在
+构造函数申请一次内存之后就不再扩容了。除非是要构建很大的对象数组，仅能估算每个
+对象的大小，而不好估计数组长度时，则可参考这个示例中途显式扩容。
+
+构建完毕后，也提供了个判断是否写溢界的方法 `overflow` ，聊胜于无，或可在调试阶
+段有用，若在生产环境中若真写溢界了，可能尽早崩溃才是上计了。
+
+故在一般情况下，使用基于 `JString` 的 `Builder` 类，能在安全与性能之间取得较好
+的平衡。没有需要特别注意的地方，只是毕竟与 `std::string` 不是同一个类，它们之
+间不能隐式转换（因为会发生拷贝），所以需要显式转换。不介意 `JString` 类型扩散
+到其他地方的话，也可以直接使用它避免一次转换拷贝，或者转换为更低成本的
+`std::string_view` ，但要保证 `JString` 本身的生命周期。
+
+### 6.4.3 安全边距
+
+效率与安全是一对矛盾，不安全等级从另一个角度看也是安全边距。`std::string` 的安
+全边距相当于 0，故而不能提供不安全写入方法。它与 `JString` 关于安全边距的最显
+著特征，可以用如下一个简单示例呈现：
+
+<!-- example:usage_6_4_3_safe_margin -->
+```cpp
+std::string str;
+str.reserve(256);
+while(str.size() < str.capacity())
+{
+    str.push_back('x');
+    if (str.size() > 1024*1024)
+        break; // 防死循环
+}
+std::cout << "size=" << str.size() << std::endl;
+std::cout << "capacity=" << str.capacity() << std::endl;
+
+wwjson::JString jstr;
+jstr.reserve(256);
+while(jstr.size() < jstr.capacity())
+{
+    jstr.push_back('x');
+    if (jstr.size() > 1024*1024)
+        break; // 防死循环
+}
+std::cout << "size=" << jstr.size() << std::endl;
+std::cout << "capacity=" << jstr.capacity() << std::endl;
+```
+
+循环向 `std::string` 写入一个字符，能恰好写满，它应该能正常退出循环。但如果
+换成 `wwjson::JString` ，由于存在 4 个安全边距，理论上它永远写不满（假设内存无
+限的话），每当快写满时，它就会扩容。而 `std::string` 允许恰好写满的情况，所以
+每次写入都要做安全检查。
+
+这是与它们的设计场景相适应的。标准 `std::string` 适用于基本不变的字符串，而
+`JString` 本质是 `StringBuffer` ，适用于需要频繁写入增长的情况。wwjson 库一开
+始选择 `std::string` 作为基底，只为了方便与通用性。当真正追求性能时，通用的
+`std::string` 显然就不合适了。
+
+### 6.4.4 外借协同写入
+
+标准 `std::string` 不适合作为 string buffer 的另一个特性是它的封闭性，对所持内
+存的管控更为严格，不能（安全地）用外部函数写入它的内存区，只能调用它的公开接口
+写入内容。这对于面向对象封装来说似乎是理所应当的事，但用于字符串拼接场景它就有
+失灵活与效率了。
+
+比如想向 `std::string` 末尾追加一个整数的序列化格式，一般应用可这么写：
+
+<!-- example:usage_6_4_4_std_tostr -->
+```cpp
+std::string str{"prefix:"};
+str += std::to_string(314);
+
+// 或者用 snprintf
+char buffer[16];
+snprintf(buffer, sizeof(buffer), "%d", 159);
+str += buffer;
+```
+
+但不管用 `std::to_string` 还是 `snprintf` ，它都需要先写入一个临时缓冲区，再追
+加到 `std::string` 末尾。这就多了一次字符串拷贝，对于高性能场景是会介意的。一
+个常见错误是试图先预留空间，然后用 `snprintf` 直接打印到 `std::string` 末尾，
+例如：
+
+<!-- example:usage_6_4_4_err_tostr -->
+```cpp
+std::string str{"prefix:"};
+str.reserve(str.size() + 16);
+int nWritten = snprintf(str.data() + str.size(), 16, "%d", 314);
+
+std::cout << str.c_str() << std::endl; // 可能正确 prefix:314
+std::cout << str << std::endl;         // 不正确 prefix:
+std::cout << str.size() << std::endl;  // 实际长度仍为 7
+
+int oldSize = str.size();
+str.resize(oldSize + nWritten);
+std::cout << str.size() << str.c_str() << std::endl; // 10prefix:
+std::cout << (str[7] != '3') << std::endl;
+std::cout << (str[7] == '\0') << std::endl;
+```
+
+仅管我们可以偷出 `std::string` 的内存指针，并往里面写东西。但它无法感知外界的
+动作，它仍只认它自己管理过的那部分内容。也没好办法去同步外界的操作结果，如果调
+用 `resize` 去增加长度，对增加的部分会调用 `char` 的默认构造，也就是写入 `\0`
+字符，覆盖了原来 `snprintf` 写入的内容。`resize` 的这种行为是与其他标准容器如
+`std::vector<char>` 保持一致的，它要保证容器内的每个元素是有效对象，所以
+`resize` 超出原 `size` 部分只好默认构造一个元素在那里了。
+
+因此，对于这种场景需要 `wwjson::JString` 这种设计为 string buffer 的类型来应对
+。简单来说，它相当于重新定义了 `resize` 的意义，它相信用户扩展字符串时已经写入
+了有效的内容。实际上，这里的 `JString` 使用三指针的方案管理内存，允许直接调用
+`set_end` 方法调整尾指针（下次应写入的指针位置）。
+
+<!-- example:usage_6_4_4_jstr_tostr -->
+```cpp
+wwjson::JString jstr;
+jstr.append("prefix:");
+
+jstr.reserve_ex(16);
+int nWritten = snprintf(jstr.end(), 16, "%d", 314);
+jstr.set_end(jstr.end() + nWritten);
+// 或 jstr.resize(jstr.size() + nWritten);
+
+std::cout << jstr.c_str() << std::endl; // 正确 prefix:314
+std::cout << jstr.str() << std::endl;   // 正确 prefix:314
+std::cout << jstr.size() << std::endl;  // 正确 10
+```
+
+注意，`JString` 实质是 `StringBuffer` ，它不是要平替 `std::string` ，所以没有
+提供后者的所有接口，比如构造函数就不能接受 `prefix:` 初始内容。它的默认构造就
+会预留 1024 字节，所以上例的 `reserve_ex` 是不必要，但实践中每次借出内存时安全
+预留是必要的。
+
+在 json 序列化，另一个关键性能瓶颈就是数字尤其是浮点数的序列化以及字符串转义。
+一些高性能算法经常接受一组指针与长度参数，假定可在用户提供的空间安全写入。因此
+`JString` 的这个特性就能与之协同合作，将 json 格式化工程与数字格式化算法解耦。
+而 `GenericBuilder` 的可配置化也允许用户尝试更高效或更有针对性的算法。
 
 ## 7 快速参考
 
@@ -1287,3 +1533,9 @@ builder.EndLine();
 - 如果不是历史兼容原因，不要给数字加引号变成字符串；
 - 如果考虑数据大小，不要写 `null` 字段与各种空值（空字符串、空数组与空对象），
 还可用 `1/0` 代替 `true/false`；如果考虑尽可能保留结构信息，则反之。
+
+### 7.4 构建器选用
+
+- 基于 std::string 的 RawBuilder: 通用性强
+- 基于 wwjson::JString 的 Builder: 性能与安全的平衡
+- 基于 wwjson::KString 的 FastBuilder: 追求性能，手动预估容量

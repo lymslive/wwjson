@@ -925,6 +925,22 @@ json ：第一层大约 4-5 个元字段，加一个 data 字段，第二层 dat
 
 ### DONE:20260109-212430
 
+## TODO:2026-01-10/1 docs/usage.md 用户指南增加 JString 章节
+
+为减少对原文档结构的调整，直接加在第 6 节末尾 6.4 了。
+同步相关示例的测试。
+
+### DONE:20260110~112530
+
+## TODO: docs/usage.md 补充结构体 to_json api 用法
+
+示例 `usage_4_5_struct_builder` 未与 `t_usage.cpp` 同步，
+将结构体拆出来，改名为 `usage_4_5_struct_builder_call` 了。
+实际上结构体可以在用例函数体内定义为局部类型。
+
+`to_json` 方法也是专门用于结体体转 json 的优化 api ，可加在 4.5 之后的 4.6 节
+。
+
 ## TODO: 性能测试
 
 ## TODO: 文档优化

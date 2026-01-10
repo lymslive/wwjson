@@ -33,20 +33,22 @@ DEF_TAST(readme_1, "example from readme")
 #endif
 }
 
-struct User {
-    std::string name;
-    int age;
-    bool active;
-
-    void to_json(wwjson::Builder& builder) const {
-        TO_JSON(name);   // wwjson::to_json(builder, "name", name);
-        TO_JSON(age);    // wwjson::to_json(builder, "age", age);
-        TO_JSON(active); // wwjson::to_json(builder, "active", active);
-    }
-};
-
 DEF_TAST(readme_2, "example from readme")
 {
+    struct User
+    {
+        std::string name;
+        int age;
+        bool active;
+
+        void to_json(wwjson::Builder& builder) const
+        {
+            TO_JSON(name);   // wwjson::to_json(builder, "name", name);
+            TO_JSON(age);    // wwjson::to_json(builder, "age", age);
+            TO_JSON(active); // wwjson::to_json(builder, "active", active);
+        }
+    };
+
 #ifdef MARKDOWN_CODE_SNIPPET
     User user{"Alice", 30, true};
     std::string json = wwjson::to_json(user);
@@ -753,5 +755,128 @@ DEF_TAST(usage_6_3_2_message_stream_target, "example from docs/usage.md")
     COUT(messages, R"({"name":"wwjson","version":1.01}
 {"name":"yyjson","version":1.02}
 )");
+}
+
+DEF_TAST(usage_6_4_2_check_ratio, "example from docs/usage.md")
+{
+#ifdef MARKDOWN_CODE_SNIPPET
+    wwjson::FastBuilder builder(8*1024); // 初始容量 8K + 255
+
+    builder.BeginArray();
+    for (int i = 0; i < 10; ++i)
+    {
+        for (int j = 0; j < 1024; ++j)
+        {
+            builder.AddItem("abcde"); // 每次写入 8 字节，包括引号与逗号
+        }
+        builder.json.reserve_ex(8*1024); // 每千次再扩容 8K + 255
+    }
+    builder.EndArray();
+
+    if (builder.json.overflow()) return;
+    std::string result = builder.GetResult().str();
+#endif
+    COUT(builder.json.overflow(), false);
+    COUT(result.size(), 8 * 10 * 1024 + 1);
+    COUT(builder.json.capacity());
+    COUT(builder.json.capacity() > result.size(), true);
+}
+
+DEF_TAST(usage_6_4_3_safe_margin, "example from docs/usage.md")
+{
+#ifdef MARKDOWN_CODE_SNIPPET
+    std::string str;
+    str.reserve(256);
+    while(str.size() < str.capacity())
+    {
+        str.push_back('x');
+        if (str.size() > 1024*1024)
+            break; // 防死循环
+    }
+//+ std::cout << "size=" << str.size() << std::endl;
+//+ std::cout << "capacity=" << str.capacity() << std::endl;
+    COUT(str.size(), 256);
+    COUT(str.capacity(), 256);
+
+    wwjson::JString jstr;
+    jstr.reserve(256);
+    while(jstr.size() < jstr.capacity())
+    {
+        jstr.push_back('x');
+        if (jstr.size() > 1024*1024)
+            break; // 防死循环
+    }
+//+ std::cout << "size=" << jstr.size() << std::endl;
+//+ std::cout << "capacity=" << jstr.capacity() << std::endl;
+    COUT(jstr.capacity() > jstr.size(), true);
+    COUT(jstr.size() > 1024*1024, true);
+#endif
+}
+
+DEF_TAST(usage_6_4_4_std_tostr, "example from docs/usage.md")
+{
+#ifdef MARKDOWN_CODE_SNIPPET
+    std::string str{"prefix:"};
+    str += std::to_string(314);
+    COUT(str, "prefix:314");
+
+    // 或者用 snprintf
+    char buffer[16];
+    snprintf(buffer, sizeof(buffer), "%d", 159);
+    str += buffer;
+    COUT(str, "prefix:314159");
+#endif
+}
+
+DEF_TAST(usage_6_4_4_err_tostr, "example from docs/usage.md")
+{
+#ifdef MARKDOWN_CODE_SNIPPET
+    std::string str{"prefix:"};
+    str.reserve(str.size() + 16);
+    int nWritten = snprintf(str.data() + str.size(), 16, "%d", 314);
+
+//+ std::cout << str.c_str() << std::endl; // 可能正确 prefix:314
+//+ std::cout << str << std::endl;         // 不正确 prefix:
+//+ std::cout << str.size() << std::endl;  // 实际长度仍为 7
+    COUT(str.size(), 7);
+    COUT(str, "prefix:");
+
+    int oldSize = str.size();
+    str.resize(oldSize + nWritten);
+//+ std::cout << str.size() << str.c_str() << std::endl; // 10prefix:
+//+ std::cout << (str[7] != '3') << std::endl;
+//+ std::cout << (str[7] == '\0') << std::endl;
+    COUT(str.size(), 10);
+    COUT(str.c_str(), "prefix:");
+    COUT(str[7] != '3', true);
+    COUT(str[7] == '\0', true);
+#endif
+}
+
+DEF_TAST(usage_6_4_4_jstr_tostr, "example from docs/usage.md")
+{
+#ifdef MARKDOWN_CODE_SNIPPET
+    wwjson::JString jstr;
+    jstr.append("prefix:");
+
+    jstr.reserve_ex(16);
+    int nWritten = snprintf(jstr.end(), 16, "%d", 314);
+    jstr.set_end(jstr.end() + nWritten);
+    // 或 jstr.resize(jstr.size() + nWritten);
+
+//+ std::cout << jstr.c_str() << std::endl; // 正确 prefix:314
+//+ std::cout << jstr.str() << std::endl;   // 正确 prefix:314
+//+ std::cout << jstr.size() << std::endl;  // 正确 10
+    COUT(jstr.c_str(), "prefix:314");
+    COUT(jstr.str(), "prefix:314");
+    COUT(jstr.size(), 10);
+#endif
+}
+
+// template
+DEF_TAST(usage_last_empty, "example from docs/usage.md")
+{
+#ifdef MARKDOWN_CODE_SNIPPET
+#endif
 }
 
