@@ -1003,7 +1003,20 @@ tester.runAndPrint 已经有类似的打印信息，不必冗余打印了。
 
 ### DONE: 20260111-122545
 
-## TODO: 性能测试
+## TODO:2026-01-11/2 性能测试结果分析
+
+perf/report.log/ 保存了最近几次的性能测试程序 pfwwjson 的日志输出。
+其中 local-yyyymmdd-hhmmss.log 是本地用 `make perf/log` 命令运行的日志。
+ci-yymmdd-hhmmss.log 是 perf/run-ci.sh 提取的日志，在 github 上运行
+ci-perf.yml 流水线的日志。可忽略 -full.log 后缀的全量日志。
+
+local 与 ci 各保存了最近三份日志，请综合分析这些日志。重写 perf/report.md 性能
+分析报告。
+
+本地的开发环境是 win10-WSL1-ubuntu 20.04 ，编译器 std::to_chars 不支持浮点数。
+ci 流水线的运行环境应该是标准的 ubuntu latest
+
+### DONE: 20260111-140329
 
 ## TODO: 文档优化
 

@@ -43,6 +43,8 @@
 - `nodom_raw_vs_snprintf` - wwjson RawBuilder vs snprintf性能对比
 - `nodom_raw_vs_append` - wwjson RawBuilder vs string::append性能对比
 - `nodom_raw_vs_stream` - wwjson RawBuilder vs stringstream性能对比
+- `nodom_builder_vs_append` - wwjson Builder vs string::append性能对比
+- `nodom_fastbuilder_vs_append` - wwjson FastBuilder vs string::append性能对比
 
 ## p_number.cpp
 
