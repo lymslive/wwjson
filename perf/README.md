@@ -85,3 +85,91 @@ make build/perf
 - `--start=n` - 起始值，用作随机种子或序列起始，默认 1
 - `--size=n` - 预估的 JSON 大小（KB），默认 1（自动估算）
 
+## GitHub Actions 自动化测试
+
+GitHub Actions 工作流 `.github/workflows/ci-perf.yml` 提供了自动化的性能测试，可以在远程 CI 环境中运行性能测试。
+
+### 使用 gh 命令行工具
+
+如果已安装 `gh` 命令行工具，可以通过以下命令触发和管理 CI 工作流：
+
+#### 触发工作流
+
+```bash
+# 在 dev 分支触发性能测试工作流（使用默认参数）
+gh workflow run ci-perf.yml --ref dev
+
+# 在 main 分支触发工作流
+gh workflow run ci-perf.yml --ref main
+
+# 自定义 CMake 配置参数
+gh workflow run ci-perf.yml --ref dev \
+  -f cmake_args="-DCMAKE_BUILD_TYPE=Release -DBUILD_PERF_TESTS=ON"
+
+# 自定义测试参数
+gh workflow run ci-perf.yml --ref dev \
+  -f test_args="--cout=silent --verbose"
+```
+
+#### 查看工作流状态
+
+```bash
+# 列出 ci-perf.yml 的所有运行记录
+gh run list --workflow=ci-perf.yml
+
+# 查看特定运行的详细状态
+gh run view <run-id>
+
+# 实时监控运行进度
+gh run watch <run-id>
+```
+
+#### 下载工作流日志
+
+```bash
+# 下载完整日志
+gh run view <run-id> --log > perf/report.log/ci-<run-id>-full.log
+
+# 只查看失败的步骤
+gh run view <run-id> --log-failed
+```
+
+### 自动化脚本
+
+项目提供了以下自动化脚本：
+
+#### run-ci.sh
+
+`perf/run-ci.sh` 脚本可以自动化整个 CI 流程：
+
+```bash
+# 运行脚本：触发 CI、等待完成、下载和提取日志
+./perf/run-ci.sh
+```
+
+该脚本会：
+1. 在 dev 分支触发 ci-perf.yml 工作流
+2. 等待工作流运行完成
+3. 下载完整日志到 `perf/report.log/ci-{run-id}-full.log`
+4. 提取性能测试步骤的关键输出，生成精简日志 `perf/report.log/ci-yyyymmdd-hhmmss.log`
+
+#### extract-perf-log.pl
+
+`perf/extract-perf-log.pl` 脚本可以从 GitHub Actions 的全量日志中提取性能测试日志：
+
+```bash
+# 从全量日志提取性能测试日志
+perl perf/extract-perf-log.pl ci-20881321775-full.log ci-20260111-004613.log
+
+# 或输出到标准输出
+perl perf/extract-perf-log.pl ci-20881321775-full.log > perf.log
+```
+
+该脚本会：
+1. 定位 "Run performance tests" 步骤
+2. 去除日志前缀（时间戳、步骤名等）
+3. 只保留 pfwwjson 程序的实际输出
+4. 自动提取时间戳并转换为本地时间格式（UTC+8）
+
+日志文件保存在 `perf/report.log/` 目录下。
+

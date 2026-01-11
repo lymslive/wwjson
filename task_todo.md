@@ -983,6 +983,26 @@ tester.runAndPrint 已经有类似的打印信息，不必冗余打印了。
 
 ### DONE: 20260110-222559
 
+## TODO:2026-01-11/1 开发脚本自动运行性能测试 github 流水线及提取日志
+
+在 perf/README.md 增加简要提示说明如何用 gh 命令行工具触发 ci-perf.yml 流水线
+，及查看状态与下载日志。
+
+再开发一个 bash 脚本，也可放在 perf/ 目录下。
+触发 ci-perf.yml 流水线，指定在 dev 分支运行，其他参数可保持默认。
+
+流水线运行完毕，下载日志保存到 perf/report.log 目录，
+日志名格式 ci-{run-id}-full.log
+
+然后从这个全量日志提取 "Run performance tests" 步骤的关键日志，
+去除前面三列，只保留 pfwwjson 程序的输出。
+精简日志文件名格式 ci-yyyymmdd-hhmmss.log 。
+如果立即提取日志，时间取当前时间也差不多。
+准确时间可从全量日志的第三列提取，但可能有 8 小时的时差。
+（但似乎本地 date 命令会自动转换时区）
+
+### DONE: 20260111-122545
+
 ## TODO: 性能测试
 
 ## TODO: 文档优化
