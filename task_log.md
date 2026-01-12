@@ -71,3 +71,40 @@ WWJSON v1.1.0 版本开发周期：2025-12-22 至 2026-01-11
 ---
 
 **后续工作日志**
+
+## TASK:20260112-154233
+-----------------------
+
+### 任务概述
+
+为相对性能测试增加比值断言，避免后续性能优化时出现较大失误反转。
+
+### 修改内容
+
+**p_nodom.cpp** - RawBuilder vs 标准库方法对比：
+- `nodom_raw_vs_snprintf`: COUT(ratio < 1.2, true)
+- `nodom_raw_vs_append`: COUT(ratio < 1.1, true)
+- `nodom_raw_vs_stream`: COUT(ratio < 1.0, true)
+- `nodom_builder_vs_append`: COUT(ratio < 1.0, true)
+- `nodom_fastbuilder_vs_append`: COUT(ratio < 0.9, true)
+
+**p_api.cpp** - 各种 API 方法对比（使用倒数，因为 basic 在方法 A）：
+- 所有测试使用 COUT(1.0/ratio < 1.05, true)
+- Local Object 测试稍放宽至 1.15
+
+**p_builder.cpp** - 构建器对比：
+- wwjson vs yyjson: COUT(ratio < 1.2, true)
+- JString/KString vs std::string: COUT(1.0/ratio < 1.0, true)
+
+**p_string.cpp** - 字符串序列化对比：
+- wwjson vs yyjson: COUT(ratio < 1.0, true)
+- JString/KString vs std::string: COUT(1.0/ratio < 1.0, true)
+
+**p_number.cpp** - 数字序列化对比：
+- wwjson vs yyjson: 仅打印 COUT(ratio < 1.0)，不断言
+- JString/KString vs std::string: COUT(1.0/ratio < 1.0, true)
+
+### 测试结果
+
+断言值根据之前测试结果设定，p_design.cpp 不加断言保持原有行为。
+

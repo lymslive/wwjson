@@ -877,9 +877,10 @@ DEF_TAST(nodom_raw_vs_snprintf, "wwjson RawBuilder vs snprintf性能对比")
 
     auto tester = test::perf::RawBuilderVsSnprintf();
 
-    double ratio =     tester.runAndPrint("RawBuilder vs Snprintf",
+    double ratio = tester.runAndPrint("RawBuilder vs Snprintf",
                                       "RawBuilder", "snprintf",
                                       argv.loop, 10);
+    COUT(ratio < 1.2, true);
 }
 
 DEF_TAST(nodom_raw_vs_append, "wwjson RawBuilder vs string::append性能对比")
@@ -889,9 +890,10 @@ DEF_TAST(nodom_raw_vs_append, "wwjson RawBuilder vs string::append性能对比")
 
     auto tester = test::perf::RawBuilderVsAppend();
 
-    double ratio =     tester.runAndPrint("RawBuilder vs Append",
+    double ratio = tester.runAndPrint("RawBuilder vs Append",
                                       "RawBuilder", "string::append",
                                       argv.loop, 10);
+    COUT(ratio < 1.1, true);
 }
 
 DEF_TAST(nodom_raw_vs_stream, "wwjson RawBuilder vs stringstream性能对比")
@@ -901,9 +903,10 @@ DEF_TAST(nodom_raw_vs_stream, "wwjson RawBuilder vs stringstream性能对比")
 
     auto tester = test::perf::RawBuilderVsStream();
 
-    double ratio =     tester.runAndPrint("RawBuilder vs Stream",
+    double ratio = tester.runAndPrint("RawBuilder vs Stream",
                                       "RawBuilder", "stringstream",
                                       argv.loop, 10);
+    COUT(ratio < 1.0, true);
 }
 
 DEF_TAST(nodom_builder_vs_append, "wwjson Builder vs string::append性能对比")
@@ -913,9 +916,10 @@ DEF_TAST(nodom_builder_vs_append, "wwjson Builder vs string::append性能对比"
 
     auto tester = test::perf::BuilderVsAppend();
 
-    double ratio =     tester.runAndPrint("Builder vs Append",
+    double ratio = tester.runAndPrint("Builder vs Append",
                                       "Builder", "string::append",
                                       argv.loop, 10);
+    COUT(ratio < 1.0, true);
 }
 
 DEF_TAST(nodom_fastbuilder_vs_append, "wwjson FastBuilder vs string::append性能对比")
@@ -925,8 +929,9 @@ DEF_TAST(nodom_fastbuilder_vs_append, "wwjson FastBuilder vs string::append性�
 
     auto tester = test::perf::FastBuilderVsAppend();
 
-    double ratio =     tester.runAndPrint("FastBuilder vs Append",
+    double ratio = tester.runAndPrint("FastBuilder vs Append",
                                       "FastBuilder", "string::append",
                                       argv.loop, 10);
+    COUT(ratio < 0.9, true);
 }
 

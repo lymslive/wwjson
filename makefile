@@ -68,14 +68,14 @@ clean/perf:
 # Run performance tests
 perf: build/perf
 	@echo "Running performance tests..."
-	./build-release/perf/pfwwjson
+	./build-release/perf/pfwwjson --cout=fail
 
 # Run performance tests and save output to perf/report.log/
 perf/log: build/perf
 	@echo "Running performance tests and saving to log..."
 	@mkdir -p perf/report.log
 	@LOG_FILE="perf/report.log/local-$$(date +%Y%m%d-%H%M%S).log" && \
-	./build-release/perf/pfwwjson > "$$LOG_FILE" && \
+	./build-release/perf/pfwwjson --cout=fail > "$$LOG_FILE" && \
 	echo "Output saved to: $$LOG_FILE"
 
 # Update test cases list

@@ -774,6 +774,7 @@ DEF_TAST(build_relative, "JSON 构建相对性能测试")
             "JSON Build Test (n=" + std::to_string(n) + ")",
             "wwjson", "yyjson",
             argv.loop, 10);
+        COUT(ratio < 1.2, true);
 
         DESC("");
     }
@@ -789,6 +790,7 @@ DEF_TAST(build_relative, "JSON 构建相对性能测试")
             "JString Test (n=" + std::to_string(n) + ")",
             "std::string", "JString",
             argv.loop, 10);
+        COUT(1.0 / ratio < 1.0, true);
 
         DESC("");
     }
@@ -804,6 +806,7 @@ DEF_TAST(build_relative, "JSON 构建相对性能测试")
             "KString Test (n=" + std::to_string(n) + ")",
             "std::string", "KString",
             argv.loop, 10);
+        COUT(1.0 / ratio < 1.0, true);
 
         DESC("");
     }

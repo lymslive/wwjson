@@ -902,6 +902,7 @@ DEF_TAST(string_object_relative, "字符串对象构建相对性能测试（wwjs
             "wwjson", "yyjson",
             argv.loop, 10
         );
+        COUT(ratio < 1.0, true);
 
         DESC("");
     }
@@ -916,6 +917,7 @@ DEF_TAST(string_object_relative, "字符串对象构建相对性能测试（wwjs
             "std::string", "JString",
             argv.loop, 10
         );
+        COUT(1.0 / ratio < 1.0, true);
 
         DESC("");
     }
@@ -930,6 +932,7 @@ DEF_TAST(string_object_relative, "字符串对象构建相对性能测试（wwjs
             "std::string", "KString",
             argv.loop, 10
         );
+        COUT(1.0 / ratio < 1.0, true);
 
         DESC("");
     }
@@ -953,6 +956,7 @@ DEF_TAST(string_escape_relative, "转义字符串对象构建相对性能测试�
             "wwjson", "yyjson",
             argv.loop, 10
         );
+        COUT(ratio < 1.0, true);
 
         DESC("");
     }
@@ -967,6 +971,7 @@ DEF_TAST(string_escape_relative, "转义字符串对象构建相对性能测试�
             "std::string", "JString",
             argv.loop, 10
         );
+        COUT(1.0 / ratio < 1.0, true);
 
         DESC("");
     }
@@ -981,6 +986,7 @@ DEF_TAST(string_escape_relative, "转义字符串对象构建相对性能测试�
             "std::string", "KString",
             argv.loop, 10
         );
+        COUT(1.0 / ratio < 1.0, true);
 
         DESC("");
     }

@@ -525,6 +525,7 @@ DEF_TAST(api_basic_vs_autoclose, "基本方法 vs 自动关闭方法性能对比
     double ratio = tester.runAndPrint("Basic vs Auto-close",
                                       "Basic Method", "Auto-close Method",
                                       argv.loop, 10);
+    COUT(1.0 / ratio < 1.10, true);
 }
 
 // Test case for comparing Basic Method vs Operator Method
@@ -542,6 +543,7 @@ DEF_TAST(api_basic_vs_operator, "基本方法 vs 操作符方法性能对比")
     double ratio = tester.runAndPrint("Basic vs Operator",
                                       "Basic Method", "Operator Method",
                                       argv.loop, 10);
+    COUT(1.0 / ratio < 1.10, true);
 }
 
 // Test case for comparing Basic Method vs Local Object Method
@@ -559,6 +561,7 @@ DEF_TAST(api_basic_vs_localobj, "基本方法 vs 局部对象方法性能对比"
     double ratio = tester.runAndPrint("Basic vs Local Object",
                                       "Basic Method", "Local Operator Method",
                                       argv.loop, 10);
+    COUT(1.0 / ratio < 1.15, true);
 }
 
 // Test case for comparing Basic Method vs Lambda Method
@@ -576,6 +579,7 @@ DEF_TAST(api_basic_vs_lambda, "基本方法 vs Lambda方法性能对比")
     double ratio = tester.runAndPrint("Basic vs Lambda",
                                       "Basic Method", "Lambda Method",
                                       argv.loop, 10);
+    COUT(1.0 / ratio < 1.05, true);
 }
 
 // Test case for comparing Basic Method vs Class Method
@@ -593,6 +597,7 @@ DEF_TAST(api_basic_vs_class, "基本方法 vs 类方法性能对比")
     double ratio = tester.runAndPrint("Basic vs Class",
                                       "Basic Method", "Class Method",
                                       argv.loop, 10);
+    COUT(1.0 / ratio < 1.05, true);
 }
 
 // Tool case to output JSON samples for verification
@@ -692,6 +697,7 @@ DEF_TAST(api_basic_vs_tojson, "基本方法 vs to_json方法性能对比")
     double ratio = tester.runAndPrint("Basic vs to_json",
                                       "Basic Method", "to_json Method",
                                       argv.loop, 10);
+    COUT(1.0 / ratio < 1.05, true);
 }
 
 // Tool case to verify to_json output
