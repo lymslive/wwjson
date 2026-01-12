@@ -124,6 +124,29 @@ wwjson/yyjson 先使用单参数的 COUT 打印： COUT(ratio < 1.0)
 单次运行偶有浮动误差失败，尤其是默认参数 --items=1000 --loop=1000 较少
 增大参数可能使结果更稳定，但运行时间长。
 
+## TODO:2026-01-12/2 整数序列化优化框架初步
+
+增加一个 include/itoa.hpp 文件，设计一个 IntegerWriter 类。
+暂时先继承 NumberWriter ，空实现。
+
+修改 include/jbuilder.hpp 的 UnsafeConfig 模板类，
+能否限定只能由 `unsafe level > 4` 的 stringT 类才能实例化。
+例如 `UnsafeConfig<std::string>` 会导致编译失败。
+这样可使该类的方法实现简单点，不必将来每个方法都判断一下 unsafe level 。
+现在的 EscapeString 方法希望能取消一层 if constexpre 判断，减少缩进。
+
+utest/t_jbuilder.cpp 的测试用例 jbuilder_unsafe_level 增加一个段落测试场景，
+验证 UnsafeConfig 能实例化 JString 但不能实例化 std::string 。先写出来验证有编
+译错误，但注释掉。
+
+然后增加两个 UnsafeConfig::NumberString 模板重载方法，将整数与浮点数分开写。
+整数版的调用 IntegerWriter::Output，
+浮点数版的暂时仍显式调用 NumberWriter::Output
+但是在这之前，先调用 stringT::resver_ex 预留容量，使后面的整数/浮点数序列化不
+必考虑写入目标 buffer 容量问题。
+
+### DONE:20260112-174938
+
 ## TODO: wwjson.hpp 优化整数序列化
 
 优化 `NumberWriter::Output` 整数版，当 `unsafe_level<stringT>` 的值不小于 4 时，

@@ -28,6 +28,8 @@
 
 #include "wwjson.hpp"
 #include "jstring.hpp"
+#include "itoa.hpp"
+
 #include <optional>
 
 namespace wwjson {
@@ -40,9 +42,16 @@ namespace wwjson {
 /// @par When to use:
 /// - With JString (kUnsafeLevel=4) for balanced safety and performance
 /// - With KString (kUnsafeLevel=255) for maximum performance
+///
+/// @note UnsafeConfig requires stringT to have unsafe_level >= 4.
+/// Using it with std::string or other low-unsafe-level types will cause a compile error.
 template <typename stringT>
 struct UnsafeConfig : public BasicConfig<stringT>
 {
+    static_assert(detail::unsafe_level_v<stringT> >= 4,
+        "UnsafeConfig requires stringT with unsafe_level >= 4 (e.g., JString, KString). "
+        "Use BasicConfig<std::string> for standard string types.");
+
     /// @brief Escape object key using the optimized EscapeString implementation
     /// @note
     /// Must override EscapeKey explicitly because static methods don't have
@@ -55,59 +64,74 @@ struct UnsafeConfig : public BasicConfig<stringT>
 
     /// @brief Optimized string escaping for high-unsafe-level types
     /// @details
-    /// When unsafe_level >= 4, this implementation:
-    /// - Writes directly to the string's internal buffer using pointer arithmetic
-    /// - Uses unsafe_set_end() to update the end pointer after writing
-    /// - Falls back to the parent's safe implementation for low unsafe_level types
+    /// Writes directly to the string's internal buffer using pointer arithmetic
+    /// and uses unsafe_set_end() to update the end pointer after writing.
+    /// This avoids temporary buffer allocation for better performance.
     ///
-    /// @note This avoids temporary buffer allocation for better performance.
+    /// @note Requires stringT with unsafe_level >= 4.
     static void EscapeString(stringT &dst, const char *src, size_t len)
     {
         if (wwjson_unlikely(src == nullptr)) { return; }
+        if (wwjson_unlikely(len == 0)) { return; }
 
-        if constexpr (detail::unsafe_level_v<stringT> >= 4)
+        // For unsafe string types: reserve 2x space and write directly
+        dst.reserve_ex(len * 2);
+
+        char* write_ptr = dst.end();
+
+        for (size_t i = 0; i < len; ++i)
         {
-            // For unsafe string types: reserve 2x space and write directly
-            dst.reserve(dst.size() + len * 2);
+            unsigned char c = static_cast<unsigned char>(src[i]);
 
-            char* buffer = const_cast<char*>(dst.data());
-            char* write_ptr = buffer + dst.size();
-            const char* const buffer_end = buffer + dst.capacity();
-
-            for (size_t i = 0; i < len; ++i)
+            if (wwjson_unlikely(c >= 128))
             {
-                unsigned char c = static_cast<unsigned char>(src[i]);
-
-                if (wwjson_unlikely(c >= 128))
+                // UTF-8 character - pass through unchanged
+                *write_ptr++ = c;
+            }
+            else
+            {
+                // ASCII character - check escape table
+                uint8_t escape_char = BasicConfig<stringT>::kEscapeTable[c];
+                if (wwjson_unlikely(escape_char != 0))
                 {
-                    // UTF-8 character - pass through unchanged
-                    *write_ptr++ = c;
+                    *write_ptr++ = '\\';
+                    *write_ptr++ = escape_char;
                 }
                 else
                 {
-                    // ASCII character - check escape table
-                    uint8_t escape_char = BasicConfig<stringT>::kEscapeTable[c];
-                    if (wwjson_unlikely(escape_char != 0))
-                    {
-                        *write_ptr++ = '\\';
-                        *write_ptr++ = escape_char;
-                    }
-                    else
-                    {
-                        // No escaping needed
-                        *write_ptr++ = c;
-                    }
+                    // No escaping needed
+                    *write_ptr++ = c;
                 }
             }
+        }
 
-            // Update end pointer using unsafe_set_end
-            dst.unsafe_set_end(write_ptr);
-        }
-        else
-        {
-            // Fall back to parent's safe implementation for low unsafe_level types
-            BasicConfig<stringT>::EscapeString(dst, src, len);
-        }
+        // Update end pointer using unsafe_set_end
+        dst.unsafe_set_end(write_ptr);
+    }
+
+    /// @brief Integer serialization to string buffer.
+    /// @tparam intT Integer type (signed or unsigned)
+    /// @param[out] dst Destination string buffer
+    /// @param value Integer value to serialize
+    template <typename intT>
+    static std::enable_if_t<std::is_integral_v<intT>, void>
+    NumberString(stringT &dst, intT value)
+    {
+        constexpr size_t max_digits = std::numeric_limits<intT>::digits10 + 2;
+        dst.reserve_ex(max_digits);
+        IntegerWriter<stringT>::Output(dst, value);
+    }
+
+    /// @brief Floating-point serialization.
+    /// @tparam floatT Floating-point type
+    /// @param[out] dst Destination string buffer
+    /// @param value Floating-point value to serialize
+    template <typename floatT>
+    static std::enable_if_t<std::is_floating_point_v<floatT>, void>
+    NumberString(stringT &dst, floatT value)
+    {
+        dst.reserve_ex(32);  // Reserve space for float representation
+        NumberWriter<stringT>::Output(dst, value);
     }
 };
 

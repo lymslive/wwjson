@@ -48,6 +48,25 @@ DEF_TAST(jbuilder_unsafe_level, "unsafe_level 编译期特征萃取测试")
         COUT((int)detail::unsafe_level<Builder::string_type>::value, 4);
         COUT((int)detail::unsafe_level<FastBuilder::string_type>::value, 255);
     }
+
+    DESC("UnsafeConfig 编译约束验证");
+    {
+        // UnsafeConfig<JString> 应该可以编译成功（unsafe_level = 4）
+        COUT((int)detail::unsafe_level<JString>::value, 4);
+        static_assert(detail::unsafe_level_v<JString> >= 4, "JString should have unsafe_level >= 4");
+        UnsafeConfig<JString> cfgJ;
+        COUT(cfgJ.kEscapeKey, false);
+
+        // UnsafeConfig<KString> 应该可以编译成功（unsafe_level = 255）
+        COUT((int)detail::unsafe_level<KString>::value, 255);
+        static_assert(detail::unsafe_level_v<KString> >= 4, "KString should have unsafe_level >= 4");
+        UnsafeConfig<KString> cfgK;
+        COUT(cfgK.kEscapeKey, false);
+
+        //! 以下代码会导致编译错误，因为 std::string 的 unsafe_level = 0 < 4
+        //! 如果取消注释，下一行会编译失败：
+        //! UnsafeConfig<std::string> bad_config; // 编译错误！
+    }
 }
 
 /// @}

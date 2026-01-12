@@ -108,3 +108,32 @@ WWJSON v1.1.0 版本开发周期：2025-12-22 至 2026-01-11
 
 断言值根据之前测试结果设定，p_design.cpp 不加断言保持原有行为。
 
+## TASK:20260112-174938
+-----------------------
+
+### 任务概述
+
+整数序列化优化框架初步：创建 itoa.hpp 并修改 UnsafeConfig 模板约束。
+
+### 修改内容
+
+**include/itoa.hpp** - 新建文件：
+- 定义 IntegerWriter 类，继承 NumberWriter
+- 添加 static_assert 约束：unsafe_level >= 4
+- 当前仅保留框架，forward writing 实现待下个任务完成
+
+**include/jbuilder.hpp** - 修改 UnsafeConfig：
+- 添加 static_assert 约束：unsafe_level >= 4
+- 简化 EscapeString：去掉 if constexpr 分支（已有编译期约束）
+- 添加 NumberString 整数版：调用 IntegerWriter::Output，预留容量
+- 添加 NumberString 浮点数版
+
+**utest/t_jbuilder.cpp** - 增加测试用例：
+- 验证 UnsafeConfig<JString> 可实例化
+- 验证 UnsafeConfig<KString> 可实例化
+- 注释说明 UnsafeConfig<std::string> 会编译失败
+
+### 测试结果
+
+单元测试全部 116 项通过。
+
