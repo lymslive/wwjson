@@ -32,6 +32,7 @@ add_executable(utwwjson
     # functional test files
     t_basic.cpp
     t_number.cpp
+    t_itoa.cpp
     t_scope.cpp
     t_custom.cpp
     t_escape.cpp

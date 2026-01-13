@@ -138,6 +138,7 @@ WWJSON v1.1.0 版本开发周期：2025-12-22 至 2026-01-11
 单元测试全部 116 项通过。
 
 ## TASK:20260113-143559
+-----------------------
 
 ### 任务概述
 
@@ -171,3 +172,45 @@ WWJSON v1.1.0 版本开发周期：2025-12-22 至 2026-01-11
 ### 测试结果
 
 单元测试全部 116 项通过。
+
+## TASK:20260113-172020
+-----------------------
+
+### 任务概述
+
+对 itoa.hpp 进行全面测试与 debug，修复正向序列化 bug。
+
+### 问题定位
+
+性能测试 `number_int_rel` 返回 nan，表明结果不一致。
+
+**Bug 分析**：在 `UnsignedWriter::Output` 中，递归时 `value < kHalf` 分支使用 `HIGH=true` 递归，但未正确处理 DIGIT > 2 的情况，导致高位丢失。
+
+### 修复方案
+
+重构 `UnsignedWriter::Output` 代码结构：
+- 第一层 `if constexpr (HIGH)` 分两种情况
+- 第二层 `if constexpr (DIGIT == 2)` 处理 base case
+- 避免 `else if constexpr` 层次混乱
+
+关键修复：
+- `HIGH=true` 且 `value < kHalf` 时，递归时保持 `HIGH=true`
+- `HIGH=false` 时始终用完整位数
+
+### 新增测试
+
+**utest/t_itoa.cpp** - 单元测试：
+- 按整数类型分组：uint8/16/32, int8/16/32/64
+- 覆盖边界值、随机值、幂次边界
+
+**perf/p_itoa.cpp** - 性能测试：
+- 比较 IntegerWriter vs NumberWriter
+- 按 int8/16/32/64 四种类型测试
+
+### 测试结果
+
+- 单元测试：8 项全部通过
+- 性能测试：
+  - int8: IntegerWriter 快 190%
+  - int64: IntegerWriter 快 23%
+  - int16/32: 性能接近，NumberWriter 略优

@@ -69,14 +69,15 @@ struct UnsignedWriter
     static void Output(stringT& dst, uintT value)
     {
         constexpr uint32_t kHalf = kPow10<DIGIT / 2>;  // 10^(DIGIT/2)
-        constexpr uint32_t kMax = kPow10<DIGIT>;  // 10^(DIGIT/2)
+        constexpr uint32_t kMax = kPow10<DIGIT>;      // 10^DIGIT
         assert(static_cast<uint64_t>(value) < kMax && "value must be < 10^DIGIT");
 
-        if constexpr (DIGIT == 2)
+        if constexpr (HIGH)
         {
-            if constexpr (HIGH)
+            // HIGH=true: High part, may write fewer digits
+            if constexpr (DIGIT == 2)
             {
-                // High part with HIGH=true: may write 1 or 2 digits
+                // Base case: 2 digits, may be 1 or 2
                 if (value < 10)
                 {
                     OutputDigit(dst, static_cast<uint8_t>(value));
@@ -86,24 +87,39 @@ struct UnsignedWriter
                     Output2Digits(dst, static_cast<uint8_t>(value));
                 }
             }
-            else
+            else // DIGIT > 2
             {
-                // LOW part: always write 2 digits
-                Output2Digits(dst, static_cast<uint8_t>(value));
+                if (value < kHalf)
+                {
+                    // Recurse to smaller digit count, keep HIGH flag
+                    UnsignedWriter<stringT, DIGIT / 2, true>::Output(dst, value);
+                }
+                else
+                {
+                    // Split into two halves
+                    uintT high = value / kHalf;
+                    uintT low = value % kHalf;
+                    UnsignedWriter<stringT, DIGIT / 2, true>::Output(dst, high);
+                    UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, low);
+                }
             }
-        }
-        else if (value < kHalf)
-        {
-            // Recurse to smaller digit count
-            UnsignedWriter<stringT, DIGIT / 2, HIGH>::Output(dst, value);
         }
         else
         {
-            // Split into two halves
-            uintT high = value / kHalf;
-            uintT low = value % kHalf;
-            UnsignedWriter<stringT, DIGIT / 2, HIGH>::Output(dst, high);
-            UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, low);
+            // HIGH=false: Low part, must write full digit count
+            if constexpr (DIGIT == 2)
+            {
+                // Base case: always write 2 digits
+                Output2Digits(dst, static_cast<uint8_t>(value));
+            }
+            else // DIGIT > 2
+            {
+                // Split into two halves, both use HIGH=false
+                uintT high = value / kHalf;
+                uintT low = value % kHalf;
+                UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, high);
+                UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, low);
+            }
         }
     }
 };

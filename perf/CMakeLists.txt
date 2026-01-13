@@ -5,6 +5,7 @@ cmake_minimum_required(VERSION 3.15)
 add_executable(pfwwjson
     p_builder.cpp
     p_number.cpp
+    p_itoa.cpp
     p_string.cpp
     p_design.cpp
     p_api.cpp
