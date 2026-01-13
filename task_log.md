@@ -137,3 +137,37 @@ WWJSON v1.1.0 版本开发周期：2025-12-22 至 2026-01-11
 
 单元测试全部 116 项通过。
 
+## TASK:20260113-143559
+
+### 任务概述
+
+实现 IntegerWriter 小整数正向序列化：使用递归二分算法，避免临时 buffer 逆向写入。
+
+### 修改内容
+
+**include/itoa.hpp** - 完全重写：
+
+- 添加 `detail::kPow10<N>` 编译期 10^N 计算
+- 添加 `detail::OutputDigit(dst, value)` 写入单个数字
+- 添加 `detail::Output2Digits(dst, value)` 写入两位数字
+- 实现 `detail::UnsignedWriter<stringT, DIGIT, HIGH>` 模板类：
+  - DIGIT: 2/4/8，HIGH=true 时高位可写少于 DIGIT 位
+  - 递归二分降级到 DIGIT=2 的 base case
+- 外层 `IntegerWriter<stringT>` 提供四个 `WriteUnsigned` 方法：
+  - `WriteUnsigned(dst, uint8_t)` - 1~3 位直接分支
+  - `WriteUnsigned(dst, uint16_t)` - 调用 UnsignedWriter<4, true>
+  - `WriteUnsigned(dst, uint32_t)` - 多层拆分
+  - `WriteUnsigned(dst, uint64_t)` - 回退基类
+- 统一 `Output<IntT>` 接口用 `if constexpr` 判断正负数
+
+### 关键算法
+
+正向写入避免逆向 buffer：
+- DIGIT=2: HIGH=true 时可能只写 1 位 (value<10)
+- DIGIT=4: 拆分为两个 2 位，高位可能少于 2 位
+- DIGIT=8: 拆分为两个 4 位，递归处理
+- 利用 `kDigitPairs` 查表快速写入两位数字
+
+### 测试结果
+
+单元测试全部 116 项通过。
