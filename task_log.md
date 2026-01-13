@@ -214,3 +214,56 @@ WWJSON v1.1.0 版本开发周期：2025-12-22 至 2026-01-11
   - int8: IntegerWriter 快 190%
   - int64: IntegerWriter 快 23%
   - int16/32: 性能接近，NumberWriter 略优
+
+## TASK:20260114-003209
+-----------------------
+
+### 任务概述
+
+完善 itoa.hpp 的整数正向序列化实现，优化性能并扩展 uint64_t 支持。
+
+### 修改内容
+
+**include/itoa.hpp** - 全面优化：
+
+- 优化 `Output2Digits`：使用 `unsafe_append(digit, 2)` 代替两次 `unsafe_push_back`
+- 扩展 `kPow10<DIGIT>` 支持 DIGIT=16（uint64_t）
+- 扩展 `UnsignedWriter` 支持 DIGIT=16
+- 优化 `uint32_t` 版本：取消 <10000 分支，统一按 10^8 二分
+- 实现 `uint64_t` 版本：
+  - 按 10^16 二分（<10^16 调用 UnsignedWriter<16, true>）
+  - ≥10^16 拆分 4+16 两部分，使用 UnsignedWriter<4, true> + UnsignedWriter<16, false>
+- 所有 WriteUnsigned 方法使用 `detail::kPow10<N>` 替代字面量常量
+
+**utest/t_itoa.cpp** - 简化并增强：
+
+- 合并 uint8/16/32/64 为 `itoa_unsigned` 测试用例
+- 合并 int8/16/32/64 为 `itoa_signed` 测试用例
+- 新增 `itoa_edge_cases` 边界测试用例
+- 使用 `COUTF` 替代随机循环中的 `COUT`，减少输出
+- 添加 uint64_t 大值测试（包括 10 的幂次和 UINT64_MAX）
+- 覆盖所有类型 MIN/MAX 值
+- 测试用例描述改为中文，保持风格一致
+
+### 技术亮点
+
+**方案选择分析**：uint64_t 实现方案对比
+- 方案1：扩展 UnsignedWriter 支持 DIGIT=16
+- 方案2：在入口方法拆分成 8+8+8 三部分，cast 成 uint32_t
+- **选择方案1**：架构一致，代码简洁，性能无明显差异
+
+**性能优化**：
+- Output2Digits 减少函数调用开销
+- uint32_t 减少分支预测失败
+- uint64_t 从 fallback 改为正向序列化，性能大幅提升
+
+### 测试结果
+
+- 单元测试：3 项全部通过（测试覆盖全面）
+- 性能测试（release 编译）：
+  - int8_t: IntegerWriter 快 292.4%
+  - int16_t: IntegerWriter 快 106.9%
+  - int32_t: IntegerWriter 快 58.7%
+  - int64_t: IntegerWriter 快 81.8%
+  - 平均快约 97.5%
+

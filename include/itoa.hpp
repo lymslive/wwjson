@@ -38,29 +38,28 @@ void Output2Digits(stringT& dst, uint8_t value)
 {
     assert(value < 100 && "Value must be 0-99");
     const char* digit = &NumberWriter<stringT>::kDigitPairs[value].high;
-    dst.unsafe_push_back(digit[0]);
-    dst.unsafe_push_back(digit[1]);
+    dst.unsafe_append(digit, 2);
 }
 
 /// @brief Compile-time power of 10 calculation
 template <uint8_t DIGIT>
-constexpr uint32_t kPow10 = []() {
-    static_assert(DIGIT <= 9, "Pow10 only valid for 0-9");
-    uint32_t result = 1;
+constexpr uint64_t kPow10 = []() {
+    static_assert(DIGIT <= 16, "Pow10 only valid for 0-16");
+    uint64_t result = 1;
     for (uint8_t i = 0; i < DIGIT; ++i) result *= 10;
     return result;
 }();
 
 /// @brief Forward-writing unsigned integer helper with digit and high/low control
 /// @tparam stringT String buffer type (must have unsafe_level >= 4)
-/// @tparam DIGIT Number of digits to write (must be power of 2: 2, 4, 8...)
+/// @tparam DIGIT Number of digits to write (must be power of 2: 2, 4, 8, 16...)
 /// @tparam HIGH If true, this is the high part and may write fewer digits
 template <typename stringT, uint8_t DIGIT, bool HIGH>
 struct UnsignedWriter
 {
     static_assert(DIGIT >= 2 && (DIGIT & (DIGIT - 1)) == 0,
-        "DIGIT must be power of 2 (2, 4, 8...)");
-    static_assert(DIGIT <= 8, "DIGIT > 8 not supported");
+        "DIGIT must be power of 2 (2, 4, 8, 16...)");
+    static_assert(DIGIT <= 16, "DIGIT > 16 not supported");
 
     /// @brief Output value with specified digit count using forward writing
     /// @param dst Destination string buffer
@@ -68,8 +67,8 @@ struct UnsignedWriter
     template <typename uintT>
     static void Output(stringT& dst, uintT value)
     {
-        constexpr uint32_t kHalf = kPow10<DIGIT / 2>;  // 10^(DIGIT/2)
-        constexpr uint32_t kMax = kPow10<DIGIT>;      // 10^DIGIT
+        constexpr uint64_t kHalf = kPow10<DIGIT / 2>;  // 10^(DIGIT/2)
+        constexpr uint64_t kMax = kPow10<DIGIT>;      // 10^DIGIT
         assert(static_cast<uint64_t>(value) < kMax && "value must be < 10^DIGIT");
 
         if constexpr (HIGH)
@@ -164,7 +163,8 @@ struct IntegerWriter
     /// @brief Write unsigned 16-bit integer
     static void WriteUnsigned(stringT& dst, uint16_t value)
     {
-        if (value < 10000)
+        constexpr auto kDiv = detail::kPow10<4>;
+        if (value < kDiv)
         {
             // 0-9999: 4 digits or fewer
             detail::UnsignedWriter<stringT, 4, true>::Output(dst, value);
@@ -172,8 +172,8 @@ struct IntegerWriter
         else
         {
             // 10000-65535: 1 digit + 4 digits
-            uint16_t high = value / 10000;
-            uint16_t low = value % 10000;
+            uint16_t high = value / kDiv;
+            uint16_t low = value % kDiv;
             detail::OutputDigit(dst, static_cast<uint8_t>(high));
             detail::UnsignedWriter<stringT, 4, false>::Output(dst, low);
         }
@@ -182,24 +182,17 @@ struct IntegerWriter
     /// @brief Write unsigned 32-bit integer
     static void WriteUnsigned(stringT& dst, uint32_t value)
     {
-        if (value < 10000)
+        constexpr auto kDiv = detail::kPow10<8>;
+        if (value < kDiv)
         {
-            // 0-9999: 4 digits or fewer
-            detail::UnsignedWriter<stringT, 4, true>::Output(dst, value);
-        }
-        else if (value < 100000000)  // 10^8
-        {
-            // 10000-99999999: 4 digits + 4 digits
-            uint32_t high = value / 10000;
-            uint32_t low = value % 10000;
-            detail::UnsignedWriter<stringT, 4, true>::Output(dst, high);
-            detail::UnsignedWriter<stringT, 4, false>::Output(dst, low);
+            // 0-99999999: 8 digits or fewer
+            detail::UnsignedWriter<stringT, 8, true>::Output(dst, value);
         }
         else
         {
             // 100000000-4294967295: 2 digit + 8 digits
-            uint32_t high = value / 100000000;  // 1-42
-            uint32_t low = value % 100000000;
+            uint32_t high = value / kDiv;  // 1-42
+            uint32_t low = value % kDiv;
             detail::UnsignedWriter<stringT, 2, true>::Output(dst, high);
             detail::UnsignedWriter<stringT, 8, false>::Output(dst, low);
         }
@@ -208,8 +201,20 @@ struct IntegerWriter
     /// @brief Write unsigned 64-bit integer
     static void WriteUnsigned(stringT& dst, uint64_t value)
     {
-        // Fallback to base class for 64-bit
-        NumberWriter<stringT>::Output(dst, value);
+        constexpr auto kDiv = detail::kPow10<16>;
+        if (value < kDiv)
+        {
+            // 0-9999999999999999: 16 digits or fewer
+            detail::UnsignedWriter<stringT, 16, true>::Output(dst, value);
+        }
+        else
+        {
+            // 10^16-18446744073709551615: 4 digits + 16 digits
+            uint64_t high = value / kDiv;
+            uint64_t low = value % kDiv;
+            detail::UnsignedWriter<stringT, 4, true>::Output(dst, high);
+            detail::UnsignedWriter<stringT, 16, false>::Output(dst, low);
+        }
     }
 
     // =====================================================================

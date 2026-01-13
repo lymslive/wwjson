@@ -36,6 +36,25 @@
 - `builder_prefix_constructor` - 测试带前缀的构造函数
 - `builder_multiple_json_with_endline` - 测试使用 EndLine 构建多个 JSON
 
+## t_bufferview.cpp
+
+- `bufv_layout` - BufferView 布局大小测试
+- `bufv_invariants` - BufferView 不变关系式测试
+- `bufv_constructors` - BufferView 构造函数测试
+- `bufv_move_constructor` - BufferView 移动构造测试
+- `bufv_ends_access` - BufferView 两端指针及元素获取
+- `bufv_str_converstion` - BufferView 转换字符串
+- `bufv_write_safe` - BufferView 写入方法测试
+- `bufv_write_unsafe` - BufferView 不检查边界的写入方法测试
+- `bufv_append_string` - BufferView append 字符串重载
+- `bufv_borrow_string` - BufferView 借用 std::string 并验证 resize 问题
+- `bufv_borrow_vector` - BufferView 借用 std::vector<char> 并验证 resize 问题
+- `bufv_extern_write` - BufferView 与外部方法写入集成协作
+- `bufv_null_end` - BufferView 空字符封端测试
+- `ubuf_constructors` - UnsafeBuffer 继承构造函数测试
+- `ubuf_move_constructor` - UnsafeBuffer 移动构造测试
+- `ubuf_write_methods` - UnsafeBuffer 写入方法测试
+
 ## t_custom.cpp
 
 - `custom_builder` - 自定义字符串的 JSON 构建器测试
@@ -57,6 +76,7 @@
 - `escape_scope_objects` - scope 对象的转义功能测试
 - `escape_std_ascii` - 标准 ASCII 转义字符测试
 - `escape_edge_cases` - 转义功能的边界情况测试
+- `escape_ident_key` - 自定义配置：键名转义为标识符验证
 
 ## t_experiment.cpp
 
@@ -71,6 +91,42 @@
 - `ext_8decimals_float*` - 使用 float 测试八位小数精度
 - `ext_generic_float*` - 通用定点浮点数测试，支持命令行参数
 - `ext_float_place*` - 检测浮点数的小数位数
+
+## t_itoa.cpp
+
+- `itoa_unsigned` - IntegerWriter 无符号整数测试
+- `itoa_signed` - IntegerWriter 有符号整数测试
+- `itoa_edge_cases` - IntegerWriter 边界情况测试
+
+## t_jbuilder.cpp
+
+- `jbuilder_unsafe_level` - unsafe_level 编译期特征萃取测试
+- `jbuilder_basic` - Builder 基本功能测试
+- `jbuilder_nested` - Builder 嵌套结构测试
+- `jbuilder_raii` - Builder RAII 包装器测试
+- `jbuilder_fast_basic` - FastBuilder 基本功能测试
+- `to_json_scalars` - to_json scalar types and array elements
+- `to_json_containers` - to_json containers and nested structs
+- `to_json_macro` - TO_JSON macro usage
+- `to_json_standalone` - standalone wwjson::to_json(struct)
+- `to_json_associative` - to_json associative containers (map)
+- `to_json_optional` - to_json std::optional types
+
+## t_jstring.cpp
+
+- `jstr_construct` - JString 基础构造测试
+- `jstr_copy_move` - JString 复制和移动语义测试
+- `jstr_append_string` - JString 字符串追加测试
+- `jstr_push_char` - JString 单字符追加测试
+- `jstr_edge_cases` - JString 边界情况测试
+- `jstr_capacity_growth` - JString 容量增长测试
+- `jstr_reserve` - JString 容量预留测试
+- `jstr_unsafe_operations` - JString 不安全操作测试
+- `jstr_unsafe_levels` - StringBuffer 不安全级别语义测试
+- `jstr_json_patterns` - JString JSON 序列化模式测试
+- `jstr_extern_write` - StringBuffer 与外部方法写入集成协作
+- `kstr_construct` - KString 基础构造测试
+- `kstr_reach_full` - KString 写满对比测试
 
 ## t_number.cpp
 
@@ -109,26 +165,4 @@
 - `scope_if_bool_operator` - scope 变量的 if 语句中 operator bool 测试
 - `scope_if_bool_vs_constructor` - 构造方法中的 if bool 语法测试
 - `scope_addmember_split` - ScopeArray/Object 拆分测试 - AddMember + Scope 的组合用法
-
-## t_usage.cpp
-
-- `usage_2_2_first_example` - example from docs/usage.md
-- `usage_3_1_json_concatenation` - example from docs/usage.md
-- `usage_3_2_wwjson_encapsulation` - example from docs/usage.md
-- `usage_4_1_flat_construction` - example from docs/usage.md
-- `usage_4_2_brace_indentation` - example from docs/usage.md
-- `usage_4_2_scope_variables` - example from docs/usage.md
-- `usage_4_2_named_scope_variables` - example from docs/usage.md
-- `usage_4_2_if_statement_scope` - example from docs/usage.md
-- `usage_4_3_lambda_substructure` - example from docs/usage.md
-- `usage_4_4_operator_overloading` - example from docs/usage.md
-- `usage_4_5_step_entrance` - example from docs/usage.md
-- `usage_4_5_struct_builder_call` - example from docs/usage.md
-- `usage_5_1_add_substring` - example from docs/usage.md
-- `usage_5_2_merge_substrings` - example from docs/usage.md
-- `usage_6_2_1_safe_config` - example from docs/usage.md
-- `usage_6_2_1_quote_numbers` - example from docs/usage.md
-- `usage_6_2_2_unsafe_config` - example from docs/usage.md
-- `usage_6_3_1_log_line_target` - example from docs/usage.md
-- `usage_6_3_2_message_stream_target` - example from docs/usage.md
 
