@@ -1,32 +1,6 @@
 # CMakeLists.txt for unit tests
 cmake_minimum_required(VERSION 3.15)
 
-# Find xyjson dependency (only for unit tests)
-find_package(xyjson QUIET)
-if(NOT xyjson_FOUND)
-    message(STATUS "xyjson not found locally, fetching from GitHub...")
-    
-    # Configure FetchContent for xyjson
-    FetchContent_Declare(
-        xyjson
-        GIT_REPOSITORY https://github.com/lymslive/xyjson.git
-#       GIT_REPOSITORY git@github.com:lymslive/xyjson.git
-        GIT_TAG main  # or specific tag/commit
-        GIT_SHALLOW TRUE
-        GIT_PROGRESS TRUE
-        OPTIONS "-DXYJSON_LIB_ONLY=ON" "-DUSE_FETCHCONTENT=OFF"
-    )
-    FetchContent_MakeAvailable(xyjson)
-endif()
-
-# Get include directory for xyjson
-if(TARGET xyjson::xyjson)
-    get_target_property(XYJSON_INCLUDE_DIR xyjson::xyjson INTERFACE_INCLUDE_DIRECTORIES)
-endif()
-
-# Report what we found
-message(STATUS "Using xyjson from: ${XYJSON_INCLUDE_DIR}")
-
 # Create test executable for unit tests
 add_executable(utwwjson
     # functional test files

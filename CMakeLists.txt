@@ -104,6 +104,7 @@ if(NOT WWJSON_LIB_ONLY)
     find_package(couttast QUIET)
     if(NOT couttast_FOUND)
         message(STATUS "couttast not found locally, fetching from GitHub...")
+        set(COUTTAST_LIB_ONLY ON CACHE BOOL "Build only the couttast library" FORCE)
         
         # Configure FetchContent for couttast
         FetchContent_Declare(
@@ -132,7 +133,7 @@ if(NOT WWJSON_LIB_ONLY)
     find_package(xyjson QUIET)
     if(NOT xyjson_FOUND)
         message(STATUS "xyjson not found locally, fetching from GitHub...")
-        set(XYJSON_LIB_ONLY ON CACHE BOOL "Build only the header-only library" FORCE)
+        set(XYJSON_LIB_ONLY ON CACHE BOOL "Build only the xyjson library" FORCE)
         
         # Configure FetchContent for xyjson
         FetchContent_Declare(

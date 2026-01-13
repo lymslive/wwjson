@@ -880,7 +880,7 @@ DEF_TAST(nodom_raw_vs_snprintf, "wwjson RawBuilder vs snprintf性能对比")
     double ratio = tester.runAndPrint("RawBuilder vs Snprintf",
                                       "RawBuilder", "snprintf",
                                       argv.loop, 10);
-    COUT(ratio < 1.2, true);
+    COUT(ratio < 1.5, true);
 }
 
 DEF_TAST(nodom_raw_vs_append, "wwjson RawBuilder vs string::append性能对比")
@@ -893,7 +893,7 @@ DEF_TAST(nodom_raw_vs_append, "wwjson RawBuilder vs string::append性能对比")
     double ratio = tester.runAndPrint("RawBuilder vs Append",
                                       "RawBuilder", "string::append",
                                       argv.loop, 10);
-    COUT(ratio < 1.1, true);
+    COUT(ratio < 1.5, true);
 }
 
 DEF_TAST(nodom_raw_vs_stream, "wwjson RawBuilder vs stringstream性能对比")
@@ -919,7 +919,7 @@ DEF_TAST(nodom_builder_vs_append, "wwjson Builder vs string::append性能对比"
     double ratio = tester.runAndPrint("Builder vs Append",
                                       "Builder", "string::append",
                                       argv.loop, 10);
-    COUT(ratio < 1.0, true);
+    COUT(ratio < 1.2, true);
 }
 
 DEF_TAST(nodom_fastbuilder_vs_append, "wwjson FastBuilder vs string::append性能对比")

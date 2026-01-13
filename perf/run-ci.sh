@@ -5,7 +5,7 @@
 # 功能：
 # 1. 触发 ci-perf.yml 工作流（在 dev 分支）
 # 2. 等待工作流运行完成
-# 3. 下载完整日志到 perf/report.log/ci-{run-id}-full.log
+# 3. 下载完整日志到 perf/report.log/ci-{run-id}-full.txt
 # 4. 提取性能测试步骤的关键输出，生成精简日志 ci-yyyymmdd-hhmmss.log
 
 set -e  # 遇到错误立即退出
@@ -47,14 +47,14 @@ log_error() {
 parse_args() {
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --no-trigger)
+            --no-run)
                 SHOULD_TRIGGER=false
                 shift
                 ;;
             -h|--help)
                 echo "用法: $0 [选项]"
                 echo "选项:"
-                echo "  --no-trigger    不触发新工作流，只处理最近运行的流水线"
+                echo "  --no-run       不触发新工作流，只处理最近运行的流水线"
                 echo "  -h, --help     显示此帮助信息"
                 exit 0
                 ;;
@@ -164,7 +164,7 @@ wait_for_completion() {
 # 下载完整日志
 download_full_log() {
     local run_id=$1
-    local full_log_file="$LOG_DIR/ci-${run_id}-full.log"
+    local full_log_file="$LOG_DIR/ci-${run_id}-full.txt"
 
     log_info "下载完整日志到: $full_log_file"
 

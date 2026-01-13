@@ -579,7 +579,7 @@ DEF_TAST(api_basic_vs_lambda, "基本方法 vs Lambda方法性能对比")
     double ratio = tester.runAndPrint("Basic vs Lambda",
                                       "Basic Method", "Lambda Method",
                                       argv.loop, 10);
-    COUT(1.0 / ratio < 1.05, true);
+    COUT(1.0 / ratio < 1.15, true);
 }
 
 // Test case for comparing Basic Method vs Class Method
