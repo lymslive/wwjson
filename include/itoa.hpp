@@ -50,6 +50,17 @@ constexpr uint64_t kPow10 = []() {
     return result;
 }();
 
+/// @brief String of 16 '0's for padding zeros
+constexpr const char kZeros[17] = "0000000000000000";
+
+/// @brief Output DIGIT zeros to the string
+template <typename stringT, uint8_t DIGIT>
+void OutputZeros(stringT& dst)
+{
+    static_assert(DIGIT <= 16, "DIGIT must be <= 16");
+    dst.unsafe_append(kZeros, DIGIT);
+}
+
 /// @brief Forward-writing unsigned integer helper with digit and high/low control
 /// @tparam stringT String buffer type (must have unsafe_level >= 4)
 /// @tparam DIGIT Number of digits to write (must be power of 2: 2, 4, 8, 16...)
@@ -73,7 +84,8 @@ struct UnsignedWriter
 
         if constexpr (HIGH)
         {
-            // HIGH=true: High part, may write fewer digits
+            // HIGH=true: High part, may write fewer digits; value must be > 0
+            assert(value > 0 && "HIGH=true requires value > 0");
             if constexpr (DIGIT == 2)
             {
                 // Base case: 2 digits, may be 1 or 2
@@ -105,7 +117,12 @@ struct UnsignedWriter
         }
         else
         {
-            // HIGH=false: Low part, must write full digit count
+            // HIGH=false: Low part, must write full digit count; but may only 0
+            if (value == 0)
+            {
+                OutputZeros<stringT, DIGIT>(dst);
+                return;
+            }
             if constexpr (DIGIT == 2)
             {
                 // Base case: always write 2 digits
@@ -113,11 +130,20 @@ struct UnsignedWriter
             }
             else // DIGIT > 2
             {
-                // Split into two halves, both use HIGH=false
-                uintT high = value / kHalf;
-                uintT low = value % kHalf;
-                UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, high);
-                UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, low);
+                if (value < kHalf)
+                {
+                    // Write DIGIT/2 zeros then recurse
+                    OutputZeros<stringT, DIGIT / 2>(dst);
+                    UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, value);
+                }
+                else
+                {
+                    // Split into two halves, both use HIGH=false
+                    uintT high = value / kHalf;
+                    uintT low = value % kHalf;
+                    UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, high);
+                    UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, low);
+                }
             }
         }
     }
@@ -222,6 +248,7 @@ struct IntegerWriter
     // =====================================================================
 
     /// @brief Output any integer type (signed or unsigned)
+    /// @note Define WWJSON_ITOA_NO_RECURSE to fallback to NumberWriter for old compilers
     template <typename intT>
     static void Output(stringT& dst, intT value)
     {
@@ -231,6 +258,10 @@ struct IntegerWriter
             return;
         }
 
+#ifdef WWJSON_ITOA_NO_RECURSE
+        // Fallback to non-recursive NumberWriter for old compilers
+        NumberWriter<stringT>::Output(dst, value);
+#else
         using UnsignedT = std::make_unsigned_t<intT>;
         if constexpr (std::is_signed_v<intT>)
         {
@@ -248,6 +279,7 @@ struct IntegerWriter
         {
             WriteUnsigned(dst, static_cast<UnsignedT>(value));
         }
+#endif
     }
 };
 

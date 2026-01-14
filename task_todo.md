@@ -251,6 +251,25 @@ IntegerWriter::WriteUnsigned 方法 `uint32_t` 版，取消第一个小于 10^4 
 
 ### DONE: 20260114-003209
 
+## TODO:2026-01-14/1 itoa.hpp IntegerWriter 零值优化
+
+当前仅在对外对接口 Output 方法优先对 `0` 作特殊处理。
+但在 UnsignedWriter 模板类递归中也要处理几种情况：
+
+- 高位 HIGH=true 时，value 不可能为 0，加个调试 assert 大于 0 断言
+- 低位 !HIGH 时，value 可能为 0 ，例如 30000，直接写入 DIGIT 个 0
+- !HIGH 且 value > 0 时，有可能前半部分为 0，如 30003 ，
+  这时也先判断小于 kHalf 可避免一次除法，前半部分写入 DIGIT/2 个 0
+
+可以定义个常量指向 16 个 "0" ，用 usafe_append 写入连续若干个 0 。
+
+还有个小问题，本地编译器较旧，可能没法内联递归，性能反而比 wwjson.hpp
+最初的 NumberWriter 的反向写入算法慢。所以加个条件编译宏，默认未定义，
+若定义了不递归宏，在 IntegerWriter::Output 入口处统一回滚调用基础版的
+NumberWriter::Output 。
+
+### DONE:20260114-093106
+
 ## TODO: 对比 itoa 优化后的 Builder 与 yyjson 整数序列化性能
 
 ## TODO: perf 测试中的绝对时间测试用例分离

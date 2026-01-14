@@ -267,3 +267,38 @@ WWJSON v1.1.0 版本开发周期：2025-12-22 至 2026-01-11
   - int64_t: IntegerWriter 快 81.8%
   - 平均快约 97.5%
 
+## TASK:20260114-093106
+-----------------------
+
+### 任务概述
+
+IntegerWriter 零值优化：在 UnsignedWriter 递归中优化零值处理，避免不必要的除法运算。
+
+### 修改内容
+
+**include/itoa.hpp** - 零值优化：
+
+- 新增 `kZeros[17]` 常量：16 个 '0' 的字符串，用于快速写入连续零
+- 新增 `OutputZeros<stringT, DIGIT>` 模板函数：一次性写入 DIGIT 个 '0'
+- HIGH=true 分支：添加 `assert(value > 0)` 断言，确保高位不为零
+- !HIGH 分支优化：
+  - value == 0 时：直接调用 `OutputZeros<DIGIT>` 写入全零，避免递归
+  - value < kHalf 时：先写 DIGIT/2 个零，再递归处理低位，避免一次除法
+- 新增 `WWJSON_ITOA_NO_RECURSE` 条件编译宏：
+  - 定义此宏时回退到 NumberWriter::Output，适用于无法内联递归的旧编译器
+
+### 技术亮点
+
+**性能优化思路**：
+- 零值快速路径：避免进入递归分支
+- 前缀零批量写入：用 `unsafe_append` 替代多次递归调用
+- 减少除法运算：value < kHalf 时跳过除法，直接写零后递归
+
+**兼容性考虑**：
+- 旧编译器可能无法内联模板递归导致性能下降
+- 提供 `WWJSON_ITOA_NO_RECURSE` 宏回退到原始实现
+
+### 测试结果
+
+- 单元测试：3 项全部通过（itoa_unsigned, itoa_signed, itoa_edge_cases）
+
