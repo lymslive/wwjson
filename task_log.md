@@ -302,3 +302,41 @@ IntegerWriter 零值优化：在 UnsignedWriter 递归中优化零值处理，�
 
 - 单元测试：3 项全部通过（itoa_unsigned, itoa_signed, itoa_edge_cases）
 
+## TASK:20260114-104752
+-----------------------
+
+### 任务概述
+
+精简性能测试用例 p_itoa.cpp，并新增 wwjson::Builder 与 yyjson 整数序列化性能对比测试。
+
+### 修改内容
+
+**perf/p_itoa.cpp** - 精简与新增测试：
+
+- 删除单独的 `itoa_int8/16/32/64` 测试用例（已由合并用例覆盖）
+- 将 `itoa_all` 重命名为 `itoa_forward_write`
+- 更新文件注释，明确测试目标：比较 IntegerWriter (Builder) vs NumberWriter (RawBuilder)
+- 新增 `BuilderVsYyjsonPerf` 模板类：比较 wwjson::Builder 与 yyjson 整数序列化性能
+- 新增四个具体测试类：Int8/16/32/64BuilderVsYyjson
+- 新增 `itoa_build_vs_yyjson` 测试入口：运行四种整数类型的对比测试
+
+### 性能对比结果
+
+测试条件：--items=100 --loop=100
+
+**wwjson::Builder vs yyjson**：
+- int8_t: wwjson 快 104%（ratio=0.49）
+- int16_t: wwjson 快 34%（ratio=0.75）
+- int32_t: yyjson 快 30%（ratio=1.30）
+- int64_t: yyjson 快 25%（ratio=1.25）
+
+**结论**：
+- 小整数类型（int8/16）：wwjson 的 itoa 优化效果显著
+- 大整数类型（int32/64）：yyjson 性能更优，平均性能接近
+- 建议：针对大整数类型可考虑进一步优化
+
+### 测试结果
+
+- `itoa_forward_write`：通过，比较 IntegerWriter vs NumberWriter
+- `itoa_build_vs_yyjson`：通过，比较 wwjson::Builder vs yyjson
+

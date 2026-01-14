@@ -38,6 +38,11 @@
 - `design_fractional_serialization` - 4位小数部分序列化优化验证
 - `design_write_unsigned_compare` - 无符号整数序列化方法对比测试
 
+## p_itoa.cpp
+
+- `itoa_forward_write` - 比较整数正向递归递归序列化与反向临时缓冲性能
+- `itoa_build_vs_yyjson` - 比较 wwjson::Builder 与 yyjson 整数序列化性能
+
 ## p_nodom.cpp
 
 - `nodom_raw_vs_snprintf` - wwjson RawBuilder vs snprintf性能对比

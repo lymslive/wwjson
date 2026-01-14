@@ -270,7 +270,32 @@ NumberWriter::Output 。
 
 ### DONE:20260114-093106
 
-## TODO: 对比 itoa 优化后的 Builder 与 yyjson 整数序列化性能
+今天在 office WSL 环境测试，居然反转结果了，
+IntegerWriter 正向的算法如期比 NumberWriter 快了。
+可能昨天没有 make release 只 make build/perf ，之前的编译缓存有影响？
+
+## TODO:2026-01-14/2 对比 itoa 优化后的 Builder 与 yyjson 整数序列化性能
+
+首先精简 perf/p_itoa.cpp 测试用例，
+itoa_int8/16/32/64 四个用例没必要单独各写一个，在 itoa_all 都覆盖了。
+
+itoa_all 重命名为 itao_forward_write,
+中文注释参数 "比较整数正向递归递归序列化与反向临时缓冲性能"
+实际比较的 wwjson::Builder 与 RawBuilder 不仅有整数序列化算法的差别，
+写入字符串也有差别，不过全是写整数数组，前者占比更关键。
+
+再写一套相对性能测试，比较 wwjson::Builder(方法A) 与 yyjson(方法B) 在序列化
+四种整数类型的性能场景。风格模式类似，四个派生类，一个 DEF_TAST 用例入口。
+
+结果 resultA/resultB 都用 std::string，统一公平地从各自底层结构拷一次转回
+标准字符串。
+
+用例名建议：itoa_build_vs_yyjson "比较 wwjson::Builder 与 yyjson 整数序列化性能"
+
+### DONE:20260114-104752
+
+Office WSL 测试结果：int8/16 wwjson 更快，int32/64 yyjson 更快
+有可能在大整数几层递归时内联优化不足？
 
 ## TODO: perf 测试中的绝对时间测试用例分离
 
