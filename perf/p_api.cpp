@@ -454,8 +454,16 @@ public:
         root_data.metadata.author = "test_system";
     }
 
-    // Method A: Use basic API (RawBuilder with Begin/End)
+    // Method A: Use to_json API
     void methodA()
+    {
+        ::wwjson::RawBuilder builder(1024 + items * 64);
+        wwjson::to_json(builder, root_data);
+        resultA = builder.MoveResult();
+    }
+
+    // Method B: Use basic API (RawBuilder with Begin/End)
+    void methodB()
     {
         ::wwjson::RawBuilder builder(1024 + items * 64);
         builder.BeginRoot();
@@ -488,15 +496,7 @@ public:
         builder.EndObject();
 
         builder.EndRoot();
-        resultA = std::move(builder.json);
-    }
-
-    // Method B: Use to_json API
-    void methodB()
-    {
-        ::wwjson::RawBuilder builder(1024 + items * 64);
-        wwjson::to_json(builder, root_data);
-        resultB = builder.MoveResult();
+        resultB = std::move(builder.json);
     }
 
     bool methodVerify()
@@ -511,93 +511,103 @@ public:
 
 } // namespace test::perf
 // Test case for comparing Basic Method vs Auto-close Method
+// FIX: Swapped order - methodA = Auto-close, methodB = Basic
 DEF_TAST(api_basic_vs_autoclose, "基本方法 vs 自动关闭方法性能对比")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items,
          argv.loop);
 
+    // FIX: Swapped order - methodA = Auto-close, methodB = Basic
     auto tester = test::perf::ApiMethodPerfTest(
         argv.items, argv.start,
-        std::make_unique<test::perf::BasicMethodBuilder>(),
-        std::make_unique<test::perf::AutoCloseMethodBuilder>());
+        std::make_unique<test::perf::AutoCloseMethodBuilder>(),
+        std::make_unique<test::perf::BasicMethodBuilder>());
 
-    double ratio = tester.runAndPrint("Basic vs Auto-close",
-                                      "Basic Method", "Auto-close Method",
+    double ratio = tester.runAndPrint("Auto-close vs Basic",
+                                      "Auto-close Method", "Basic Method",
                                       argv.loop, 10);
-    COUT(1.0 / ratio < 1.10, true);
+    COUT(ratio < 1.10, true);
 }
 
 // Test case for comparing Basic Method vs Operator Method
+// FIX: Swapped order - methodA = Operator, methodB = Basic
 DEF_TAST(api_basic_vs_operator, "基本方法 vs 操作符方法性能对比")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items,
          argv.loop);
 
+    // FIX: Swapped order - methodA = Operator, methodB = Basic
     auto tester = test::perf::ApiMethodPerfTest(
         argv.items, argv.start,
-        std::make_unique<test::perf::BasicMethodBuilder>(),
-        std::make_unique<test::perf::OperatorMethodBuilder>());
+        std::make_unique<test::perf::OperatorMethodBuilder>(),
+        std::make_unique<test::perf::BasicMethodBuilder>());
 
-    double ratio = tester.runAndPrint("Basic vs Operator",
-                                      "Basic Method", "Operator Method",
+    double ratio = tester.runAndPrint("Operator vs Basic",
+                                      "Operator Method", "Basic Method",
                                       argv.loop, 10);
-    COUT(1.0 / ratio < 1.10, true);
+    COUT(ratio < 1.10, true);
 }
 
 // Test case for comparing Basic Method vs Local Object Method
+// FIX: Swapped order - methodA = Local Operator, methodB = Basic
 DEF_TAST(api_basic_vs_localobj, "基本方法 vs 局部对象方法性能对比")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items,
          argv.loop);
 
+    // FIX: Swapped order - methodA = Local Operator, methodB = Basic
     auto tester = test::perf::ApiMethodPerfTest(
         argv.items, argv.start,
-        std::make_unique<test::perf::BasicMethodBuilder>(),
-        std::make_unique<test::perf::LocalOperatorMethodBuilder>());
+        std::make_unique<test::perf::LocalOperatorMethodBuilder>(),
+        std::make_unique<test::perf::BasicMethodBuilder>());
 
-    double ratio = tester.runAndPrint("Basic vs Local Object",
-                                      "Basic Method", "Local Operator Method",
+    double ratio = tester.runAndPrint("Local Operator vs Basic",
+                                      "Local Operator Method", "Basic Method",
                                       argv.loop, 10);
-    COUT(1.0 / ratio < 1.15, true);
+    COUT(ratio < 1.15, true);
 }
 
 // Test case for comparing Basic Method vs Lambda Method
+// FIX: Swapped order - methodA = Lambda, methodB = Basic
 DEF_TAST(api_basic_vs_lambda, "基本方法 vs Lambda方法性能对比")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items,
          argv.loop);
 
+    // FIX: Swapped order - methodA = Lambda, methodB = Basic
     auto tester = test::perf::ApiMethodPerfTest(
         argv.items, argv.start,
-        std::make_unique<test::perf::BasicMethodBuilder>(),
-        std::make_unique<test::perf::LambdaMethodBuilder>());
+        std::make_unique<test::perf::LambdaMethodBuilder>(),
+        std::make_unique<test::perf::BasicMethodBuilder>());
 
-    double ratio = tester.runAndPrint("Basic vs Lambda",
-                                      "Basic Method", "Lambda Method",
+    double ratio = tester.runAndPrint("Lambda vs Basic",
+                                      "Lambda Method", "Basic Method",
                                       argv.loop, 10);
-    COUT(1.0 / ratio < 1.15, true);
+    COUT(ratio < 1.15, true);
 }
 
 // Test case for comparing Basic Method vs Class Method
+// FIX: Swapped order - methodA = Class, methodB = Basic
 DEF_TAST(api_basic_vs_class, "基本方法 vs 类方法性能对比")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items,
          argv.loop);
 
+    // FIX: Swapped order - methodA = Class, methodB = Basic
     auto tester = test::perf::ApiMethodPerfTest(
         argv.items, argv.start,
-        std::make_unique<test::perf::BasicMethodBuilder>(),
-        std::make_unique<test::perf::ClassMethodBuilder>());
+        std::make_unique<test::perf::ClassMethodBuilder>(),
+        std::make_unique<test::perf::BasicMethodBuilder>());
 
-    double ratio = tester.runAndPrint("Basic vs Class",
-                                      "Basic Method", "Class Method",
+    double ratio = tester.runAndPrint("Class vs Basic",
+                                      "Class Method", "Basic Method",
                                       argv.loop, 10);
-    COUT(1.0 / ratio < 1.05, true);
+    COUT(ratio < 1.05, true);
 }
 
 // Tool case to output JSON samples for verification
@@ -686,6 +696,7 @@ DEF_TOOL(api_output_sample, "输出各方法构建的JSON示例")
 }
 
 // Test case for comparing Basic Method vs to_json Method
+// FIX: Swapped order - methodA = to_json, methodB = Basic
 DEF_TAST(api_basic_vs_tojson, "基本方法 vs to_json方法性能对比")
 {
     test::CArgv argv;
@@ -694,10 +705,10 @@ DEF_TAST(api_basic_vs_tojson, "基本方法 vs to_json方法性能对比")
 
     auto tester = test::perf::ApiToJson(argv.items, argv.start);
 
-    double ratio = tester.runAndPrint("Basic vs to_json",
-                                      "Basic Method", "to_json Method",
+    double ratio = tester.runAndPrint("to_json vs Basic",
+                                      "to_json Method", "Basic Method",
                                       argv.loop, 10);
-    COUT(1.0 / ratio < 1.05, true);
+    COUT(ratio < 1.05, true);
 }
 
 // Tool case to verify to_json output

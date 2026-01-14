@@ -83,10 +83,10 @@ test/list: build
 	@echo "Updating utest/cases.md..."
 	./build/utest/utwwjson --List | perl .tool/list_case.pl --head="单元测试用例列表" > utest/cases.md
 
-# Update performance test cases list
+# Update performance test cases list (combine pfwwjson and ticwwjson)
 perf/list: build/perf
 	@echo "Updating perf/cases.md..."
-	./build-release/perf/pfwwjson --List | perl .tool/list_case.pl --head="性能测试用例列表" > perf/cases.md
+	@{ ./build-release/perf/pfwwjson --List && ./build-release/perf/ticwwjson --List; } | perl .tool/list_case.pl --head="性能测试用例列表" > perf/cases.md
 
 # Build docs html web pages
 docs:

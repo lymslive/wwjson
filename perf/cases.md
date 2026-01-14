@@ -13,19 +13,6 @@
 
 ## p_builder.cpp
 
-- `build_0_5k_wwjson*` - wwjson 构建器性能测试（约 0.5k JSON，n=6）
-- `build_0_5k_yyjson*` - yyjson 构建器性能测试（约 0.5k JSON，n=6）
-- `build_1k_wwjson*` - wwjson 构建器性能测试（约 1k JSON，n=12）
-- `build_1k_yyjson*` - yyjson 构建器性能测试（约 1k JSON，n=12）
-- `build_10k_wwjson*` - wwjson 构建器性能测试（约 10k JSON，n=120）
-- `build_10k_yyjson*` - yyjson 构建器性能测试（约 10k JSON，n=120）
-- `build_100k_wwjson*` - wwjson 构建器性能测试（约 100k JSON，n=1200）
-- `build_100k_yyjson*` - yyjson 构建器性能测试（约 100k JSON，n=1200）
-- `build_ex_wwjson*` - wwjson 构建器性能测试（自定义大小）
-- `build_ex_yyjson*` - yyjson 构建器性能测试（自定义大小）
-- `build_sample*` - 生成不同大小的 JSON 样本用于性能测试
-- `build_verify*` - 验证 wwjson 和 yyjson 生成相同的 JSON 结构
-- `build_size*` - 测试不同 n 值对应的 JSON 大小
 - `build_relative` - JSON 构建相对性能测试
 
 ## p_design.cpp
@@ -53,31 +40,53 @@
 
 ## p_number.cpp
 
-- `number_int8_wwjson*` - wwjson int8 数组构建性能测试
-- `number_int8_yyjson*` - yyjson int8 数组构建性能测试
-- `number_int16_wwjson*` - wwjson int16 数组构建性能测试
-- `number_int16_yyjson*` - yyjson int16 数组构建性能测试
-- `number_int32_wwjson*` - wwjson int32 数组构建性能测试
-- `number_int32_yyjson*` - yyjson int32 数组构建性能测试
-- `number_int64_wwjson*` - wwjson int64 数组构建性能测试
-- `number_int64_yyjson*` - yyjson int64 数组构建性能测试
-- `number_array_compare*` - 比较 wwjson 和 yyjson BuildIntArray 输出
-- `number_float_wwjson*` - wwjson float 数组构建性能测试
-- `number_float_yyjson*` - yyjson float 数组构建性能测试
-- `number_double_wwjson*` - wwjson double 数组构建性能测试
-- `number_double_yyjson*` - yyjson double 数组构建性能测试
 - `number_int_rel` - 随机整数数组相对性能测试
 - `number_double_rel` - 随机 double 数组相对性能测试
 
 ## p_string.cpp
 
-- `string_array_wwjson*` - wwjson 字符串数组构建性能测试
-- `string_array_yyjson*` - yyjson 字符串数组构建性能测试
-- `string_object_wwjson*` - wwjson 字符串对象构建性能测试
-- `string_object_yyjson*` - yyjson 字符串对象构建性能测试
-- `string_escape_wwjson*` - wwjson 转义字符串对象构建性能测试
-- `string_escape_yyjson*` - yyjson 转义字符串对象构建性能测试
-- `string_compare*` - 比较 wwjson 和 yyjson 字符串函数输出
 - `string_object_relative` - 字符串对象构建相对性能测试（wwjson vs yyjson）
 - `string_escape_relative` - 转义字符串对象构建相对性能测试（wwjson vs yyjson）
+
+## tic_builder.cpp
+
+- `tic_build_0_5k_wwjson` - wwjson 构建器性能测试（约 0.5k JSON，n=6）
+- `tic_build_0_5k_yyjson` - yyjson 构建器性能测试（约 0.5k JSON，n=6）
+- `tic_build_1k_wwjson` - wwjson 构建器性能测试（约 1k JSON，n=12）
+- `tic_build_1k_yyjson` - yyjson 构建器性能测试（约 1k JSON，n=12）
+- `tic_build_10k_wwjson` - wwjson 构建器性能测试（约 10k JSON，n=120）
+- `tic_build_10k_yyjson` - yyjson 构建器性能测试（约 10k JSON，n=120）
+- `tic_build_100k_wwjson` - wwjson 构建器性能测试（约 100k JSON，n=1200）
+- `tic_build_100k_yyjson` - yyjson 构建器性能测试（约 100k JSON，n=1200）
+- `tic_build_ex_wwjson` - wwjson 构建器性能测试（自定义大小）
+- `tic_build_ex_yyjson` - yyjson 构建器性能测试（自定义大小）
+- `tic_build_sample*` - 生成不同大小的 JSON 样本用于性能测试
+- `tic_build_verify*` - 验证 wwjson 和 yyjson 生成相同的 JSON 结构
+- `tic_build_size*` - 测试不同 n 值对应的 JSON 大小
+
+## tic_number.cpp
+
+- `tic_number_int8_wwjson` - wwjson int8 数组构建性能测试
+- `tic_number_int8_yyjson` - yyjson int8 数组构建性能测试
+- `tic_number_int16_wwjson` - wwjson int16 数组构建性能测试
+- `tic_number_int16_yyjson` - yyjson int16 数组构建性能测试
+- `tic_number_int32_wwjson` - wwjson int32 数组构建性能测试
+- `tic_number_int32_yyjson` - yyjson int32 数组构建性能测试
+- `tic_number_int64_wwjson` - wwjson int64 数组构建性能测试
+- `tic_number_int64_yyjson` - yyjson int64 数组构建性能测试
+- `tic_number_float_wwjson` - wwjson float 数组构建性能测试
+- `tic_number_float_yyjson` - yyjson float 数组构建性能测试
+- `tic_number_double_wwjson` - wwjson double 数组构建性能测试
+- `tic_number_double_yyjson` - yyjson double 数组构建性能测试
+- `tic_number_array_compare*` - 比较 wwjson 和 yyjson BuildIntArray 输出
+
+## tic_string.cpp
+
+- `tic_string_array_wwjson` - wwjson 字符串数组构建性能测试
+- `tic_string_array_yyjson` - yyjson 字符串数组构建性能测试
+- `tic_string_object_wwjson` - wwjson 字符串对象构建性能测试
+- `tic_string_object_yyjson` - yyjson 字符串对象构建性能测试
+- `tic_string_escape_wwjson` - wwjson 转义字符串对象构建性能测试
+- `tic_string_escape_yyjson` - yyjson 转义字符串对象构建性能测试
+- `tic_string_compare*` - 比较 wwjson 和 yyjson 字符串函数输出
 

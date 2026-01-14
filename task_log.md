@@ -340,3 +340,40 @@ IntegerWriter 零值优化：在 UnsignedWriter 递归中优化零值处理，�
 - `itoa_forward_write`：通过，比较 IntegerWriter vs NumberWriter
 - `itoa_build_vs_yyjson`：通过，比较 wwjson::Builder vs yyjson
 
+## TASK:20260114-144313
+-----------------------
+
+### 任务概述
+
+perf 测试用例分离与纠正：
+- 将绝对时间测试用例（DEF_TOOL + TIME_TIC/TIME_TOC）分离到 tic_*.cpp 文件
+- 修复方法 A/B 写反导致 ratio 计算错误的问题
+
+### 修改内容
+
+**新增文件 (3个)**：
+- `perf/tic_builder.cpp` - 13个用例（10 TAST + 3 TOOL）
+- `perf/tic_number.cpp` - 13个用例（12 TAST + 1 TOOL）
+- `perf/tic_string.cpp` - 7个用例（6 TAST + 1 TOOL）
+
+**perf/CMakeLists.txt** - 添加 ticwwjson 编译目标
+
+**perf/p_*.cpp 文件精简**：
+- `p_builder.cpp` - 删除10个TIC用例
+- `p_number.cpp` - 删除12个TIC用例
+- `p_string.cpp` - 删除6个TIC用例
+
+**修复 A/B 写反问题**：
+- p_builder.cpp: 2个（JString/KString）
+- p_number.cpp: 4个（int/double JString/KString）
+- p_string.cpp: 4个（object/escape JString/KString）
+- p_api.cpp: 6个（各种 API 方法）
+
+**makefile 更新**：
+- `make perf/list` 合并 pfwwjson 和 ticwwjson 的用例列表
+
+### 测试验证
+
+- pfwwjson: 24个 TAST/TOOL 用例
+- ticwwjson: 33个 TAST/TOOL 用例
+- 所有用例编译通过
