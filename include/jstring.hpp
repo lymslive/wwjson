@@ -210,6 +210,9 @@ public:
         return reserve_ex() >= static_cast<int64_t>(n);
     }
 
+    /// no-ops as not owned memory.
+    void reserve(size_t) const {}
+
     /// Set the end pointer with bounds checking.
     void set_end(char* new_end)
     {

@@ -1,0 +1,65 @@
+name: Mini Examples
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'perf/mini/**'
+      - '.github/workflows/ci-mini.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-asm:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Check compiler version
+      run: |
+        g++ --version
+        objdump --version
+
+    - name: Build and generate assembly
+      run: |
+        cd perf/mini
+        make asm
+
+    - name: Show assembly sizes
+      run: |
+        echo "=== Assembly file sizes ==="
+        ls -la perf/mini/*.s
+        echo ""
+        echo "=== itoa_u16.s line count ==="
+        wc -l perf/mini/itoa_u16.s
+        echo ""
+        echo "=== itoa_u32.s line count ==="
+        wc -l perf/mini/itoa_u32.s
+        echo ""
+        echo "=== builder.s line count ==="
+        wc -l perf/mini/builder.s
+
+    - name: Run examples
+      run: |
+        cd perf/mini
+        make run
+
+    - name: Upload assembly artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: assembly-files
+        path: perf/mini/*.s
+        retention-days: 7
+
+    - name: Show key assembly sections
+      run: |
+        echo "=== IntegerWriter::WriteUnsigned for uint16_t ==="
+        grep -A 50 "IntegerWriter.*WriteUnsigned.*uint16_t" perf/mini/itoa_u16.s | head -60 || true
+        echo ""
+        echo "=== IntegerWriter::Output for uint32_t ==="
+        grep -A 50 "IntegerWriter.*Output" perf/mini/itoa_u32.s | head -60 || true
+        echo ""
+        echo "=== main function (builder) ==="
+        grep -A 30 "<main>:" perf/mini/builder.s | head -40 || true

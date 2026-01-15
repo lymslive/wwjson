@@ -377,3 +377,36 @@ perf 测试用例分离与纠正：
 - pfwwjson: 24个 TAST/TOOL 用例
 - ticwwjson: 33个 TAST/TOOL 用例
 - 所有用例编译通过
+
+## TASK:20260115-122035
+-----------------------
+
+### 任务概述
+
+创建 perf/mini 目录，包含 3 个最简示例用于研究编译优化后的汇编码。
+
+### 新增文件
+
+- `perf/mini/itoa_u16.cpp` - uint16_t 序列化示例
+- `perf/mini/itoa_u32.cpp` - uint32_t 序列化示例
+- `perf/mini/builder.cpp` - 最简 JSON 构建示例
+- `perf/mini/Makefile` - 编译和汇编生成
+- `perf/mini/README.md` - 说明文档
+- `.github/workflows/ci-mini.yml` - GitHub CI 流水线
+
+### 修改内容
+
+- `include/jstring.hpp` - 添加 `reserve()` 方法支持 `UnsafeBuffer`
+- `.gitignore` - 添加 `*.exe` 和 `*.s` 忽略规则
+
+### 汇编分析结论
+
+1. **整数序列化 (itoa_u16/itoa_u32)**：
+   - ✅ 使用 DigitPair 查找表 (kDigitPairs)
+   - ❌ 函数未完全内联 (仍有 callq 调用)
+   - ❌ 除法未优化为乘法和移位
+
+2. **JSON 构建 (builder)**：
+   - ✅ 编译器完全内联，整个构建过程无函数调用
+   - ✅ 直接在栈上构造最终字符串常量
+   - 最优情况已无法进一步优化

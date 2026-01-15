@@ -330,9 +330,53 @@ methodA 与 methodB 要对换，调用处的参数注释名称也要相应调换
 
 ### DONE:20260114-144313
 
-### DONE:20260114-144313
+## TODO:2026-01-15/1 设计几个最小示例研究优化后的汇编码
 
-## TODO: 设计几个最小示例研究优化后的汇编码
+新建 perf/mini 子目录，先写三个最简示例。
+
+示例一、uint16 序列化，`itoa_u16.cpp` ，核心逻辑如下：
+```cpp
+uint16_t value = 12233;
+char buffer[16];
+wwjson::UnsafeBuffer ubuf(buffer);
+wwjson::IntegerWriter::Output(ubuf, value);
+printf("%s\n", ubuf.c_str());
+```
+
+示例二、uint32 序列化，`itoa_u32.cpp` ，核心逻辑类似，`value` 值改为 `1122334455`。
+
+示例三、构建一个最简 json ，`builder.cpp` ，核心逻辑如：
+```cpp
+using wwjson;
+char buffer[64];
+UnsafeBuffer ubuf(buffer);
+GenericBuilder<UnsafeBuffer, UnsafeConfig<UnsafeBuffer>> builder(std::move(ubuf));
+// 构建纯字符串 json {"code":"0","msg":"ok"}
+printf("%s\n", builder.json.c_str());
+printf("%s\n", buffer);
+```
+
+这些最简示例不必加入 CMake 构建系统，就用几个单行 g++ 命令编译，可以封装一个直白的
+makefile 脚本。也在子目录下加个 `README.md` 说明文档。
+
+编译的可执行文件后缀使用 `*_linux.exe` ，
+以便将 `*.exe` 及汇编中间文件加入 `.gitignore` 。
+
+除了运行可执行文件验证结果正确外，更关键的是分析其汇编码，用常见的 `-O2` 优化。
+
+两个整数序列化的汇编分析重点关注如下问题：
+- IntegerWriter 模板类的递归有没优化展开
+- 整数除法取模能否自动优化为乘法与移位
+
+最简 json 示例的汇编重点关注它是否在局部 buffer 上直接写入字符，
+在多大程度上内联优化，有几次函数调用。
+
+另外，考虑到本地开发环境的 g++ 编译器版本并不高。
+再写一个 github 流水线，在 ci 环境上运行。
+以及，汇编代码有多长，是否适合将汇编中间码 cat 到日志中，
+或者有没其他办法看到汇编结果？
+
+### DONE:20260115-122035
 
 ## TODO: 浮点数序列化算法进一步优化
 
