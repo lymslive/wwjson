@@ -40,6 +40,9 @@ jobs:
         echo ""
         echo "=== builder.s line count ==="
         wc -l perf/mini/builder.s
+        echo ""
+        echo "=== dyn_json.s line count ==="
+        wc -l perf/mini/dyn_json.s
 
     - name: Run examples
       run: |
@@ -63,3 +66,6 @@ jobs:
         echo ""
         echo "=== main function (builder) ==="
         grep -A 30 "<main>:" perf/mini/builder.s | head -40 || true
+        echo ""
+        echo "=== Runtime path with div instruction (dyn_json) ==="
+        grep "div %esi\|div %rsi" perf/mini/dyn_json.s || true

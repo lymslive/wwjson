@@ -1,68 +1,97 @@
-# Mini Examples for Assembly Analysis
+# wwjson 汇编分析最简示例
 
-This directory contains minimal examples for studying compiler optimization
-behavior on wwjson's integer serialization and JSON building code.
+本目录包含最简示例，用于研究编译器对 wwjson 整数序列化和 JSON 构建代码的优化效果。
 
-## Examples
+## 示例文件
 
-| File | Description | Focus Areas |
-|------|-------------|-------------|
-| `itoa_u16.cpp` | uint16_t serialization | Recursive template expansion, division/modulo optimization |
-| `itoa_u32.cpp` | uint32_t serialization | Same as above, with larger number |
-| `builder.cpp` | Minimal JSON building | Function call inlining, buffer direct writing |
+| 文件 | 描述 | 关注点 |
+|------|------|--------|
+| `itoa_u16.cpp` | uint16_t 序列化 | 递归模板展开，除法/取模优化 |
+| `itoa_u32.cpp` | uint32_t 序列化 | 同上，处理更大数值 |
+| `builder.cpp` | 最简 JSON 构建 | 函数内联，直接缓冲区写入 |
+| `dyn_json.cpp` | 动态 JSON 构建 | 运行时变量对优化的影响 |
 
-## Quick Start
+## 快速开始
 
 ```bash
-# Build all examples
+# 构建所有示例
 make
 
-# Build and generate assembly
+# 生成汇编文件
 make asm
 
-# Build and run
+# 运行示例
 make run
 
-# Clean generated files
+# 清理生成的文件
 make clean
 ```
 
-## Assembly Analysis
+## 汇编分析要点
 
-After running `./build.sh asm`, the following files will be generated:
+运行 `make asm` 后会生成以下文件：
 
-- `itoa_u16_linux.exe` - Compiled executable
-- `itoa_u16.s` - Disassembly with source intermix
-- `itoa_u32_linux.exe` - Compiled executable
-- `itoa_u32.s` - Disassembly with source intermix
-- `builder_linux.exe` - Compiled executable
-- `builder.s` - Disassembly with source intermix
+- `*_linux.exe` - 编译后的可执行文件
+- `*.s` - 带源码对照的反汇编文件
 
-### Key Analysis Points
+### 整数序列化 (itoa_u16/itoa_u32)
 
-1. **Integer Serialization (itoa_u16/itoa_u32)**:
-   - Check if `UnsignedWriter` template recursion is fully unrolled
-   - Verify integer division/modulo is optimized to multiplication/shift
-   - Look for the digit pair lookup table usage
+**关键观察**：
 
-2. **JSON Builder (builder)**:
-   - Verify direct buffer writes without intermediate allocations
-   - Count actual function calls after inlining
-   - Check escape logic is optimized away for simple strings
+1. **字面量（编译期常量）**：
+   - ✅ `UnsignedWriter` 模板递归完全展开
+   - ✅ 除法/取模操作优化为查表
+   - ✅ 无 `div` 指令，5 次查表操作
 
-## Compiler Version
+2. **运行时变量**：
+   - ⚠️ 出现 `div` 指令（除法开销）
+   - ⚠️ 编译器生成复杂的分支逻辑处理不同位数
+   - ⚠️ 查表操作需要运行时计算索引
+   - ⚠️ **无函数调用开销**：模板方法被内联，但编译器生成了一套完整的运行时整数转换算法（除法 + 分支）
 
-```bash
-g++ --version
-```
+### JSON 构建 (builder)
 
-For consistent results, the same compiler version should be used in CI environment.
+**关键观察**：
 
-## CI Integration
+1. **静态 JSON（字面量）**：
+   - ✅ 整个 JSON 在编译期构建
+   - ✅ 所有函数完全内联，无调用开销
+   - ✅ 直接在栈上写入最终字符串
 
-See `.github/workflows/ci-mini.yml` for automated assembly analysis in CI.
+2. **动态 JSON（dyn_json）**：
+   - ⚠️ 整数部分需要运行时转换
+   - ⚠️ 出现 `memcpy` 调用复制动态内容
+   - ⚠️ 函数未完全内联
 
-## Notes
+### 性能对比
 
-- Executable suffix `*_linux.exe` is used to distinguish from native `.exe` on Windows
-- Both `*.exe` and `*.s` files are gitignored
+| 场景 | 指令数 | 除法指令 | 函数调用 | 优化程度 |
+|------|--------|----------|----------|----------|
+| itoa_u32 字面量 | ~15 | 0 | 0 | 完全优化 |
+| itoa_u32 运行时 | ~100+ | 2+ | 0 | 部分优化 |
+| builder 静态 | ~30 | 0 | 0 | 完全优化 |
+| build_json 动态 | ~50+ | 0 | 1 memcpy | 部分优化 |
+
+### 关键结论
+
+1. **编译期常量 vs 运行时变量**
+   - 字面量整数：编译期完全优化，性能 ~3-5 周期
+   - 运行时整数：编译器生成运行时算法（除法 + 分支），性能 ~50-100+ 周期
+
+2. **无调用开销 vs 复杂分支**
+   - 字面量：模板递归完全展开，5次查表，无分支
+   - 运行时：模板被内联但生成完整运行时算法（除法 + 多层分支判断位数）
+
+3. **设计启示**
+   - 如果整数已知，应使用模板参数或 constexpr
+   - wwjson 的查表优化仅对编译期常量有效
+   - 动态内容的 JSON 构建无法避免运行时开销
+
+## CI 集成
+
+参见 `.github/workflows/ci-mini.yml` 中的自动化汇编分析配置。
+
+## 注意事项
+
+- 可执行文件后缀 `*_linux.exe` 用于区分 Windows 原生 `.exe`
+- `*.exe` 和 `*.s` 文件已被 gitignore 忽略

@@ -3,7 +3,7 @@
  * @brief Minimal example for uint32_t serialization
  *
  * This example demonstrates the IntegerWriter for uint32_t type.
- * Compile: g++ -O2 -I../../include itoa_u32.cpp -o itoa_u32_linux.exe
+ * Compile: g++ -O2 -DNDEBUG -I../../include itoa_u32.cpp -o itoa_u32_linux.exe
  * Assembly: objdump -d -S itoa_u32_linux.exe > itoa_u32.s
  */
 

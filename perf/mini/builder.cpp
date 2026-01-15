@@ -3,7 +3,7 @@
  * @brief Minimal example for JSON building
  *
  * This example demonstrates the GenericBuilder for minimal JSON construction.
- * Compile: g++ -O2 -I../../include builder.cpp -o builder_linux.exe
+ * Compile: g++ -O2 -DNDEBUG -I../../include builder.cpp -o builder_linux.exe
  * Assembly: objdump -d -S builder_linux.exe > builder.s
  */
 
