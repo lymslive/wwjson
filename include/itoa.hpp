@@ -108,8 +108,21 @@ struct UnsignedWriter
                 else
                 {
                     // Split into two halves
-                    uintT high = value / kHalf;
-                    uintT low = value % kHalf;
+                    uintT high; // value / kHalf;
+                    if constexpr (kHalf == 100)
+                    {
+                        high = (value * 5243) >> 19;
+                    }
+                    else if constexpr (kHalf == 10000)
+                    {
+                        high = (value * 109951163ULL) >> 40;
+                    }
+                    else
+                    {
+                        high = value / kHalf;
+                    }
+
+                    uintT low = value - high * kHalf; // value % kHalf
                     UnsignedWriter<stringT, DIGIT / 2, true>::Output(dst, high);
                     UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, low);
                 }
@@ -139,8 +152,21 @@ struct UnsignedWriter
                 else
                 {
                     // Split into two halves, both use HIGH=false
-                    uintT high = value / kHalf;
-                    uintT low = value % kHalf;
+                    uintT high; // value / kHalf;
+                    if constexpr (kHalf == 100)
+                    {
+                        high = (value * 5243) >> 19;
+                    }
+                    else if constexpr (kHalf == 10000)
+                    {
+                        high = (value * 109951163ULL) >> 40;
+                    }
+                    else
+                    {
+                        high = value / kHalf;
+                    }
+
+                    uintT low = value - high * kHalf; // value % kHalf
                     UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, high);
                     UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, low);
                 }
@@ -181,7 +207,7 @@ struct IntegerWriter
             // 100-255: write 1 digit + 2 digits
             // uint8_t high = value / 100;
             // uint8_t low = value % 100;
-            uint8_t high = static_cast<uint8_t>(value * 42949673ULL >> 32);
+            uint8_t high = static_cast<uint8_t>(value * 5243 >> 19);
             uint8_t low = value - high * 100;
             detail::OutputDigit(dst, high);
             detail::Output2Digits(dst, low);
@@ -202,8 +228,7 @@ struct IntegerWriter
             // 10000-65535: 1 digit + 4 digits
             // uint16_t high = value / kDiv;
             // uint16_t low = value % kDiv;
-            __uint128_t prod = static_cast<__uint128_t>(value) * 1844674407370956ULL;
-            uint16_t high = static_cast<uint16_t>(prod >> 64);
+            uint16_t high = static_cast<uint16_t>((value * 109951163ULL) >> 40);
             uint16_t low = value - high * 10000;
             detail::OutputDigit(dst, static_cast<uint8_t>(high));
             detail::UnsignedWriter<stringT, 4, false>::Output(dst, low);
@@ -224,6 +249,7 @@ struct IntegerWriter
             // 100000000-4294967295: 2 digit + 8 digits
             uint32_t high = value / kDiv;  // 1-42
             uint32_t low = value % kDiv;
+//          uint32_t low = value - high * kDiv; // value % kDiv
             detail::UnsignedWriter<stringT, 2, true>::Output(dst, high);
             detail::UnsignedWriter<stringT, 8, false>::Output(dst, low);
         }
@@ -242,7 +268,8 @@ struct IntegerWriter
         {
             // 10^16-18446744073709551615: 4 digits + 16 digits
             uint64_t high = value / kDiv;
-            uint64_t low = value % kDiv;
+            uint64_t low =  value % kDiv;
+//          uint64_t low = value - high * kDiv; // value % kDiv
             detail::UnsignedWriter<stringT, 4, true>::Output(dst, high);
             detail::UnsignedWriter<stringT, 16, false>::Output(dst, low);
         }
