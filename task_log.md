@@ -443,3 +443,45 @@ perf 测试用例分离与纠正：
    - 字面量: ~3-5 周期
    - 运行时变量: ~50-100+ 周期（除法开销）
 
+## TASK:20260116-100136
+-----------------------
+
+### 任务概述
+
+创建 itoa_back.cpp 示例，对比 NumberWriter 与 IntegerWriter 的内联情况与除法优化。
+
+### 新增文件
+
+- `perf/mini/itoa_back.cpp` - NumberWriter 反向序列化示例
+- `perf/mini/itoa_back.s` - 生成的汇编代码
+
+### 修改内容
+
+- `perf/mini/Makefile` - 添加 itoa_back 目标
+
+### 汇编分析对比
+
+| 特性 | IntegerWriter (itoa_u32) | NumberWriter (itoa_back) |
+|------|-------------------------|-------------------------|
+| **内联情况** | 完全内联，无函数调用 | 有独立函数调用 (0x1280, 0x1310) |
+| **字面量优化** | 编译期完全展开，直接 embed 结果 | 仍有运行时循环调用 |
+| **除法优化** | 无（编译时常量） | imul+shift 优化，无 div 指令 |
+| **digit pairs** | 直接 movzwl 加载 | 运行时查表 |
+
+### 关键发现
+
+1. **IntegerWriter 对字面量完全内联**
+   - main 函数直接展开预计算的 digit pairs
+   - 无函数调用，无除法指令
+   - 结果字符串直接嵌入二进制
+
+2. **NumberWriter 仍需运行时处理**
+   - 运行时调用 NumberWriter::WriteUnsigned (0x1310)
+   - 除法被优化为 `imul $0x51eb851f` + `shr $0x23`（无 div 指令）
+   - 但仍有循环和函数调用开销
+
+3. **结论**
+   - IntegerWriter 的正向写入算法更有利于编译器内联优化
+   - NumberWriter 的通用性导致更难完全内联
+   - 编译器已自动将除以 100 优化为乘加移位，无需手动优化
+

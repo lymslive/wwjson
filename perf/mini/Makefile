@@ -2,7 +2,7 @@
 
 CXX = g++
 CXXFLAGS = -O2 -DNDEBUG -std=c++17 -I../../include
-SRC = itoa_u16.cpp itoa_u32.cpp builder.cpp dyn_json.cpp
+SRC = itoa_u16.cpp itoa_u32.cpp builder.cpp dyn_json.cpp itoa_back.cpp
 EXE = $(SRC:.cpp=_linux.exe)
 ASM = $(SRC:.cpp=.s)
 
@@ -21,6 +21,8 @@ run: $(EXE)
 	./builder_linux.exe
 	@echo "=== dyn_json (enter 12345 when prompted) ==="
 	@echo 12345 | ./dyn_json_linux.exe
+	@echo "=== itoa_back ==="
+	@echo 12345 | ./itoa_back_linux.exe
 
 %_linux.exe: %.cpp
 	$(CXX) $(CXXFLAGS) $< -o $@

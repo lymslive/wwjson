@@ -403,6 +403,27 @@ makefile 脚本。也在子目录下加个 `README.md` 说明文档。
 
 ### DONE:20260115-170521
 
+## TODO:2026-01-16/1 perf/mini 再设计一个反向正数序列化的对比示例
+
+参考 `itoa_32.cpp` 与 `dyn_json.cpp` ，再写一个 `itoa_back.cpp` 。
+用 NumberWriter 代替 IntegerWriter 整数序列化。
+先用 1122334455 字面量，再用 scanf 读入整数变量。
+但不用 build json ，就分析比较整数序列化的汇编码。
+
+主要关注 NumberWriter::Output 的内联情况，与除法优化情况。
+
+### DONE:20260116-100136
+
+发现：
+office wsl 编译，常规逆向 NumberWriter 有优化除法(/100)，但没有内联，
+可能因为涉及 while 循环。
+
+IntegerWriter 模板递归，能优化为内联，但除法不能内联，可能由于递归模板中的
+整数类型不好确定？
+
+CI 环境没有完全内联，但序列化整数只生成了 `UnsignedWriter<4>` 一个方法。
+可能有它自己的判断折中。
+
 ## TODO: 浮点数序列化算法进一步优化
 
 浮点数序列化：
