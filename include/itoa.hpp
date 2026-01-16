@@ -179,8 +179,10 @@ struct IntegerWriter
         else
         {
             // 100-255: write 1 digit + 2 digits
-            uint8_t high = value / 100;
-            uint8_t low = value % 100;
+            // uint8_t high = value / 100;
+            // uint8_t low = value % 100;
+            uint8_t high = static_cast<uint8_t>(value * 42949673ULL >> 32);
+            uint8_t low = value - high * 100;
             detail::OutputDigit(dst, high);
             detail::Output2Digits(dst, low);
         }
@@ -198,8 +200,11 @@ struct IntegerWriter
         else
         {
             // 10000-65535: 1 digit + 4 digits
-            uint16_t high = value / kDiv;
-            uint16_t low = value % kDiv;
+            // uint16_t high = value / kDiv;
+            // uint16_t low = value % kDiv;
+            __uint128_t prod = static_cast<__uint128_t>(value) * 1844674407370956ULL;
+            uint16_t high = static_cast<uint16_t>(prod >> 64);
+            uint16_t low = value - high * 10000;
             detail::OutputDigit(dst, static_cast<uint8_t>(high));
             detail::UnsignedWriter<stringT, 4, false>::Output(dst, low);
         }
