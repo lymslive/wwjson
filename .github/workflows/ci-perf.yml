@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     
     env:
-      CMAKE_ARGS: ${{ github.event.inputs.cmake_args || '-DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON' }}
+      CMAKE_ARGS: ${{ github.event.inputs.cmake_args || '-DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON -DBUILD_UNIT_TESTS=OFF' }}
       TEST_ARGS: ${{ github.event.inputs.test_args || '--cout=fail' }}
     
     steps:

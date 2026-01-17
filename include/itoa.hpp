@@ -191,7 +191,6 @@ struct IntegerWriter
     // WriteUnsigned methods for each unsigned type
     // =====================================================================
 
-    /// @brief Write unsigned 8-bit integer
     static void WriteUnsigned(stringT& dst, uint8_t value)
     {
         if (value < 10)
@@ -214,7 +213,6 @@ struct IntegerWriter
         }
     }
 
-    /// @brief Write unsigned 16-bit integer
     static void WriteUnsigned(stringT& dst, uint16_t value)
     {
         constexpr auto kDiv = detail::kPow10<4>;
@@ -235,43 +233,56 @@ struct IntegerWriter
         }
     }
 
-    /// @brief Write unsigned 32-bit integer
     static void WriteUnsigned(stringT& dst, uint32_t value)
     {
-        constexpr auto kDiv = detail::kPow10<8>;
-        if (value < kDiv)
+        if (value < 10000)
         {
-            // 0-99999999: 8 digits or fewer
-            detail::UnsignedWriter<stringT, 8, true>::Output(dst, value);
+            detail::UnsignedWriter<stringT, 4, true>::Output(dst, value);
+        }
+        else if (value < detail::kPow10<8>)
+        {
+            uint32_t high = (value * 109951163ULL) >> 40;
+            uint32_t low  = value - high * 10000;
+            detail::UnsignedWriter<stringT, 4, true>::Output(dst, high);
+            detail::UnsignedWriter<stringT, 4, false>::Output(dst, low);
         }
         else
         {
             // 100000000-4294967295: 2 digit + 8 digits
-            uint32_t high = value / kDiv;  // 1-42
-            uint32_t low = value % kDiv;
-//          uint32_t low = value - high * kDiv; // value % kDiv
+            uint32_t tmp = value / 10000;
+            uint32_t low  = value % 10000;
+            uint32_t high = (tmp * 109951163ULL) >> 40;
+            uint32_t mid = tmp - high * 10000;
             detail::UnsignedWriter<stringT, 2, true>::Output(dst, high);
-            detail::UnsignedWriter<stringT, 8, false>::Output(dst, low);
+            detail::UnsignedWriter<stringT, 4, false>::Output(dst, mid);
+            detail::UnsignedWriter<stringT, 4, false>::Output(dst, low);
         }
     }
 
-    /// @brief Write unsigned 64-bit integer
     static void WriteUnsigned(stringT& dst, uint64_t value)
     {
-        constexpr auto kDiv = detail::kPow10<16>;
-        if (value < kDiv)
+        if (value < detail::kPow10<8>)
         {
-            // 0-9999999999999999: 16 digits or fewer
-            detail::UnsignedWriter<stringT, 16, true>::Output(dst, value);
+            detail::UnsignedWriter<stringT, 8, true>::Output(dst, value);
+        }
+        else if (value < detail::kPow10<16>)
+        {
+            uint32_t high = value / detail::kPow10<8>;
+            uint32_t low =  value % detail::kPow10<8>;
+            detail::UnsignedWriter<stringT, 8, true>::Output(dst, high);
+            detail::UnsignedWriter<stringT, 8, false>::Output(dst, low);
         }
         else
         {
             // 10^16-18446744073709551615: 4 digits + 16 digits
-            uint64_t high = value / kDiv;
-            uint64_t low =  value % kDiv;
-//          uint64_t low = value - high * kDiv; // value % kDiv
+            uint64_t tmp = value / detail::kPow10<8>;
+            uint32_t low =  value % detail::kPow10<8>;
+            uint32_t high = tmp / detail::kPow10<8>;
+            uint32_t mid =  tmp % detail::kPow10<8>;
+
             detail::UnsignedWriter<stringT, 4, true>::Output(dst, high);
-            detail::UnsignedWriter<stringT, 16, false>::Output(dst, low);
+            detail::UnsignedWriter<stringT, 8, false>::Output(dst, mid);
+            detail::UnsignedWriter<stringT, 8, false>::Output(dst, low);
         }
     }
 

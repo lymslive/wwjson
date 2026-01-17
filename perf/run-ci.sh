@@ -16,6 +16,8 @@ FULL_LOG_FILE=""
 TIMESTAMP=""
 PERF_LOG_FILE=""
 SHOULD_TRIGGER=true  # 默认触发工作流
+CMAKE_ARGS=""         # CMake 配置参数
+TEST_ARGS=""          # 测试运行参数
 
 # 配置参数
 WORKFLOW="ci-perf.yml"
@@ -51,10 +53,20 @@ parse_args() {
                 SHOULD_TRIGGER=false
                 shift
                 ;;
+            --cmake-args)
+                CMAKE_ARGS="$2"
+                shift 2
+                ;;
+            --test-args)
+                TEST_ARGS="$2"
+                shift 2
+                ;;
             -h|--help)
                 echo "用法: $0 [选项]"
                 echo "选项:"
                 echo "  --no-run       不触发新工作流，只处理最近运行的流水线"
+                echo "  --cmake-args   传递 CMake 配置参数到工作流"
+                echo "  --test-args    传递测试运行参数到工作流"
                 echo "  -h, --help     显示此帮助信息"
                 exit 0
                 ;;
@@ -97,8 +109,23 @@ ensure_log_dir() {
 trigger_workflow() {
     log_info "触发工作流: $WORKFLOW (分支: $BRANCH)"
 
+    # 构建触发命令
+    local trigger_cmd="gh workflow run \"$WORKFLOW\" --ref \"$BRANCH\""
+
+    # 添加 cmake_args 参数
+    if [ -n "$CMAKE_ARGS" ]; then
+        trigger_cmd="$trigger_cmd -f cmake_args=\"$CMAKE_ARGS\""
+        log_info "使用 CMake 参数: $CMAKE_ARGS"
+    fi
+
+    # 添加 test_args 参数
+    if [ -n "$TEST_ARGS" ]; then
+        trigger_cmd="$trigger_cmd -f test_args=\"$TEST_ARGS\""
+        log_info "使用测试参数: $TEST_ARGS"
+    fi
+
     local result
-    result=$(gh workflow run "$WORKFLOW" --ref "$BRANCH" 2>&1)
+    result=$(eval "$trigger_cmd" 2>&1)
 
     if [ $? -ne 0 ]; then
         log_error "触发工作流失败: $result"
