@@ -50,17 +50,6 @@ constexpr uint64_t kPow10 = []() {
     return result;
 }();
 
-/// @brief String of 16 '0's for padding zeros
-constexpr const char kZeros[17] = "0000000000000000";
-
-/// @brief Output DIGIT zeros to the string
-template <typename stringT, uint8_t DIGIT>
-void OutputZeros(stringT& dst)
-{
-    static_assert(DIGIT <= 16, "DIGIT must be <= 16");
-    dst.unsafe_append(kZeros, DIGIT);
-}
-
 /// @brief Forward-writing unsigned integer helper with digit and high/low control
 /// @tparam stringT String buffer type (must have unsafe_level >= 4)
 /// @tparam DIGIT Number of digits to write (must be power of 2: 2, 4, 8, 16...)
@@ -130,12 +119,6 @@ struct UnsignedWriter
         }
         else
         {
-            // HIGH=false: Low part, must write full digit count; but may only 0
-            if (value == 0)
-            {
-                OutputZeros<stringT, DIGIT>(dst);
-                return;
-            }
             if constexpr (DIGIT == 2)
             {
                 // Base case: always write 2 digits
@@ -143,33 +126,24 @@ struct UnsignedWriter
             }
             else // DIGIT > 2
             {
-                if (value < kHalf)
+                // Split into two halves, both use HIGH=false
+                uintT high; // value / kHalf;
+                if constexpr (kHalf == 100)
                 {
-                    // Write DIGIT/2 zeros then recurse
-                    OutputZeros<stringT, DIGIT / 2>(dst);
-                    UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, value);
+                    high = (value * 5243) >> 19;
+                }
+                else if constexpr (kHalf == 10000)
+                {
+                    high = (value * 109951163ULL) >> 40;
                 }
                 else
                 {
-                    // Split into two halves, both use HIGH=false
-                    uintT high; // value / kHalf;
-                    if constexpr (kHalf == 100)
-                    {
-                        high = (value * 5243) >> 19;
-                    }
-                    else if constexpr (kHalf == 10000)
-                    {
-                        high = (value * 109951163ULL) >> 40;
-                    }
-                    else
-                    {
-                        high = value / kHalf;
-                    }
-
-                    uintT low = value - high * kHalf; // value % kHalf
-                    UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, high);
-                    UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, low);
+                    high = value / kHalf;
                 }
+
+                uintT low = value - high * kHalf; // value % kHalf
+                UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, high);
+                UnsignedWriter<stringT, DIGIT / 2, false>::Output(dst, low);
             }
         }
     }

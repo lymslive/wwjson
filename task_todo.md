@@ -462,6 +462,35 @@ yyjson 使用的魔数（Integer Writer）:
 - 6d 取二：(val / 10000) == (((u64)val * 429497) >> 32)
 - uint64 除 10^8 分三段，仍用 / % , 未转化 * >>
 
+## TODO:2026-01-17/1 尝试减少 UnsignedWriter 递归层次
+
+写 uint32 最多调用 `UnsignedWriter<4>` ，写 uint64 最多调用 `UnsignedWriter<8>`
+在入口方法先拆分。看编译器能否做更好的优化。
+
+本地开发实测，uint32 降一层递归后，性能一度超过 yyjson 5% 左右。
+但是再用同样方法改写 uint64 后，性能又降低了。回滚也观察不到了。
+很奇怪是什么影响了编译器优化。
+
+先提交看 ci 环境的测试结果。两边也经常不一样。
+
+### DONE:20260117~132630
+
+CI 环境的性能测试，u32 u64 仍然是 yyjson 性能高。
+有点更奇怪，u16 在本地 wwjson 快，而在 CI yyjson 快。
+
+## TODO:2026-01-17/2 优化 UnsignedWriter 分支判断
+
+HIGH = false 的分支，多了两个运行时 if ，可能影响编译器内联优化。
+之前 `TODO:2026-01-14/1` 提出判断零值，可能是误导，没必要判断的。
+即使零值，递归到 2 时写入两个 "00" 也是正确。
+
+UnsignedWriter::Output 方法尽可能只保留编译期 if ，可能使编译器做更好的优化。
+
+本地测试 u32 u64 写入速率反超 yyjson 了。
+运行命令：`./build-release/perf/pfwwjson itoa_build_vs_yyjson --items=10000`
+
+### DONE:20260117~220730
+
 ## TODO: 浮点数序列化算法进一步优化
 
 浮点数序列化：

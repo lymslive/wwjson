@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       cmake_args:
-        description: 'CMake configuration arguments. Default: -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON'
+        description: 'CMake configuration arguments. Default: -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON -DBUILD_UNIT_TESTS=OFF'
         required: false
         default: '-DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON'
       test_args:
