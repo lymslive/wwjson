@@ -2,7 +2,7 @@
 
 CXX = g++
 CXXFLAGS = -O2 -DNDEBUG -std=c++17 -I../../include
-SRC = itoa_u16.cpp itoa_u32.cpp builder.cpp dyn_json.cpp itoa_back.cpp
+SRC = itoa_u8.cpp itoa_u16.cpp itoa_u32.cpp itoa_u64.cpp builder.cpp dyn_json.cpp itoa_back.cpp
 EXE = $(SRC:.cpp=_linux.exe)
 ASM = $(SRC:.cpp=.s)
 
@@ -13,10 +13,14 @@ all: $(EXE) $(ASM)
 asm: $(ASM)
 
 run: $(EXE)
+	@echo "=== itoa_u8 ==="
+	@echo 200 | ./itoa_u8_linux.exe
 	@echo "=== itoa_u16 ==="
-	./itoa_u16_linux.exe
+	@echo 30000 | ./itoa_u16_linux.exe
 	@echo "=== itoa_u32 ==="
-	./itoa_u32_linux.exe
+	@echo 4000000000 | ./itoa_u32_linux.exe
+	@echo "=== itoa_u64 ==="
+	@echo 123456789012345 | ./itoa_u64_linux.exe
 	@echo "=== builder ==="
 	./builder_linux.exe
 	@echo "=== dyn_json (enter 12345 when prompted) ==="

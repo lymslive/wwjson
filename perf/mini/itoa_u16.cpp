@@ -10,13 +10,29 @@
 #include <cstdio>
 #include "jbuilder.hpp"
 
-int main()
+void itoa_const(uint16_t value)
 {
-    uint16_t value = 12233;
     char buffer[16];
     wwjson::UnsafeBuffer ubuf(buffer);  // unsafe_level = 255
     wwjson::IntegerWriter<wwjson::UnsafeBuffer>::Output(ubuf, value);
-    printf("%s\n", ubuf.c_str());
-    printf("%s\n", buffer);
+    printf("const: %s\n", ubuf.c_str());
+    printf("const: %s\n", buffer);
+}
+
+void itoa_var(uint16_t value)
+{
+    char buffer[16];
+    wwjson::UnsafeBuffer ubuf(buffer);  // unsafe_level = 255
+    wwjson::IntegerWriter<wwjson::UnsafeBuffer>::Output(ubuf, value);
+    printf("var: %s\n", ubuf.c_str());
+    printf("var: %s\n", buffer);
+}
+
+int main()
+{
+    itoa_const(12233);
+    uint16_t value;
+    scanf("%hu", &value);
+    itoa_var(value);
     return 0;
 }

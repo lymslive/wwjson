@@ -1,16 +1,16 @@
 /**
- * @file itoa_u32.cpp
- * @brief Minimal example for uint32_t serialization
+ * @file itoa_u8.cpp
+ * @brief Minimal example for uint8_t serialization
  *
- * This example demonstrates the IntegerWriter for uint32_t type.
- * Compile: g++ -O2 -DNDEBUG -I../../include itoa_u32.cpp -o itoa_u32_linux.exe
- * Assembly: objdump -d -S itoa_u32_linux.exe > itoa_u32.s
+ * This example demonstrates the IntegerWriter for uint8_t type.
+ * Compile: g++ -O2 -DNDEBUG -I../../include itoa_u8.cpp -o itoa_u8_linux.exe
+ * Assembly: objdump -d -S itoa_u8_linux.exe > itoa_u8.s
  */
 
 #include <cstdio>
 #include "jbuilder.hpp"
 
-void itoa_const(uint32_t value)
+void itoa_const(uint8_t value)
 {
     char buffer[16];
     wwjson::UnsafeBuffer ubuf(buffer);  // unsafe_level = 255
@@ -19,7 +19,7 @@ void itoa_const(uint32_t value)
     printf("const: %s\n", buffer);
 }
 
-void itoa_var(uint32_t value)
+void itoa_var(uint8_t value)
 {
     char buffer[16];
     wwjson::UnsafeBuffer ubuf(buffer);  // unsafe_level = 255
@@ -30,9 +30,9 @@ void itoa_var(uint32_t value)
 
 int main()
 {
-    itoa_const(1122334455);
-    uint32_t value;
-    scanf("%u", &value);
+    itoa_const(122);
+    uint8_t value;
+    scanf("%hhu", &value);
     itoa_var(value);
     return 0;
 }
