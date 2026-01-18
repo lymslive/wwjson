@@ -491,6 +491,34 @@ UnsignedWriter::Output 方法尽可能只保留编译期 if ，可能使编译�
 
 ### DONE:20260117~220730
 
+perf/run-ci.sh --test-args "p_itoa.cpp --items=10000"
+
+一次 CI 测试结果：u32 序列化反超 yyjson 50%+ ，u8 u16 快 100%+
+只有 u64 还慢 15% 左右。
+
+## TODO:2026-01-18/1 itoa.hpp 细节优化及文档完善
+
+IntegerWriter::WriteUnsigned uint8 版，由于已知最大 255 ，可以完善避免除法（或
+乘法优化），多加一个 if 小于 200 的判断，直接得出 high 部分是 1 或 2。
+先从理论上分析这样是否能进一步提升性能。
+
+性能测试命令：
+```bash
+make build/perf
+./build-release/perf/pfwwjson p_itoa.cpp --items=10000
+```
+
+可以先备份原来的测试程序为 pfwwjson.last 。
+对比性能是否有细微差异，考虑到可能有运行时浮动误差，
+只要不是性能显著降低，都可接受修改。
+
+然后完善 itoa.hpp 文档注释：
+- UnsignedWriter::Output 方法，要说明它的递归算法特点
+- IntegerWriter 是外部类，更应该有注释
+- IntegerWriter::WriteUnsigned 针对四个整数类型的入口方法，简要说明其预处理
+
+### DONE: 20260118-094008
+
 ## TODO: 浮点数序列化算法进一步优化
 
 浮点数序列化：

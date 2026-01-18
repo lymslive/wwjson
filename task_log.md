@@ -537,3 +537,84 @@ uint16_t low = value - high * 10000;
 
 - 单元测试：3 项全部通过（itoa_unsigned, itoa_signed, itoa_edge_cases）
 
+## TASK:20260118-094008
+-----------------------
+
+### 任务概述
+
+需求 2026-01-18/1：itoa.hpp 细节优化及文档完善。
+
+1. 性能优化：IntegerWriter::WriteUnsigned uint8 版本添加分支优化
+2. 文档完善：完善 UnsignedWriter、IntegerWriter 和 WriteUnsigned 方法的注释
+
+### 优化内容
+
+**include/itoa.hpp** - uint8_t 性能优化：
+
+在 `WriteUnsigned(stringT& dst, uint8_t value)` 中，针对 100-255 范围添加分支优化：
+
+```cpp
+else if (value < 200)
+{
+    // 100-199: high=1, low=value-100
+    detail::OutputDigit(dst, 1);
+    detail::Output2Digits(dst, value - 100);
+}
+else
+{
+    // 200-255: high=2, low=value-200
+    detail::OutputDigit(dst, 2);
+    detail::Output2Digits(dst, value - 200);
+}
+```
+
+**优化原理**：
+- 对于 uint8_t，100-255 范围内的高位只能是 1 或 2
+- 使用分支判断直接得出 high 值，避免乘法和位移操作
+- 代码更清晰，可读性更好
+
+### 性能测试结果
+
+优化前后对比（p_itoa.cpp，items=10000）：
+
+| 测试项 | 优化前 ratio | 优化后 ratio | 变化 |
+|--------|------------|------------|------|
+| int8_t | 0.4266 | 0.4026 | +5.6% ⬆️ |
+| int16_t | 0.4849 | 0.4612 | +4.9% ⬆️ |
+| int32_t | 0.4780 | 0.5123 | -7.2% ⬇️ |
+| int64_t | 0.4832 | 0.4846 | -0.3% ⬇️ |
+| **平均** | **0.4682** | **0.4652** | **+0.6% ⬆️** |
+
+**结论**：性能略有提升，未发现显著下降，优化有效。
+
+### 文档完善
+
+**1. UnsignedWriter::Output** (line 64-150)：
+
+添加详细文档，说明：
+- 分治策略：将数字拆分为高位和低位两部分
+- 递归终止条件：DIGIT == 2 时直接输出
+- HIGH 参数控制：高位部分可以省略前导零
+- 乘法优化：对特定除数使用位运算代替除法
+
+**2. IntegerWriter 类** (line 159-220)：
+
+添加类级别文档，说明：
+- 设计目的：为 JString/KString 等高性能字符串类型提供快速整数序列化
+- 核心机制：利用字符串类型的高级别 unsafe 操作，直接写入
+- 性能优势：避免临时缓冲区，消除反向排序需要
+- 类型要求：stringT 必须具有 unsafe_level >= 4
+
+**3. WriteUnsigned 四个方法** (line 226-363)：
+
+为以下方法添加详细注释：
+- WriteUnsigned(uint8_t) - 说明值范围分解和分支优化
+- WriteUnsigned(uint16_t) - 说明值范围分解和乘法优化
+- WriteUnsigned(uint32_t) - 说明值范围分解和多层分解
+- WriteUnsigned(uint64_t) - 说明值范围分解和三部分分解
+
+### 测试结果
+
+- 单元测试：119 项全部通过（utwwjson）
+- 编译测试：Debug 和 Release 版本均成功编译
+- 性能测试：验证优化后性能未下降，略有提升

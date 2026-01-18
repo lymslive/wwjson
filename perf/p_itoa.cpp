@@ -445,5 +445,5 @@ DEF_TAST(itoa_build_vs_yyjson, "比较 wwjson::Builder 与 yyjson 整数序列�
 
     double avg_ratio = total_ratio / test_count;
     DESC("Average ratio (wwjson/yyjson): %.4f", avg_ratio);
-    COUT(avg_ratio < 1.0); // Print only, no assertion - results vary by integer type
+    COUT(avg_ratio < 1.0, true);
 }
