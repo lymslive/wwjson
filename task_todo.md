@@ -582,9 +582,21 @@ rapidjson 可能没有公开的独立接口，但是可访问安装的 rapidjson
 
 ### DONE:20260120-195759
 
-## TODO: 浮点数序列化算法进一步优化
+## TODO:2026-01-20/2 使用外部库序列化浮点数功能优化
 
-浮点数序列化：
-- 提升 %.g 格式化性能，对比 yyjson 的 22 倍差距
-- 研究 Ryū 等快速浮点数序列化算法
-- 研究其他著名开源库的实现，如 yyjson fmtlib 等
+根目录 CMakeLists.txt 增加 `WWJSON_USE_EXTERNAL_DTOA` 选项。
+当没有显式指定 `WWJSON_USE_RAPIDJSON_DTOA` 或 `WWJSON_USE_FMTLIB_DTOA` 时，
+自动检查有没安装 rapidjson 或 fmt 库，找到哪个就用哪个，并设置相应的编译宏。
+只检查本地 `find_package` ，未安装时不自动下载。
+
+这需要在原来的两个选项之后再判定 `WWJSON_USE_EXTERNAL_DTOA`，具体三方库的选项
+优先级比自动检查的优先高。可能要再加一个临时变量保存是否已选定使用哪个三方库，
+比如叫 `HAS_USED_RAPIDJSON_DTOA`，当该值变为 true 时，跳过后续检查。
+
+然后简化 include/external.hpp 实现，将最内层子空间的两个 NumberWriter 的重复部
+分，提取到 jbuilder.hpp 的 UnsafeConfig::NumberString 方法中。而且没必要做负数
+判断，正常的三方库都应该能同时处理正负数的浮点数，没必要重复判断。只需要特殊处
+理 nan 与 inf 。
+
+## TODO: 三方库 dtoa 性能测试
+
