@@ -77,11 +77,17 @@ install(FILES
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
 )
 
-# For development targets:
+# Options to contorl build target:
 # ---------------------------------------------------------------------- #
 
 # Option to build only library (without tests)
 option(WWJSON_LIB_ONLY "Build only library without tests" OFF)
+
+# Option to use rapidjson's internal dtoa for floating-point serialization
+option(WWJSON_USE_RAPIDJSON_DTOA "Use rapidjson internal dtoa for float serialization" OFF)
+
+# Option to use fmt library for floating-point serialization
+option(WWJSON_USE_FMTLIB_DTOA "Use fmt library for float serialization" OFF)
 
 # Option to build unit tests
 option(BUILD_UNIT_TESTS "Build unit tests" ON)
@@ -91,6 +97,71 @@ option(BUILD_PERF_TESTS "Build performance tests" OFF)
 
 # Option to build examples
 option(BUILD_EXAMPLES "Build example programs" ON)
+
+# ============================================================================
+# External DTOA library support (rapidjson and fmt)
+# These libraries are used for high-performance floating-point serialization
+# ============================================================================
+
+# rapidjson: header-only library, need include directory and compile definition
+if(WWJSON_USE_RAPIDJSON_DTOA)
+    find_package(rapidjson QUIET)
+    if(NOT rapidjson_FOUND)
+        message(STATUS "rapidjson not found, fetching from GitHub...")
+        include(FetchContent)
+        FetchContent_Declare(
+            rapidjson
+            GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
+            GIT_TAG master
+        )
+        FetchContent_MakeAvailable(rapidjson)
+    endif()
+
+    # Get rapidjson include directory
+    if(TARGET rapidjson)
+        get_target_property(RAPIDJSON_INCLUDE_DIR rapidjson INTERFACE_INCLUDE_DIRECTORIES)
+    else()
+        # rapidjson is header-only, use common include paths
+        set(RAPIDJSON_INCLUDE_DIR "/usr/local/include" CACHE STRING "rapidjson include directory")
+    endif()
+
+    # Add include directory and compile definition to wwjson target
+    target_include_directories(${PROJECT_NAME} INTERFACE ${RAPIDJSON_INCLUDE_DIR})
+    target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_RAPIDJSON_DTOA)
+
+    message(STATUS "Using rapidjson from: ${RAPIDJSON_INCLUDE_DIR}")
+    message(STATUS "WWJSON_USE_RAPIDJSON_DTOA enabled")
+endif()
+
+# fmt library: has fmt::fmt target
+if(WWJSON_USE_FMTLIB_DTOA)
+    find_package(fmt QUIET)
+    if(NOT fmt_FOUND)
+        message(STATUS "fmt not found, fetching from GitHub...")
+        include(FetchContent)
+        FetchContent_Declare(
+            fmt
+            GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+            GIT_TAG master
+        )
+        FetchContent_MakeAvailable(fmt)
+    endif()
+
+    # Link fmt to wwjson and get include directory
+    if(TARGET fmt::fmt)
+        get_target_property(FMT_INCLUDE_DIR fmt::fmt INTERFACE_INCLUDE_DIRECTORIES)
+        target_link_libraries(${PROJECT_NAME} INTERFACE fmt::fmt)
+    endif()
+
+    # Add compile definition to enable external dtoa
+    target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_FMTLIB_DTOA)
+
+    message(STATUS "Using fmt from: ${FMT_INCLUDE_DIR}")
+    message(STATUS "WWJSON_USE_FMTLIB_DTOA enabled")
+endif()
+
+# For development targets:
+# ---------------------------------------------------------------------- #
 
 # Dependency management for tests and performance benchmarks
 if(NOT WWJSON_LIB_ONLY)
@@ -163,7 +234,6 @@ if(NOT WWJSON_LIB_ONLY)
         get_target_property(XYJSON_INCLUDE_DIR xyjson INTERFACE_INCLUDE_DIRECTORIES)
     endif()
 
-    # Report what we found
     message(STATUS "Using couttast from: ${COUTTAST_INCLUDE_DIR}")
     message(STATUS "Using yyjson from: ${YYJSON_INCLUDE_DIR}")
     message(STATUS "Using xyjson from: ${XYJSON_INCLUDE_DIR}")

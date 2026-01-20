@@ -536,6 +536,52 @@ make build/perf
 
 ### DONE: 20260118-104104
 
+## TODO:2026-01-20/1 使用外部库优化浮点数序列化性能
+
+经过调研，我决定不重复造轮子。浮点数序列化是个独立课题，与 json 格式没有强相关。
+一些高性能浮点数序列化库涉及缓存 10k+ 的大表，且代码略复杂。
+如果抄一份实现，这个功能点可能比 wwjson 的核心代码还大，那就不够轻量了。
+
+所以，我想在 wwjson 构建系统中，可选地或自动检测使用第三方浮点数序列化库。
+初步选用集成两个开源库：
+- rapidjson
+- fmt
+
+这两个库在本地开发环境已安装至标准 /usr/local 目录下。
+
+需要开发两方面的功能。
+
+一是代码层面。增加一个 include/external.hpp 文件作为几个常用推荐库的适配层。
+- 命名空间：wwjson::external
+- 定义 wwjson::external::NumberWriter 类
+- 再分别为每个待集成适配的外部库增加个子空间与类
+  + wwjson::external::rapidjson::NumberWriter
+  + wwjson::external::fmt::NumberWriter
+- 根据条件编译宏来确定 external::NumberWriter 使用哪个子空间的实现类
+  + WWJSON_USE_RAPIDJSON_DTOA
+  + WWJSON_USE_FMTLIB_DTOA
+- 在具体子空间的 NumberWriter 类实现 Output 的浮点数版，为简单起见，
+  先只需支持 double 类型，不用重载 float 类型，希望后者能自动提升为 double
+
+增加 `WWJSON_USE_EXTERNAL_DTOA` 条件编译宏，在该宏被定义的情况下，jbuilder.hpp
+的 UnsafeConfig::NumberString 浮点数版调用 external::NumberWriter::Output 方法。
+任一 WWJSON_USE_RAPIDJSON_DTOA 或 WWJSON_USE_FMTLIB_DTOA 宏被定义时，视为
+WWJSON_USE_EXTERNAL_DTOA 有定义。
+
+二是 cmake 构建脚本层面。就支持两种机制，指定用哪个三方库，或自动检测。
+如果开启 WWJSON_USE_EXTERNAL_DTOA 选项，自动检查系统是否安装了 rapidjson 或 fmt
+库，未安装时回滚 WWJSON_USE_EXTERNAL_DTOA 仍为 false 或相当于未定义。
+
+如果明确指定 WWJSON_USE_RAPIDJSON_DTOA 或 WWJSON_USE_FMTLIB_DTOA 选项，
+则在系统未安装对应库时，从 github 自动 FetchContent 依赖。
+
+当前 wwjson 浮点数序列化的默认实现的 NumberWriter 主要是调用标准库 std::to_chars
+fmt 库浮点数序列可使用其公开接口，直接写入 StringBuffer 的尾部空间
+rapidjson 可能没有公开的独立接口，但是可访问安装的 rapidjson/internal/dtoa.h 文件
+使用它的内部实现的浮点数序列化方法。
+
+### DONE:20260120-195759
+
 ## TODO: 浮点数序列化算法进一步优化
 
 浮点数序列化：

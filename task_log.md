@@ -716,3 +716,103 @@ else
 ✅ 所有示例编译通过
 ✅ 汇编代码分析完成
 ✅ README.md 文档更新完成
+
+## TASK:20260120-195759
+-----------------------
+
+### 任务概述
+
+需求 2026-01-20/1：使用外部库优化浮点数序列化性能。
+
+在 wwjson 构建系统中可选地集成第三方浮点数序列化库（rapidjson 或 fmt），用于 UnsafeConfig 的浮点数序列化。
+
+### 实施过程
+
+#### 1. 创建 external.hpp
+
+**include/external.hpp** - 外部库适配层：
+
+- 命名空间 `wwjson::external`，包含 `rapidjson` 和 `fmt` 子命名空间
+- 每个子命名空间中有 `NumberWriter<stringT>` 类
+- 根据编译宏 `WWJSON_USE_RAPIDJSON_DTOA` 或 `WWJSON_USE_FMTLIB_DTOA` 选择实现
+- 使用 `using NumberWriter = rapidjson::NumberWriter<stringT>` 或 `fmt::NumberWriter<stringT>` 选择
+- 只实现 double 类型的 Output()，整数序列化委托给内部 IntegerWriter
+
+#### 2. 宏控制逻辑
+
+- CMake 选项 `WWJSON_USE_RAPIDJSON_DTOA` 和 `WWJSON_USE_FMTLIB_DTOA`
+- 编译时定义对应的宏，传递给编译器
+- jbuilder.hpp 中根据宏定义决定是否 include external.hpp
+- external.hpp 中根据宏定义 include 对应的库头文件
+
+#### 3. 构建系统更新
+
+**CMakeLists.txt**：
+- 添加选项 `WWJSON_USE_RAPIDJSON_DTOA` 和 `WWJSON_USE_FMTLIB_DTOA`
+- rapidjson: header-only，添加 include 目录和编译宏
+- fmt: 有 `fmt::fmt` 目标，链接库并添加编译宏
+- 未本地安装时自动 FetchContent 从 GitHub 下载
+
+#### 4. UnsafeConfig 集成
+
+**include/jbuilder.hpp**：
+```cpp
+#if defined(WWJSON_USE_RAPIDJSON_DTOA) || defined(WWJSON_USE_FMTLIB_DTOA)
+#define WWJSON_USE_EXTERNAL_DTOA 1
+#include "external.hpp"
+#else
+#define WWJSON_USE_EXTERNAL_DTOA 0
+#endif
+```
+
+在 `UnsafeConfig::NumberString<floatT>` 中使用：
+```cpp
+#if WWJSON_USE_EXTERNAL_DTOA
+    external::NumberWriter<stringT>::Output(dst, value);
+#else
+    NumberWriter<stringT>::Output(dst, value);
+#endif
+```
+
+#### 5. rapidjson 实现
+
+使用 `rapidjson::internal::Dtoa()` 函数，原位写入 StringBuffer：
+```cpp
+dst.reserve_ex(32);
+char* buffer = dst.end();
+const char* result = ::rapidjson::internal::Dtoa(buffer, value);
+if (result) {
+    size_t len = ::strlen(result);
+    dst.unsafe_set_end(buffer + len);
+}
+```
+
+#### 6. fmt 实现
+
+使用 `fmt::format_to()` 直接写入 StringBuffer 末尾：
+```cpp
+dst.reserve_ex(32);
+char* write_ptr = dst.end();
+auto end = ::fmt::format_to(write_ptr, "{}", value);
+size_t len = static_cast<size_t>(end - write_ptr);
+dst.unsafe_set_end(write_ptr + len);
+```
+
+### 测试结果
+
+- 单元测试：119 项全部通过
+- 浮点数序列化测试：正常输出 NaN/Infinity 为 "null"
+- fmt 格式使用 `"{}"` 输出最短表示
+
+### 使用方式
+
+```bash
+# 使用 fmt 库
+cmake .. -DWWJSON_USE_FMTLIB_DTOA=ON
+make
+
+# 使用 rapidjson 库
+cmake .. -DWWJSON_USE_RAPIDJSON_DTOA=ON
+make
+```
+

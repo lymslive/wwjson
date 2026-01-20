@@ -32,6 +32,14 @@
 
 #include <optional>
 
+// Define WWJSON_USE_EXTERNAL_DTOA based on compile definitions from CMake
+#if defined(WWJSON_USE_RAPIDJSON_DTOA) || defined(WWJSON_USE_FMTLIB_DTOA)
+#define WWJSON_USE_EXTERNAL_DTOA 1
+#include "external.hpp"
+#else
+#define WWJSON_USE_EXTERNAL_DTOA 0
+#endif
+
 namespace wwjson {
 
 /// @brief Optimized config for high-unsafe-level string types
@@ -131,7 +139,11 @@ struct UnsafeConfig : public BasicConfig<stringT>
     NumberString(stringT &dst, floatT value)
     {
         dst.reserve_ex(32);  // Reserve space for float representation
+#if WWJSON_USE_EXTERNAL_DTOA
+        external::NumberWriter<stringT>::Output(dst, value);
+#else
         NumberWriter<stringT>::Output(dst, value);
+#endif
     }
 };
 
