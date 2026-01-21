@@ -582,7 +582,7 @@ rapidjson 可能没有公开的独立接口，但是可访问安装的 rapidjson
 
 ### DONE:20260120-195759
 
-## TODO:2026-01-20/2 使用外部库序列化浮点数功能优化
+## TODO:2026-01-21/1 使用外部库序列化浮点数功能优化
 
 根目录 CMakeLists.txt 增加 `WWJSON_USE_EXTERNAL_DTOA` 选项。
 当没有显式指定 `WWJSON_USE_RAPIDJSON_DTOA` 或 `WWJSON_USE_FMTLIB_DTOA` 时，
@@ -597,6 +597,8 @@ rapidjson 可能没有公开的独立接口，但是可访问安装的 rapidjson
 分，提取到 jbuilder.hpp 的 UnsafeConfig::NumberString 方法中。而且没必要做负数
 判断，正常的三方库都应该能同时处理正负数的浮点数，没必要重复判断。只需要特殊处
 理 nan 与 inf 。
+
+### DONE:20260121-174530
 
 ## TODO: 三方库 dtoa 性能测试
 

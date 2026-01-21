@@ -816,3 +816,68 @@ cmake .. -DWWJSON_USE_RAPIDJSON_DTOA=ON
 make
 ```
 
+## TASK:20260121-174530
+-----------------------
+
+### 任务概述
+
+需求 2026-01-21/1：外部库序列化浮点数功能优化。
+
+1. 添加 `WWJSON_USE_EXTERNAL_DTOA` 选项，支持自动检测本地 rapidjson/fmt 库
+2. 简化 external.hpp，移除 nan/inf 和负数判断的重复代码
+3. 将特殊值处理提取到 UnsafeConfig::NumberString 中
+
+### 修改内容
+
+**CMakeLists.txt** - 外部库检测逻辑重构：
+
+- 新增 `WWJSON_USE_EXTERNAL_DTOA` 选项，默认 OFF
+- 添加 `HAS_USED_EXTERNAL_DTOA` 变量跟踪是否已配置
+- rapidjson/fmt 检测失败时不会自动下载（本地检查 only）
+- 自动检测优先级：rapidjson > fmt（按顺序检测）
+
+**include/external.hpp** - 简化 NumberWriter 实现：
+
+- 移除 rapidjson::NumberWriter 中的 nan/inf 检查和负数处理
+- 移除 fmt::NumberWriter 中的 nan/inf 检查和负数处理
+- rapidjson::dtoa 调用改为 `::rapidjson::internal::dtoa(value, buffer)`
+- 简化调用 `unsafe_set_end` 重设写入尾指针
+
+**include/jbuilder.hpp** - 统一特殊值处理：
+
+- 在 `UnsafeConfig::NumberString<floatT>` 中添加 nan/inf 检测
+- 特殊值输出 "null"（JSON 规范）
+- 正常值调用 external::NumberWriter::Output 或内部实现
+
+### 技术说明
+
+**关于 rapidjson 检测**：
+- rapidjson 是 header-only 库，不提供 CMake config 文件
+- 使用 `find_path` 代替 `find_package` 查找 rapidjson/rapidjson.h
+- 本地安装路径：/usr/local/include
+
+**关于三方库 dtoa 函数**：
+- rapidjson: `::rapidjson::internal::dtoa(value, buffer)`，参数顺序 (value, buffer)
+- fmt: `::fmt::format_to(buffer, "{}", value)`
+
+### 测试结果
+
+- 单元测试：119 项全部通过
+- 自动检测功能验证：
+  - `WWJSON_USE_EXTERNAL_DTOA=ON` 正确检测到 rapidjson
+  - `WWJSON_USE_EXTERNAL_DTOA=ON` 正确检测到 fmt（无 rapidjson 时）
+- 浮点数序列化正常输出
+
+### 使用方式
+
+```bash
+# 方式1：明确指定使用 rapidjson
+cmake .. -DWWJSON_USE_RAPIDJSON_DTOA=ON
+
+# 方式2：明确指定使用 fmt
+cmake .. -DWWJSON_USE_FMTLIB_DTOA=ON
+
+# 方式3：自动检测本地库（仅检测，不下载）
+cmake .. -DWWJSON_USE_EXTERNAL_DTOA=ON
+```
+

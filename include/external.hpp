@@ -72,36 +72,9 @@ struct NumberWriter
     /// @brief Output double value using rapidjson's dtoa
     static void Output(stringT& dst, double value)
     {
-        if (wwjson_unlikely(std::isnan(value)))
-        {
-            dst.unsafe_append("null", 4);
-            return;
-        }
-        if (wwjson_unlikely(std::isinf(value)))
-        {
-            dst.unsafe_append("null", 4);
-            return;
-        }
-
-        if (value < 0)
-        {
-            dst.unsafe_push_back('-');
-            value = -value;
-        }
-
-        dst.reserve_ex(32);
         char* buffer = dst.end();
-        const char* result = ::rapidjson::internal::Dtoa(buffer, value);
-
-        if (result)
-        {
-            size_t len = ::strlen(result);
-            dst.unsafe_set_end(buffer + len);
-        }
-        else
-        {
-            wwjson::NumberWriter<stringT>::Output(dst, value);
-        }
+        char* end = ::rapidjson::internal::dtoa(value, buffer);
+        dst.unsafe_set_end(end);
     }
 };
 
@@ -129,30 +102,9 @@ struct NumberWriter
     /// @brief Output double value using fmt library
     static void Output(stringT& dst, double value)
     {
-        if (wwjson_unlikely(std::isnan(value)))
-        {
-            dst.unsafe_append("null", 4);
-            return;
-        }
-        if (wwjson_unlikely(std::isinf(value)))
-        {
-            dst.unsafe_append("null", 4);
-            return;
-        }
-
-        if (value < 0)
-        {
-            dst.unsafe_push_back('-');
-            value = -value;
-        }
-
-        // Reserve space and write directly to buffer end for maximum performance
-        dst.reserve_ex(32);
-        char* write_ptr = dst.end();
-        // Use fmt's default format which produces shortest representation
-        auto end = ::fmt::format_to(write_ptr, "{}", value);
-        size_t len = static_cast<size_t>(end - write_ptr);
-        dst.unsafe_set_end(write_ptr + len);
+        char* buffer = dst.end();
+        char* end = ::fmt::format_to(buffer, "{}", value);
+        dst.unsafe_set_end(end);
     }
 };
 

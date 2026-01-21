@@ -134,11 +134,19 @@ struct UnsafeConfig : public BasicConfig<stringT>
     /// @tparam floatT Floating-point type
     /// @param[out] dst Destination string buffer
     /// @param value Floating-point value to serialize
+    /// @note Handles nan and inf as "null" per JSON specification
     template <typename floatT>
     static std::enable_if_t<std::is_floating_point_v<floatT>, void>
     NumberString(stringT &dst, floatT value)
     {
-        dst.reserve_ex(32);  // Reserve space for float representation
+        if (wwjson_unlikely(std::isnan(value) || std::isinf(value)))
+        {
+            dst.reserve_ex(4);
+            dst.unsafe_append("null", 4);
+            return;
+        }
+
+        dst.reserve_ex(64);
 #if WWJSON_USE_EXTERNAL_DTOA
         external::NumberWriter<stringT>::Output(dst, value);
 #else

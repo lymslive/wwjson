@@ -89,6 +89,9 @@ option(WWJSON_USE_RAPIDJSON_DTOA "Use rapidjson internal dtoa for float serializ
 # Option to use fmt library for floating-point serialization
 option(WWJSON_USE_FMTLIB_DTOA "Use fmt library for float serialization" OFF)
 
+# Option to auto-detect and use external library for floating-point serialization
+option(WWJSON_USE_EXTERNAL_DTOA "Auto-detect external dtoa library (rapidjson or fmt)" OFF)
+
 # Option to build unit tests
 option(BUILD_UNIT_TESTS "Build unit tests" ON)
 
@@ -103,10 +106,13 @@ option(BUILD_EXAMPLES "Build example programs" ON)
 # These libraries are used for high-performance floating-point serialization
 # ============================================================================
 
-# rapidjson: header-only library, need include directory and compile definition
+# Track if we've already configured an external DTOA library
+set(HAS_USED_EXTERNAL_DTOA FALSE)
+
 if(WWJSON_USE_RAPIDJSON_DTOA)
-    find_package(rapidjson QUIET)
-    if(NOT rapidjson_FOUND)
+    # Use find_path to locate rapidjson (header-only, no CMake target needed)
+    find_path(RAPIDJSON_INCLUDE_DIR NAMES rapidjson/rapidjson.h PATHS /usr/local/include NO_DEFAULT_PATH)
+    if(NOT RAPIDJSON_INCLUDE_DIR)
         message(STATUS "rapidjson not found, fetching from GitHub...")
         include(FetchContent)
         FetchContent_Declare(
@@ -115,26 +121,19 @@ if(WWJSON_USE_RAPIDJSON_DTOA)
             GIT_TAG master
         )
         FetchContent_MakeAvailable(rapidjson)
-    endif()
-
-    # Get rapidjson include directory
-    if(TARGET rapidjson)
         get_target_property(RAPIDJSON_INCLUDE_DIR rapidjson INTERFACE_INCLUDE_DIRECTORIES)
-    else()
-        # rapidjson is header-only, use common include paths
-        set(RAPIDJSON_INCLUDE_DIR "/usr/local/include" CACHE STRING "rapidjson include directory")
     endif()
 
     # Add include directory and compile definition to wwjson target
     target_include_directories(${PROJECT_NAME} INTERFACE ${RAPIDJSON_INCLUDE_DIR})
     target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_RAPIDJSON_DTOA)
+    set(HAS_USED_EXTERNAL_DTOA TRUE)
 
     message(STATUS "Using rapidjson from: ${RAPIDJSON_INCLUDE_DIR}")
     message(STATUS "WWJSON_USE_RAPIDJSON_DTOA enabled")
 endif()
 
-# fmt library: has fmt::fmt target
-if(WWJSON_USE_FMTLIB_DTOA)
+if(WWJSON_USE_FMTLIB_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
     find_package(fmt QUIET)
     if(NOT fmt_FOUND)
         message(STATUS "fmt not found, fetching from GitHub...")
@@ -147,17 +146,47 @@ if(WWJSON_USE_FMTLIB_DTOA)
         FetchContent_MakeAvailable(fmt)
     endif()
 
-    # Link fmt to wwjson and get include directory
     if(TARGET fmt::fmt)
         get_target_property(FMT_INCLUDE_DIR fmt::fmt INTERFACE_INCLUDE_DIRECTORIES)
         target_link_libraries(${PROJECT_NAME} INTERFACE fmt::fmt)
+	target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_FMTLIB_DTOA)
+	set(HAS_USED_EXTERNAL_DTOA TRUE)
+
+	message(STATUS "Using fmt from: ${FMT_INCLUDE_DIR}")
+	message(STATUS "WWJSON_USE_FMTLIB_DTOA enabled")
+    endif()
+endif()
+
+# Auto-detect external DTOA library if WWJSON_USE_EXTERNAL_DTOA is ON
+# and no specific library has been configured yet
+if(WWJSON_USE_EXTERNAL_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
+    message(STATUS "Auto-detecting external DTOA library...")
+
+    # Try rapidjson first (local installation only, no download)
+    # rapidjson is header-only, so we use find_path instead of find_package
+    find_path(RAPIDJSON_INCLUDE_DIR NAMES rapidjson/rapidjson.h PATHS /usr/local/include NO_DEFAULT_PATH)
+    if(RAPIDJSON_INCLUDE_DIR)
+	target_include_directories(${PROJECT_NAME} INTERFACE ${RAPIDJSON_INCLUDE_DIR})
+	target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_RAPIDJSON_DTOA)
+	set(HAS_USED_EXTERNAL_DTOA TRUE)
+	message(STATUS "Auto-detected rapidjson from: ${RAPIDJSON_INCLUDE_DIR}")
     endif()
 
-    # Add compile definition to enable external dtoa
-    target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_FMTLIB_DTOA)
+    # If rapidjson not found, try fmt (local installation only, no download)
+    if(NOT HAS_USED_EXTERNAL_DTOA)
+        find_package(fmt QUIET)
+        if(fmt_FOUND AND TARGET fmt::fmt)
+            get_target_property(FMT_INCLUDE_DIR fmt::fmt INTERFACE_INCLUDE_DIRECTORIES)
+            target_link_libraries(${PROJECT_NAME} INTERFACE fmt::fmt)
+            target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_FMTLIB_DTOA)
+            set(HAS_USED_EXTERNAL_DTOA TRUE)
+            message(STATUS "Auto-detected fmt from: ${FMT_INCLUDE_DIR}")
+        endif()
+    endif()
 
-    message(STATUS "Using fmt from: ${FMT_INCLUDE_DIR}")
-    message(STATUS "WWJSON_USE_FMTLIB_DTOA enabled")
+    if(NOT HAS_USED_EXTERNAL_DTOA)
+        message(STATUS "No external DTOA library found, using internal implementation")
+    endif()
 endif()
 
 # For development targets:
