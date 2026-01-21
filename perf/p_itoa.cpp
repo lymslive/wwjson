@@ -47,6 +47,8 @@ class IntegerWriterPerf : public perf::RelativeTimer<IntegerWriterPerf<intT>>
     using SignedT = intT;
     using UnsignedT = std::make_unsigned_t<SignedT>;
 
+    using BasicBuilder = ::wwjson::GenericBuilder<::wwjson::JString, ::wwjson::BasicConfig<::wwjson::JString>>;
+
     int items;
     int seed;
     size_t capacity;
@@ -115,8 +117,8 @@ class IntegerWriterPerf : public perf::RelativeTimer<IntegerWriterPerf<intT>>
 
     void methodB()
     {
-        // Use RawBuilder (NumberWriter, slower)
-        ::wwjson::RawBuilder builder(capacity);
+        // Use RawBuilder alike with NumberWriter, but also use JString
+        BasicBuilder builder(capacity);
         builder.BeginArray();
         for (SignedT num : numbers)
         {

@@ -71,7 +71,7 @@ DEF_TAST(jbuilder_unsafe_level, "unsafe_level 编译期特征萃取测试")
 
 /// @}
 
-/// @brief Test for Builder type alias with JString
+/// @brief Test for Builder type alias with JString/KString
 /// @{
 
 DEF_TAST(jbuilder_basic, "Builder 基本功能测试")
@@ -121,39 +121,6 @@ DEF_TAST(jbuilder_nested, "Builder 嵌套结构测试")
     COUT(result, expect);
     COUT(test::IsJsonValid(result), true);
 }
-
-DEF_TAST(jbuilder_raii, "Builder RAII 包装器测试")
-{
-    Builder builder;
-    builder.BeginObject();
-
-    {
-        JObject obj(builder, "user");
-        obj.AddMember("name", "Alice");
-        obj.AddMember("age", 25);
-    }
-
-    {
-        JArray arr(builder, "items");
-        arr.AddItem("apple");
-        arr.AddItem("banana");
-        arr.AddItem(42);
-    }
-
-    builder.EndObject();
-
-    std::string result = builder.MoveResult().str();
-    COUT(result);
-    // Expected: {"user":{"name":"Alice","age":25},"items":["apple","banana",42]}
-    std::string expect = R"({"user":{"name":"Alice","age":25},"items":["apple","banana",42]})";
-    COUT(result, expect);
-    COUT(test::IsJsonValid(result), true);
-}
-
-/// @}
-
-/// @brief Test for FastBuilder type alias with KString
-/// @{
 
 DEF_TAST(jbuilder_fast_basic, "FastBuilder 基本功能测试")
 {
@@ -233,9 +200,8 @@ DEF_TAST(jbuilder_fast_basic, "FastBuilder 基本功能测试")
 
 /// @}
 
-// ============================================================================
-// to_json Helper Functions Tests
-// ============================================================================
+/// @brief Test for the unified to_json function
+/// @{
 
 #include <vector>
 #include <array>

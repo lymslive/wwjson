@@ -600,5 +600,37 @@ rapidjson 可能没有公开的独立接口，但是可访问安装的 rapidjson
 
 ### DONE:20260121-174530
 
+## TODO:2026-01-21/2 p_itoa 测试优化更准确比较整数的正向与反向序列化
+
+RawBuilder 与 Builder 有两个区别：
+- std::string vs JString
+- NumberWriter(反向写) vs IntegerWriter(正向写)
+
+为了更准确测试后者的性能比，应该取消前一个变量，所以不能直接用 RawBuilder.
+没有直接可用的简单别名，完整名是：
+`wwjson::GenericBuilder<wwjson::JString, wwjson::BasicConfig<wwjson::JString>>`
+
+wwjson::Builder 其实就是把 BasicConfig 将成 UnsafeConfig.
+
+### DONE:20260121~222230
+用例 `itoa_forward_write` 原来快 100% 左右，修改后仍快 80% 左右。
+
+## TODO:2026-01-21/3 jbuilder 减少别名定义
+
+以下别名其实很少用到：
+```cpp
+using JObject = GenericObject<JString, UnsafeConfig<JString>>;
+using JArray = GenericArray<JString, UnsafeConfig<JString>>;
+using FastObject = GenericObject<KString, UnsafeConfig<KString>>;
+using FastArray = GenericArray<KString, UnsafeConfig<KString>>;
+```
+
+建议直接使用 `auto` 接收创建方法的返回值，没必要定义别名。
+定义了别名就是认证、提升了推荐度，不妥。
+
+相应的单元测试也要删了。
+
+### DONE:20260121~223530
+
 ## TODO: 三方库 dtoa 性能测试
 
