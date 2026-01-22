@@ -14,6 +14,7 @@
  * @par Supported Libraries:
  * - rapidjson: Uses internal dtoa implementation for high-performance conversion
  * - fmt: Uses fmt library's optimized formatting for precise output
+ * - yyjson: Uses yyjson's fast floating-point conversion (Schubfach algorithm)
  *
  * @par Usage:
  * Define one of the following macros before including this header:
@@ -44,6 +45,10 @@
 
 #if defined(WWJSON_USE_FMTLIB_DTOA)
 #include <fmt/format.h>
+#endif
+
+#if defined(WWJSON_USE_YYJSON_DTOA)
+#include <yyjson.h>
 #endif
 
 namespace wwjson
@@ -113,6 +118,36 @@ struct NumberWriter
 #endif // WWJSON_USE_FMTLIB_DTOA
 
 // ============================================================================
+// yyjson namespace - NumberWriter implementation
+// ============================================================================
+
+#if defined(WWJSON_USE_YYJSON_DTOA)
+
+namespace yyjson
+{
+
+/// @brief High-performance double serialization using yyjson's dtoa
+/// @tparam stringT String type (must have unsafe_level >= 4)
+template <typename stringT>
+struct NumberWriter
+{
+    static_assert(detail::unsafe_level_v<stringT> >= 4,
+        "external::yyjson::NumberWriter requires stringT with unsafe_level >= 4");
+
+    /// @brief Output double value using yyjson_dtoa
+    static void Output(stringT& dst, double value)
+    {
+        char* buffer = dst.end();
+        char* end = ::yyjson_dtoa(value, buffer);
+        dst.unsafe_set_end(end);
+    }
+};
+
+} // namespace yyjson
+
+#endif // WWJSON_USE_YYJSON_DTOA
+
+// ============================================================================
 // NumberWriter type alias - selects implementation based on defined macros
 // ============================================================================
 
@@ -123,6 +158,10 @@ using NumberWriter = rapidjson::NumberWriter<stringT>;
 #elif defined(WWJSON_USE_FMTLIB_DTOA)
 template <typename stringT>
 using NumberWriter = fmt::NumberWriter<stringT>;
+
+#elif defined(WWJSON_USE_YYJSON_DTOA)
+template <typename stringT>
+using NumberWriter = yyjson::NumberWriter<stringT>;
 #endif
 
 } // namespace external

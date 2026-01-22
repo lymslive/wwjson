@@ -33,11 +33,10 @@
 #include <optional>
 
 // Define WWJSON_USE_EXTERNAL_DTOA based on compile definitions from CMake
-#if defined(WWJSON_USE_RAPIDJSON_DTOA) || defined(WWJSON_USE_FMTLIB_DTOA)
-#define WWJSON_USE_EXTERNAL_DTOA 1
+// The macro is defined if any external DTOA library is enabled
+#if defined(WWJSON_USE_RAPIDJSON_DTOA) || defined(WWJSON_USE_FMTLIB_DTOA) || defined(WWJSON_USE_YYJSON_DTOA)
+#define WWJSON_USE_EXTERNAL_DTOA
 #include "external.hpp"
-#else
-#define WWJSON_USE_EXTERNAL_DTOA 0
 #endif
 
 namespace wwjson {
@@ -147,7 +146,7 @@ struct UnsafeConfig : public BasicConfig<stringT>
         }
 
         dst.reserve_ex(64);
-#if WWJSON_USE_EXTERNAL_DTOA
+#if defined(WWJSON_USE_EXTERNAL_DTOA)
         external::NumberWriter<stringT>::Output(dst, value);
 #else
         NumberWriter<stringT>::Output(dst, value);

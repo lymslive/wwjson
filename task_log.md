@@ -1041,3 +1041,42 @@ cmake -B build-release -DBUILD_PERF_TESTS=ON -DWWJSON_USE_EXTERNAL_DTOA=ON
 ./build-release/perf/pfwwjson external_builder_vs_yyjson --items=10000 --loop=1000
 ./build-release/perf/pfwwjson external_float_format
 ```
+
+## TASK:20260122-223100
+-----------------------
+
+### 任务概述
+
+需求 2026-01-22/2：三方库使用 yyjson 的浮点数序列化算法。
+
+在 yyjson fork 仓库中新增 yyjson_dtoa 公开接口，修改 wwjson 的 CMake 配置和 external.hpp 支持使用 yyjson 进行浮点数序列化。
+
+### 修改内容
+
+**yyjson/src/yyjson.h** - 新增函数声明：
+- char *yyjson_dtoa(double val, char *buf) - 浮点数转字符串接口
+
+**yyjson/src/yyjson.c** - 新增函数实现：
+- 调用内部 write_f64_raw 实现高效的浮点数序列化（Schubfach 算法）
+
+**include/external.hpp** - 新增 yyjson 适配：
+- WWJSON_USE_YYJSON_DTOA 宏支持
+- external::yyjson::NumberWriter 实现
+
+**include/jbuilder.hpp** - 修复宏逻辑：
+- 添加 WWJSON_USE_YYJSON_DTOA 到条件判断
+- 改用 defined() 语法按定义/未定义判断
+
+**CMakeLists.txt** - 新增 yyjson DTOA 支持：
+- WWJSON_USE_YYJSON_DTOA 选项（可显式启用或自动检测）
+- 显式指定时本地未安装则从 GitHub 下载
+- 自动检测仅检查本地安装
+
+### 性能测试结果
+
+wwjson::Builder 使用 yyjson_dtoa 比直接用 yyjson 快约 9%。
+
+### Issue 草稿
+
+已在 doing_plan.tmp/yyjson_issue_draft.md 暂存提给 yyjson 官方的 issue 英文文案。
+

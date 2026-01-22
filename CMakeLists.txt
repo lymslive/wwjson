@@ -89,8 +89,11 @@ option(WWJSON_USE_RAPIDJSON_DTOA "Use rapidjson internal dtoa for float serializ
 # Option to use fmt library for floating-point serialization
 option(WWJSON_USE_FMTLIB_DTOA "Use fmt library for float serialization" OFF)
 
+# Option to use yyjson library for floating-point serialization
+option(WWJSON_USE_YYJSON_DTOA "Use yyjson library for float serialization (yyjson_dtoa)" OFF)
+
 # Option to auto-detect and use external library for floating-point serialization
-option(WWJSON_USE_EXTERNAL_DTOA "Auto-detect external dtoa library (rapidjson or fmt)" OFF)
+option(WWJSON_USE_EXTERNAL_DTOA "Auto-detect external dtoa library (rapidjson, fmt, or yyjson)" OFF)
 
 # Option to build unit tests
 option(BUILD_UNIT_TESTS "Build unit tests" ON)
@@ -157,6 +160,29 @@ if(WWJSON_USE_FMTLIB_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
     endif()
 endif()
 
+if(WWJSON_USE_YYJSON_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
+    find_package(yyjson QUIET)
+    if(NOT yyjson_FOUND)
+        message(STATUS "yyjson not found locally, fetching from GitHub...")
+        FetchContent_Declare(
+            yyjson
+            GIT_REPOSITORY https://github.com/lymslive/yyjson.git
+            GIT_TAG master
+        )
+        FetchContent_MakeAvailable(yyjson)
+    endif()
+
+    if(TARGET yyjson::yyjson)
+        target_link_libraries(${PROJECT_NAME} INTERFACE yyjson::yyjson)
+        target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_YYJSON_DTOA)
+        set(HAS_USED_EXTERNAL_DTOA TRUE)
+
+        get_target_property(YYJSON_INCLUDE_DIR yyjson::yyjson INTERFACE_INCLUDE_DIRECTORIES)
+        message(STATUS "Using yyjson from: ${YYJSON_INCLUDE_DIR}")
+        message(STATUS "WWJSON_USE_YYJSON_DTOA enabled")
+    endif()
+endif()
+
 # Auto-detect external DTOA library if WWJSON_USE_EXTERNAL_DTOA is ON
 # and no specific library has been configured yet
 if(WWJSON_USE_EXTERNAL_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
@@ -181,6 +207,18 @@ if(WWJSON_USE_EXTERNAL_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
             target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_FMTLIB_DTOA)
             set(HAS_USED_EXTERNAL_DTOA TRUE)
             message(STATUS "Auto-detected fmt from: ${FMT_INCLUDE_DIR}")
+        endif()
+    endif()
+
+    # If fmt not found, try yyjson (local installation only, no download)
+    if(NOT HAS_USED_EXTERNAL_DTOA)
+        find_package(yyjson QUIET)
+        if(yyjson_FOUND AND TARGET yyjson::yyjson)
+            target_link_libraries(${PROJECT_NAME} INTERFACE yyjson::yyjson)
+            target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_YYJSON_DTOA)
+            set(HAS_USED_EXTERNAL_DTOA TRUE)
+            get_target_property(YYJSON_INCLUDE_DIR yyjson::yyjson INTERFACE_INCLUDE_DIRECTORIES)
+            message(STATUS "Auto-detected yyjson from: ${YYJSON_INCLUDE_DIR}")
         endif()
     endif()
 

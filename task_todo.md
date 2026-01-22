@@ -662,3 +662,26 @@ using FastArray = GenericArray<KString, UnsafeConfig<KString>>;
 
 ### DONE:20260122-150820
 
+## TODO:2026-01-22/2 三方库使用 yyjson 的浮点数序列化算法
+
+include/external.hpp 当前适配外部库使用了 rapidjson 与 fmt ，用于浮点数序列化。
+但是经过测试它们的性能仍不如 yyjson 。
+
+我也 fork 了 yyjson 仓库，在 ../yyjson 兄弟目录。
+似乎没发现它的 .h 头文件有暴露接口将 double 转为字符串，写入一个 char buffer
+。
+
+请帮忙再检查一下 yyjson 是否有类似的公开接口。如果真没有，就在这个 fork 仓库中
+简单修改一下，封装一个对外接口，提供浮点数序列化功能。接口名建议 `yyjson_dtoa`
+。
+
+再修改 wwjson 的 cmake 脚本与 external.hpp ，支持使用 `yyjson_dtoa` 进行浮点数
+序列化。
+
+修改 yyjson fork 仓库前先检查同步上游官方仓库，修改完本地安装，再测试 wwjson
+的适配修改。
+
+然后帮我写一份给 yyjson 官方仓库提 issue 的英文文案，先暂存 `./doing_plan.tmp`
+目录下的文件。我将尝试与 yyjson 的作者沟通，希望它能开放这样的功能。
+
+### DONE:20260122-223100
