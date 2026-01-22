@@ -632,5 +632,33 @@ using FastArray = GenericArray<KString, UnsafeConfig<KString>>;
 
 ### DONE:20260121~223530
 
-## TODO: 三方库 dtoa 性能测试
+## TODO:2026-01-22/1 三方库 dtoa 性能测试
+
+- 新增 perf/p_external.cpp 文件，同步加入 CMake 脚本
+- 参考 p_itoa.cp 写两个相对性能测试子类及 DEF_TAST 用例
+
+用例一：
+- 随机生成 double 浮点数数组
+- 方法 A 使用 wwjson::Builder (JString + UnsafeConfig)
+- 方法 B 使用 (JString + BasicConfig) 的 builder
+- 可以期望断言 COUT(ratio < 1.0, true);
+
+用例二：
+- 随机生成 double 浮点数数组
+- 方法 A 使用 wwjson::Builder
+- 方法 B 使用 yyjson 构建 json 数组
+- 单参数非断言打印 COUT(ratio < 1.0);
+
+然后写个 DEF_TOOL 用例，观察三方库序列化浮点数的格式，不作为性能比较。
+也构建一个较短的 json 数组，包含如下浮点数：
+- 正负零
+- 正负纯整数，无小数部分的浮点数
+- double 极大值与极小值
+- 离 double 极大值与极小值较近，但不在两端的值
+- 中间正常范围的浮点数
+- 总数在 10 - 20 个左右为宜
+
+使用不同的 cmake 选项选用 yyjson/fmt 三方库编译 build-release 测试，简单汇报结果。
+
+### DONE:20260122-150820
 

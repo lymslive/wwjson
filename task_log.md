@@ -881,3 +881,163 @@ cmake .. -DWWJSON_USE_FMTLIB_DTOA=ON
 cmake .. -DWWJSON_USE_EXTERNAL_DTOA=ON
 ```
 
+# AI 协作任务工作日志
+
+---
+
+## TASK:20260115-120000
+
+### 任务概述
+
+创建 perf/mini 目录，包含 3 个最简示例用于研究编译优化后的汇编码。
+
+### 新增文件
+
+- `perf/mini/itoa_u16.cpp` - uint16_t 序列化示例
+- `perf/mini/itoa_u32.cpp` - uint32_t 序列化示例
+- `perf/mini/builder.cpp` - 最简 JSON 构建示例
+- `perf/mini/Makefile` - 编译和汇编生成
+- `perf/mini/README.md` - 说明文档
+- `.github/workflows/ci-mini.yml` - GitHub CI 流水线
+
+### 修改内容
+
+- `include/jstring.hpp` - 添加 `reserve()` 方法支持 `UnsafeBuffer`
+- `.gitignore` - 添加 `*.exe` 和 `*.s` 忽略规则
+
+### 汇编分析结论
+
+1. **整数序列化 (itoa_u16/itoa_u32)**：
+   - ✅ 使用 DigitPair 查找表 (kDigitPairs)
+   - ❌ 函数未完全内联 (仍有 callq 调用)
+   - ❌ 除法未优化为乘法和移位
+
+2. **JSON 构建 (builder)**：
+   - ✅ 编译器完全内联，整个构建过程无函数调用
+   - ✅ 直接在栈上构造最终字符串常量
+   - 最优情况已无法进一步优化
+# AI 协作任务工作日志
+
+格式说明:
+- **任务ID**: YYYYMMDD-HHMMSS ，生成命令 `date +"%Y%m%d-%H%M%S"`
+- 每条日志开始一个二级标题，标题名就是任务ID
+- 可适合分几个三级标题，简明扼要描叙任务过程与结果
+- **追加至文件末尾**，与上条日志隔一空行
+
+---
+
+## TASK:20260121-174530
+-----------------------
+
+### 任务概述
+
+需求 2026-01-21/1：外部库序列化浮点数功能优化。
+
+1. 添加 `WWJSON_USE_EXTERNAL_DTOA` 选项，支持自动检测本地 rapidjson/fmt 库
+2. 简化 external.hpp，移除 nan/inf 和负数判断的重复代码
+3. 将特殊值处理提取到 UnsafeConfig::NumberString 中
+
+### 修改内容
+
+**CMakeLists.txt** - 外部库检测逻辑重构：
+
+- 新增 `WWJSON_USE_EXTERNAL_DTOA` 选项，默认 OFF
+- 添加 `HAS_USED_EXTERNAL_DTOA` 变量跟踪是否已配置
+- rapidjson/fmt 检测失败时不会自动下载（本地检查 only）
+- 自动检测优先级：rapidjson > fmt（按顺序检测）
+
+**include/external.hpp** - 简化 NumberWriter 实现：
+
+- 移除 rapidjson::NumberWriter 中的 nan/inf 检查和负数处理
+- 移除 fmt::NumberWriter 中的 nan/inf 检查和负数处理
+- rapidjson::dtoa 调用改为 `::rapidjson::internal::dtoa(value, buffer)`
+- 简化调用 `unsafe_set_end` 重设写入尾指针
+
+**include/jbuilder.hpp** - 统一特殊值处理：
+
+- 在 `UnsafeConfig::NumberString<floatT>` 中添加 nan/inf 检测
+- 特殊值输出 "null"（JSON 规范）
+- 正常值调用 external::NumberWriter::Output 或内部实现
+
+### 技术说明
+
+**关于 rapidjson 检测**：
+- rapidjson 是 header-only 库，不提供 CMake config 文件
+- 使用 `find_path` 代替 `find_package` 查找 rapidjson/rapidjson.h
+- 本地安装路径：/usr/local/include
+
+**关于三方库 dtoa 函数**：
+- rapidjson: `::rapidjson::internal::dtoa(value, buffer)`，参数顺序 (value, buffer)
+- fmt: `::fmt::format_to(buffer, "{}", value)`
+
+### 测试结果
+
+- 单元测试：119 项全部通过
+- 自动检测功能验证：
+  - `WWJSON_USE_EXTERNAL_DTOA=ON` 正确检测到 rapidjson
+  - `WWJSON_USE_EXTERNAL_DTOA=ON` 正确检测到 fmt（无 rapidjson 时）
+- 浮点数序列化正常输出
+
+### 使用方式
+
+```bash
+# 方式1：明确指定使用 rapidjson
+cmake .. -DWWJSON_USE_RAPIDJSON_DTOA=ON
+
+# 方式2：明确指定使用 fmt
+cmake .. -DWWJSON_USE_FMTLIB_DTOA=ON
+
+# 方式3：自动检测本地库（仅检测，不下载）
+cmake .. -DWWJSON_USE_EXTERNAL_DTOA=ON
+```
+
+## TASK:20260122-150820
+-----------------------
+
+### 任务概述
+
+需求 2026-01-22/1：外部库 dtoa 性能测试。
+
+新增 `perf/p_external.cpp` 文件，包含三个测试用例：
+1. UnsafeConfig vs BasicConfig 浮点数序列化性能对比
+2. wwjson::Builder vs yyjson 浮点数序列化性能对比
+3. 工具测试：观察不同库的浮点数序列化格式差异
+
+### 修改内容
+
+**perf/p_external.cpp** - 新增性能测试文件：
+- `ExternalVsBasicDtoaPerf` 类：比较 UnsafeConfig 与 BasicConfig
+- `BuilderVsYyjsonFloatPerf` 类：比较 wwjson 与 yyjson
+- `compareJsonFloatArrays()` 函数：解析 JSON 后比较数值（因格式可能不同）
+- `DEF_TAST(external_unsafe_vs_basic)` - 断言 UnsafeConfig 更快
+- `DEF_TAST(external_builder_vs_yyjson)` - 非断言，仅打印性能比
+- `DEF_TOOL(external_float_format)` - 观察特殊浮点数的格式化输出
+
+**perf/CMakeLists.txt** - 添加 p_external.cpp 到 pfwwjson
+
+### 性能测试结果
+
+| 外部库 | UnsafeConfig/BasicConfig | wwjson/yyjson |
+|--------|--------------------------|---------------|
+| 无外部库 | ~0.99 (持平) | ~20.3 (yyjson 快 19 倍) |
+| rapidjson | ~0.092 (**10 倍**) | ~1.8 (yyjson 快 85%) |
+| fmt | ~0.077 (**12 倍**) | ~1.6 (yyjson 快 65%) |
+
+结论：使用外部 DTOA 库（fmt 更优）可显著提升浮点数序列化性能。
+
+### 使用方式
+
+```bash
+# 使用 rapidjson
+cmake -B build-release -DBUILD_PERF_TESTS=ON -DWWJSON_USE_RAPIDJSON_DTOA=ON
+
+# 使用 fmt
+cmake -B build-release -DBUILD_PERF_TESTS=ON -DWWJSON_USE_FMTLIB_DTOA=ON
+
+# 自动检测
+cmake -B build-release -DBUILD_PERF_TESTS=ON -DWWJSON_USE_EXTERNAL_DTOA=ON
+
+./build-release/perf/pfwwjson external_unsafe_vs_basic --items=10000 --loop=1000
+./build-release/perf/pfwwjson external_builder_vs_yyjson --items=10000 --loop=1000
+./build-release/perf/pfwwjson external_float_format
+```

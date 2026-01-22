@@ -10,6 +10,7 @@ add_executable(pfwwjson
     p_design.cpp
     p_api.cpp
     p_nodom.cpp
+    p_external.cpp
 )
 
 # Link with wwjson library
