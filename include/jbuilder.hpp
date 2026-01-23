@@ -34,7 +34,7 @@
 
 // Define WWJSON_USE_EXTERNAL_DTOA based on compile definitions from CMake
 // The macro is defined if any external DTOA library is enabled
-#if defined(WWJSON_USE_RAPIDJSON_DTOA) || defined(WWJSON_USE_FMTLIB_DTOA) || defined(WWJSON_USE_YYJSON_DTOA)
+#if defined(WWJSON_USE_YYJSON_DTOA) || defined(WWJSON_USE_FMTLIB_DTOA) || defined(WWJSON_USE_RAPIDJSON_DTOA)
 #define WWJSON_USE_EXTERNAL_DTOA
 #include "external.hpp"
 #endif

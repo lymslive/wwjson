@@ -105,35 +105,34 @@ option(BUILD_PERF_TESTS "Build performance tests" OFF)
 option(BUILD_EXAMPLES "Build example programs" ON)
 
 # ============================================================================
-# External DTOA library support (rapidjson and fmt)
+# External DTOA library support
 # These libraries are used for high-performance floating-point serialization
 # ============================================================================
 
 # Track if we've already configured an external DTOA library
 set(HAS_USED_EXTERNAL_DTOA FALSE)
 
-if(WWJSON_USE_RAPIDJSON_DTOA)
-    # Use find_path to locate rapidjson (header-only, no CMake target needed)
-    find_path(RAPIDJSON_INCLUDE_DIR NAMES rapidjson/rapidjson.h PATHS /usr/local/include NO_DEFAULT_PATH)
-    if(NOT RAPIDJSON_INCLUDE_DIR)
-        message(STATUS "rapidjson not found, fetching from GitHub...")
-        include(FetchContent)
+if(WWJSON_USE_YYJSON_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
+    find_package(yyjson QUIET)
+    if(NOT yyjson_FOUND)
+        message(STATUS "yyjson not found locally, fetching from GitHub...")
         FetchContent_Declare(
-            rapidjson
-            GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
+            yyjson
+            GIT_REPOSITORY https://github.com/lymslive/yyjson.git
             GIT_TAG master
-        )
-        FetchContent_MakeAvailable(rapidjson)
-        get_target_property(RAPIDJSON_INCLUDE_DIR rapidjson INTERFACE_INCLUDE_DIRECTORIES)
+            )
+        FetchContent_MakeAvailable(yyjson)
     endif()
 
-    # Add include directory and compile definition to wwjson target
-    target_include_directories(${PROJECT_NAME} INTERFACE ${RAPIDJSON_INCLUDE_DIR})
-    target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_RAPIDJSON_DTOA)
-    set(HAS_USED_EXTERNAL_DTOA TRUE)
+    if(TARGET yyjson::yyjson)
+        target_link_libraries(${PROJECT_NAME} INTERFACE yyjson::yyjson)
+        target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_YYJSON_DTOA)
+        set(HAS_USED_EXTERNAL_DTOA TRUE)
 
-    message(STATUS "Using rapidjson from: ${RAPIDJSON_INCLUDE_DIR}")
-    message(STATUS "WWJSON_USE_RAPIDJSON_DTOA enabled")
+        get_target_property(YYJSON_INCLUDE_DIR yyjson::yyjson INTERFACE_INCLUDE_DIRECTORIES)
+        message(STATUS "Using yyjson from: ${YYJSON_INCLUDE_DIR}")
+        message(STATUS "WWJSON_USE_YYJSON_DTOA enabled")
+    endif()
 endif()
 
 if(WWJSON_USE_FMTLIB_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
@@ -160,27 +159,28 @@ if(WWJSON_USE_FMTLIB_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
     endif()
 endif()
 
-if(WWJSON_USE_YYJSON_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
-    find_package(yyjson QUIET)
-    if(NOT yyjson_FOUND)
-        message(STATUS "yyjson not found locally, fetching from GitHub...")
+if(WWJSON_USE_RAPIDJSON_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
+    # Use find_path to locate rapidjson (header-only, no CMake target needed)
+    find_path(RAPIDJSON_INCLUDE_DIR NAMES rapidjson/rapidjson.h PATHS /usr/local/include NO_DEFAULT_PATH)
+    if(NOT RAPIDJSON_INCLUDE_DIR)
+        message(STATUS "rapidjson not found, fetching from GitHub...")
+        include(FetchContent)
         FetchContent_Declare(
-            yyjson
-            GIT_REPOSITORY https://github.com/lymslive/yyjson.git
+            rapidjson
+            GIT_REPOSITORY https://github.com/Tencent/rapidjson.git
             GIT_TAG master
         )
-        FetchContent_MakeAvailable(yyjson)
+        FetchContent_MakeAvailable(rapidjson)
+        get_target_property(RAPIDJSON_INCLUDE_DIR rapidjson INTERFACE_INCLUDE_DIRECTORIES)
     endif()
 
-    if(TARGET yyjson::yyjson)
-        target_link_libraries(${PROJECT_NAME} INTERFACE yyjson::yyjson)
-        target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_YYJSON_DTOA)
-        set(HAS_USED_EXTERNAL_DTOA TRUE)
+    # Add include directory and compile definition to wwjson target
+    target_include_directories(${PROJECT_NAME} INTERFACE ${RAPIDJSON_INCLUDE_DIR})
+    target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_RAPIDJSON_DTOA)
+    set(HAS_USED_EXTERNAL_DTOA TRUE)
 
-        get_target_property(YYJSON_INCLUDE_DIR yyjson::yyjson INTERFACE_INCLUDE_DIRECTORIES)
-        message(STATUS "Using yyjson from: ${YYJSON_INCLUDE_DIR}")
-        message(STATUS "WWJSON_USE_YYJSON_DTOA enabled")
-    endif()
+    message(STATUS "Using rapidjson from: ${RAPIDJSON_INCLUDE_DIR}")
+    message(STATUS "WWJSON_USE_RAPIDJSON_DTOA enabled")
 endif()
 
 # Auto-detect external DTOA library if WWJSON_USE_EXTERNAL_DTOA is ON
@@ -188,17 +188,19 @@ endif()
 if(WWJSON_USE_EXTERNAL_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
     message(STATUS "Auto-detecting external DTOA library...")
 
-    # Try rapidjson first (local installation only, no download)
-    # rapidjson is header-only, so we use find_path instead of find_package
-    find_path(RAPIDJSON_INCLUDE_DIR NAMES rapidjson/rapidjson.h PATHS /usr/local/include NO_DEFAULT_PATH)
-    if(RAPIDJSON_INCLUDE_DIR)
-	target_include_directories(${PROJECT_NAME} INTERFACE ${RAPIDJSON_INCLUDE_DIR})
-	target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_RAPIDJSON_DTOA)
-	set(HAS_USED_EXTERNAL_DTOA TRUE)
-	message(STATUS "Auto-detected rapidjson from: ${RAPIDJSON_INCLUDE_DIR}")
+    # Try yyjson first (local installation only, no download)
+    if(NOT HAS_USED_EXTERNAL_DTOA)
+        find_package(yyjson QUIET)
+        if(yyjson_FOUND AND TARGET yyjson::yyjson)
+            target_link_libraries(${PROJECT_NAME} INTERFACE yyjson::yyjson)
+            target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_YYJSON_DTOA)
+            set(HAS_USED_EXTERNAL_DTOA TRUE)
+            get_target_property(YYJSON_INCLUDE_DIR yyjson::yyjson INTERFACE_INCLUDE_DIRECTORIES)
+            message(STATUS "Auto-detected yyjson from: ${YYJSON_INCLUDE_DIR}")
+        endif()
     endif()
 
-    # If rapidjson not found, try fmt (local installation only, no download)
+    # If yyjson not found, try fmt (local installation only, no download)
     if(NOT HAS_USED_EXTERNAL_DTOA)
         find_package(fmt QUIET)
         if(fmt_FOUND AND TARGET fmt::fmt)
@@ -210,15 +212,14 @@ if(WWJSON_USE_EXTERNAL_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
         endif()
     endif()
 
-    # If fmt not found, try yyjson (local installation only, no download)
+    # rapidjson is header-only, so we use find_path instead of find_package
     if(NOT HAS_USED_EXTERNAL_DTOA)
-        find_package(yyjson QUIET)
-        if(yyjson_FOUND AND TARGET yyjson::yyjson)
-            target_link_libraries(${PROJECT_NAME} INTERFACE yyjson::yyjson)
-            target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_YYJSON_DTOA)
+        find_path(RAPIDJSON_INCLUDE_DIR NAMES rapidjson/rapidjson.h PATHS /usr/local/include NO_DEFAULT_PATH)
+        if(RAPIDJSON_INCLUDE_DIR)
+            target_include_directories(${PROJECT_NAME} INTERFACE ${RAPIDJSON_INCLUDE_DIR})
+            target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_RAPIDJSON_DTOA)
             set(HAS_USED_EXTERNAL_DTOA TRUE)
-            get_target_property(YYJSON_INCLUDE_DIR yyjson::yyjson INTERFACE_INCLUDE_DIRECTORIES)
-            message(STATUS "Auto-detected yyjson from: ${YYJSON_INCLUDE_DIR}")
+            message(STATUS "Auto-detected rapidjson from: ${RAPIDJSON_INCLUDE_DIR}")
         endif()
     endif()
 

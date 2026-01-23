@@ -696,6 +696,12 @@ include/external.hpp 当前适配外部库使用了 rapidjson 与 fmt ，用于�
 - jbuilder.hpp
 - external.hpp
 
+另外，external.hpp 优化一个安全检测，`unsafe_set_end` 之前判断一下 `end` 非空
+。毕竟三方库返回的指针，要做最基本的非空判断，但是可用 `wwjson_unlikely` 宏优
+化分支预测。
+
+### DONE: 20260124-000547
+
 ## TODO: cmake 脚本依赖库处理重复逻辑优化
 
 ## TODO: 文档更新

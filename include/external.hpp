@@ -18,8 +18,9 @@
  *
  * @par Usage:
  * Define one of the following macros before including this header:
- * - WWJSON_USE_RAPIDJSON_DTOA: Use rapidjson's internal dtoa
+ * - WWJSON_USE_YYJSON_DTOA: Use yyjson's internal dtoa
  * - WWJSON_USE_FMTLIB_DTOA: Use fmt library for formatting
+ * - WWJSON_USE_RAPIDJSON_DTOA: Use rapidjson's internal dtoa
  *
  * @note
  * The external::NumberWriter is a type alias that selects the appropriate implementation
@@ -79,7 +80,10 @@ struct NumberWriter
     {
         char* buffer = dst.end();
         char* end = ::rapidjson::internal::dtoa(value, buffer);
-        dst.unsafe_set_end(end);
+        if (wwjson_unlikely(end != nullptr))
+        {
+            dst.unsafe_set_end(end);
+        }
     }
 };
 
@@ -109,7 +113,10 @@ struct NumberWriter
     {
         char* buffer = dst.end();
         char* end = ::fmt::format_to(buffer, "{}", value);
-        dst.unsafe_set_end(end);
+        if (wwjson_unlikely(end != nullptr))
+        {
+            dst.unsafe_set_end(end);
+        }
     }
 };
 
@@ -139,7 +146,10 @@ struct NumberWriter
     {
         char* buffer = dst.end();
         char* end = ::yyjson_dtoa(value, buffer);
-        dst.unsafe_set_end(end);
+        if (wwjson_unlikely(end != nullptr))
+        {
+            dst.unsafe_set_end(end);
+        }
     }
 };
 
@@ -151,17 +161,17 @@ struct NumberWriter
 // NumberWriter type alias - selects implementation based on defined macros
 // ============================================================================
 
-#if defined(WWJSON_USE_RAPIDJSON_DTOA)
+#if defined(WWJSON_USE_YYJSON_DTOA)
 template <typename stringT>
-using NumberWriter = rapidjson::NumberWriter<stringT>;
+using NumberWriter = yyjson::NumberWriter<stringT>;
 
 #elif defined(WWJSON_USE_FMTLIB_DTOA)
 template <typename stringT>
 using NumberWriter = fmt::NumberWriter<stringT>;
 
-#elif defined(WWJSON_USE_YYJSON_DTOA)
+#elif defined(WWJSON_USE_RAPIDJSON_DTOA)
 template <typename stringT>
-using NumberWriter = yyjson::NumberWriter<stringT>;
+using NumberWriter = rapidjson::NumberWriter<stringT>;
 #endif
 
 } // namespace external

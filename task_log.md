@@ -1080,3 +1080,32 @@ wwjson::Builder 使用 yyjson_dtoa 比直接用 yyjson 快约 9%。
 
 已在 doing_plan.tmp/yyjson_issue_draft.md 暂存提给 yyjson 官方的 issue 英文文案。
 
+## TASK:20260124-000547
+-----------------------
+
+### 任务概述
+
+需求 2026-01-23/1：将三方库检测按性能顺序重组。
+
+目前检测使用的三方库在 dtoa 上的性能表现，依次是 yyjson > fmt > rapidjson。
+现在的检测顺序正好反了，需要调整顺序，优先检测 yyjson，再 fmt 与 rapidjson。
+
+### 修改内容
+
+**CMakeLists.txt** - 重组自动检测顺序：
+- auto-detection 部分修改检测顺序为 yyjson > fmt > rapidjson
+- 保持本地检测逻辑不变，不触发 GitHub 下载
+
+**include/external.hpp** - 重组类型别名选择顺序：
+- NumberWriter 类型别名修改判断顺序为 YYJSON > FMT > RAPIDJSON
+- 确保编译时优先选择性能最优的实现
+
+**include/external.hpp** - 增强 unsafe_set_end 安全性：
+- rapidjson::NumberWriter::Output 添加 end 非空判断
+- fmt::NumberWriter::Output 添加 end 非空判断
+- yyjson::NumberWriter::Output 添加 end 非空判断
+- 所有安全检查使用 wwjson_unlikely 宏优化分支预测
+
+### 测试结果
+
+运行单元测试，118 个测试用例全部通过。
