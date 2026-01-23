@@ -685,3 +685,19 @@ include/external.hpp 当前适配外部库使用了 rapidjson 与 fmt ，用于�
 目录下的文件。我将尝试与 yyjson 的作者沟通，希望它能开放这样的功能。
 
 ### DONE:20260122-223100
+
+## TODO:2026-01-23/1 将三方库检测按性能顺序重组
+
+目前检测使用的三方库在 dtoa 上的性能表现，依次是 yyjson fmt rapijson
+
+现在的检测顺序正好反了。需要调整顺序，优先检测 yyjson ，再 fmt 与 rapidjson
+涉及修改的文件可能包括：
+- 根目录的 CMakeLists
+- jbuilder.hpp
+- external.hpp
+
+## TODO: cmake 脚本依赖库处理重复逻辑优化
+
+## TODO: 文档更新
+
+## TODO: v1.1.2 封版
