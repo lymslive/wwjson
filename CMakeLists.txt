@@ -112,6 +112,9 @@ option(BUILD_EXAMPLES "Build example programs" ON)
 # Track if we've already configured an external DTOA library
 set(HAS_USED_EXTERNAL_DTOA FALSE)
 
+# FetchContent to download dependency from GitHub if not found locally.
+include(FetchContent)
+
 if(WWJSON_USE_YYJSON_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
     find_package(yyjson QUIET)
     if(NOT yyjson_FOUND)
@@ -235,9 +238,6 @@ endif()
 if(NOT WWJSON_LIB_ONLY)
     # Try to find couttast in local installation first (HOME directory)
     set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{HOME})
-
-    # FetchContent to download dependency from GitHub if not found locally.
-    include(FetchContent)
 
     # Find couttast dependency
     find_package(couttast QUIET)
