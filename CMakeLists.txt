@@ -135,6 +135,14 @@ if(WWJSON_USE_YYJSON_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
         get_target_property(YYJSON_INCLUDE_DIR yyjson::yyjson INTERFACE_INCLUDE_DIRECTORIES)
         message(STATUS "Using yyjson from: ${YYJSON_INCLUDE_DIR}")
         message(STATUS "WWJSON_USE_YYJSON_DTOA enabled")
+    elseif(TARGET yyjson)
+        target_link_libraries(${PROJECT_NAME} INTERFACE yyjson)
+        target_compile_definitions(${PROJECT_NAME} INTERFACE WWJSON_USE_YYJSON_DTOA)
+        set(HAS_USED_EXTERNAL_DTOA TRUE)
+
+        get_target_property(YYJSON_INCLUDE_DIR yyjson INTERFACE_INCLUDE_DIRECTORIES)
+        message(STATUS "Using yyjson from: ${YYJSON_INCLUDE_DIR}")
+        message(STATUS "WWJSON_USE_YYJSON_DTOA enabled")
     endif()
 endif()
 
@@ -293,6 +301,8 @@ if(NOT WWJSON_LIB_ONLY)
 
     if(TARGET yyjson::yyjson)
         get_target_property(YYJSON_INCLUDE_DIR yyjson::yyjson INTERFACE_INCLUDE_DIRECTORIES)
+    elseif(TARGET yyjson)
+        get_target_property(YYJSON_INCLUDE_DIR yyjson INTERFACE_INCLUDE_DIRECTORIES)
     endif()
 
     # Get include directory for xyjson
