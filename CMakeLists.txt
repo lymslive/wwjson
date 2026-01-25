@@ -118,7 +118,7 @@ if(WWJSON_USE_YYJSON_DTOA AND NOT HAS_USED_EXTERNAL_DTOA)
         message(STATUS "yyjson not found locally, fetching from GitHub...")
         FetchContent_Declare(
             yyjson
-            GIT_REPOSITORY https://github.com/lymslive/yyjson.git
+            GIT_REPOSITORY https://github.com/ibireme/yyjson.git
             GIT_TAG master
             )
         FetchContent_MakeAvailable(yyjson)
