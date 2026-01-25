@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       cmake_args:
-        description: 'CMake configuration arguments. Default: -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON -DBUILD_UNIT_TESTS=OFF'
+        description: 'CMake configuration arguments. Default: -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON -DBUILD_UNIT_TESTS=OFF -DWWJSON_USE_YYJSON_DTOA=ON'
         required: false
         default: '-DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON'
       test_args:
@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     
     env:
-      CMAKE_ARGS: ${{ github.event.inputs.cmake_args || '-DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON -DBUILD_UNIT_TESTS=OFF' }}
+      CMAKE_ARGS: ${{ github.event.inputs.cmake_args || '-DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON -DBUILD_UNIT_TESTS=OFF -DWWJSON_USE_YYJSON_DTOA=ON' }}
       TEST_ARGS: ${{ github.event.inputs.test_args || '--cout=fail' }}
     
     steps:

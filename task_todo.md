@@ -702,7 +702,15 @@ include/external.hpp 当前适配外部库使用了 rapidjson 与 fmt ，用于�
 
 ### DONE: 20260124-000547
 
-## TODO: cmake 脚本依赖库处理重复逻辑优化
+## TODO:2026-01-25/1 external.hpp 使用公开 API yyjson_write_number
+
+yyjson 有公开的 API `yyjson_write_number` 可用于将浮点数转字符串，
+只是要多一个临时 `yyjson_val` 变量，可能性能略有下降。
+
+在本地测试 `p_external.cpp` ，wwjson::Builder 与 yyjson dom 序列化 double 数组
+性能接近了，但仍慢 5-10% ，略奇怪。
+
+### DONE: 20260125~144630
 
 ## TODO: 文档更新
 

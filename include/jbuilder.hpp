@@ -195,18 +195,6 @@ using Builder = GenericBuilder<JString, UnsafeConfig<JString>>;
 /// @endcode
 using FastBuilder = GenericBuilder<KString, UnsafeConfig<KString>>;
 
-/// @brief RAII object wrapper for Builder
-using JObject = GenericObject<JString, UnsafeConfig<JString>>;
-
-/// @brief RAII array wrapper for Builder
-using JArray = GenericArray<JString, UnsafeConfig<JString>>;
-
-/// @brief RAII object wrapper for FastBuilder
-using FastObject = GenericObject<KString, UnsafeConfig<KString>>;
-
-/// @brief RAII array wrapper for FastBuilder
-using FastArray = GenericArray<KString, UnsafeConfig<KString>>;
-
 // ============================================================================
 // to_json Helper Functions - Simplified struct-to-JSON serialization
 // ============================================================================

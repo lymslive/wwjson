@@ -55,7 +55,7 @@ clean:
 release: clean/perf
 	@echo "Building in Release mode with performance tests enabled..."
 	mkdir -p build-release
-	cd build-release && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON -DBUILD_UNIT_TESTS=OFF ..
+	cd build-release && cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON -DBUILD_UNIT_TESTS=OFF -DWWJSON_USE_EXTERNAL_DTOA=ON ..
 	cd build-release && make -j4
 
 build/perf:

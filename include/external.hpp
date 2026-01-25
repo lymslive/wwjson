@@ -145,7 +145,10 @@ struct NumberWriter
     static void Output(stringT& dst, double value)
     {
         char* buffer = dst.end();
-        char* end = ::yyjson_dtoa(value, buffer);
+//      char* end = ::yyjson_dtoa(value, buffer);
+        yyjson_val number;
+        yyjson_set_real(&number, value);
+        char* end = yyjson_write_number(&number, buffer);
         if (wwjson_unlikely(end != nullptr))
         {
             dst.unsafe_set_end(end);
