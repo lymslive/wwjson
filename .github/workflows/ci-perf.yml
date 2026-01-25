@@ -10,9 +10,9 @@ on:
   workflow_dispatch:
     inputs:
       cmake_args:
-        description: 'CMake configuration arguments. Default: -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON -DBUILD_UNIT_TESTS=OFF -DWWJSON_USE_YYJSON_DTOA=ON'
+        description: 'CMake configuration arguments. Default: -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON'
         required: false
-        default: '-DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON'
+        default: '-DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_PERF_TESTS=ON -DBUILD_UNIT_TESTS=OFF -DWWJSON_USE_YYJSON_DTOA=ON'
       test_args:
         description: 'Command line arguments for performance tests. Default: --cout=silent'
         required: false
