@@ -80,7 +80,7 @@ struct NumberWriter
     {
         char* buffer = dst.end();
         char* end = ::rapidjson::internal::dtoa(value, buffer);
-        if (wwjson_unlikely(end != nullptr))
+        if (wwjson_likely(end != nullptr))
         {
             dst.unsafe_set_end(end);
         }
@@ -113,7 +113,7 @@ struct NumberWriter
     {
         char* buffer = dst.end();
         char* end = ::fmt::format_to(buffer, "{}", value);
-        if (wwjson_unlikely(end != nullptr))
+        if (wwjson_likely(end != nullptr))
         {
             dst.unsafe_set_end(end);
         }
@@ -146,10 +146,10 @@ struct NumberWriter
     {
         char* buffer = dst.end();
 //      char* end = ::yyjson_dtoa(value, buffer);
-        yyjson_val number;
+        yyjson_val number = {0}; // needed init yyjson_val default state
         yyjson_set_real(&number, value);
         char* end = yyjson_write_number(&number, buffer);
-        if (wwjson_unlikely(end != nullptr))
+        if (wwjson_likely(end != nullptr))
         {
             dst.unsafe_set_end(end);
         }

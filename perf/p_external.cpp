@@ -333,7 +333,7 @@ class BuilderVsYyjsonFloatPerf : public perf::RelativeTimer<BuilderVsYyjsonFloat
     bool methodVerify()
     {
         // may differ on inf/null
-        return true;
+        // return true;
         methodA();
         methodB();
         // Compare parsed numeric values instead of string representation
