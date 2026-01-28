@@ -1109,3 +1109,45 @@ wwjson::Builder 使用 yyjson_dtoa 比直接用 yyjson 快约 9%。
 ### 测试结果
 
 运行单元测试，118 个测试用例全部通过。
+
+## TASK:20260128-235751
+-----------------------
+
+### 任务概述
+
+需求 2026-01-28/2：将 .tool/ 子目录的脚本等工具转变成子仓库。
+
+将当前项目中的点开头的配置目录（.tool, .claude, .codebuddy, .iflow）整合到独立的 dotAgent 仓库，并通过 git submodule 管理，便于在不同项目间共享和维护这些开发工具。
+
+### 实施内容
+
+**创建 dotAgent 仓库**：
+- 在父目录创建 dotAgent 仓库并初始化为 git 仓库
+- 将当前项目的 .tool, .claude, .codebuddy, .iflow 拷贝到 dotAgent（移除前导点号）
+- 创建 README.md 说明仓库用途和使用方法
+- 使用 `gh` CLI 创建 GitHub 仓库并推送：https://github.com/lymslive/dotAgent
+
+**备份当前配置**：
+- 将当前项目的点目录移动到 tool.bak/ 作为备份
+- .codebuddy 因正在使用未能移动，但已在 dotAgent 中有备份
+
+**添加 git submodule**：
+- 在当前项目添加 dotAgent 为 git submodule
+- 初始化并更新 submodule 引用
+
+**创建软链接**：
+- 在 dotAgent 创建 link.sh 脚本（可执行）
+- 执行 link.sh 在父目录创建软链接：.tool -> dotAgent/tool, .claude -> dotAgent/claude, .codebuddy -> dotAgent/codebuddy, .iflow -> dotAgent/iflow
+- 验证软链接工作正常
+
+**更新 .gitignore**：
+- 添加 .claude, .codebuddy, .iflow 到 .gitignore（移除目录末尾的 / 以匹配软链接）
+- 注意：不添加 dotAgent 到 .gitignore（submodule 目录需要被 git 追踪）
+
+### 验证结果
+
+- dotAgent 仓库创建成功并推送到 GitHub
+- 所有软链接创建成功并正常工作
+- git status 显示软链接不再出现在 untracked files 中
+- dotAgent submodule 引用已更新到最新 commit（包含 link.sh）
+

@@ -17,9 +17,10 @@ backup-*
 AGENTS.md
 CLAUDE.md
 CODEBUDDY.md
-.codebuddy/
-.tool/
-.iflow/
+.codebuddy
+.tool
+.claude
+.iflow
 IFLOW.md
 last_log.md
 

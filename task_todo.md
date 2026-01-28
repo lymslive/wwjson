@@ -724,7 +724,7 @@ yyjson 有公开的 API `yyjson_write_number` 可用于将浮点数转字符串�
 
 ### DONE:20260128~183430
 
-## TODO: 将 .tool/ 子目录的脚本等工具转变成一个 submodel 子仓库
+## TODO:2026-01-28/2 将 .tool/ 子目录的脚本等工具转变成一个 submodel 子仓库
 
 当前 `.tool` 目录是一些定制开发的辅助脚本，主要配合 Agent 自定义命令
 使用的。最开始是尝试在另一个小项目（xyjson）中使用的，作为其项目的一部分
@@ -747,13 +747,16 @@ yyjson 有公开的 API `yyjson_write_number` 可用于将浮点数转字符串�
 - 将当前项目的这些 `.` 开头目录再作一次备份，以防出错，全部移到 `tool.bak/`
   子目录中，以移动代删除
 - 将 dotAgent 当作子模块拉取，重新从 github 远程下载
-- 重建所有这些 `.` 开头的目录软链接至 dotAgent 的相应子目录
+- 重建所有这些 `.` 开头的目录软链接至 dotAgent 的相应子目录，
+  可以在 dotAgent 写个 `dot_link.sh` 脚本一键创建这些软链接
 - 检查当前项目的 `.gitignore` ，忽略这些点目录与 dotAgent 。
 
 本地装了 gh 命令行工具，能否直接在我的 github 帐户上新建 dotAgent 空仓库，
 再将本地的 dotAgent 推上去。如果不行，我可以尝试手动登陆 github 新建空仓库。
 
-## TODO:2026-01-28/2 浮点整数序列化加上 .0 后缀
+### DONE: 20260128-235751
+
+## TODO: 浮点整数序列化加上 .0 后缀
 
 当前 `wwjson.hpp` 的 NumberWriter 基本实现，主要基于 `std::to_chars` ，
 恰好是整数的浮点数输出为整数，满足最短格式。但在 json 序列化与反序列化

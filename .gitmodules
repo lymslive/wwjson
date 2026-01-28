@@ -1,0 +1,3 @@
+[submodule "dotAgent"]
+	path = dotAgent
+	url = git@github.com:lymslive/dotAgent.git
