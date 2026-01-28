@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Add $HOME to CMAKE_PREFIX_PATH to find locally installed packages
+# This must be set before any find_package calls
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{HOME})
+
 # Header-only library configuration
 add_library(${PROJECT_NAME} INTERFACE)
 add_library(wwjson::wwjson ALIAS wwjson)
@@ -244,9 +248,6 @@ endif()
 
 # Dependency management for tests and performance benchmarks
 if(NOT WWJSON_LIB_ONLY)
-    # Try to find couttast in local installation first (HOME directory)
-    set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{HOME})
-
     # Find couttast dependency
     find_package(couttast QUIET)
     if(NOT couttast_FOUND)

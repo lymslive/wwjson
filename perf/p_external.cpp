@@ -18,6 +18,7 @@
 
 #include "argv.h"
 #include "relative_perf.h"
+#include "perf_util.h"
 
 #include "jbuilder.hpp"
 #include "external.hpp"
@@ -28,88 +29,7 @@
 #include <cstdlib>
 #include <cmath>
 
-// ============================================================================
-// Utility: Float comparison using yyjson parsing
-// ============================================================================
-
 #include "yyjson.h"
-
-namespace test
-{
-namespace wwjson
-{
-
-/**
- * @brief Parse JSON array string and extract double values using yyjson
- *
- * @param json_str JSON array string
- * @return std::vector<double> Parsed double values, empty on parse error
- */
-inline std::vector<double> parseJsonArrayToDoubles(const std::string &json_str)
-{
-    std::vector<double> result;
-
-    yyjson_doc *doc = yyjson_read(json_str.c_str(), json_str.size(), 0);
-    if (!doc)
-    {
-        return result;
-    }
-
-    yyjson_val *root = yyjson_doc_get_root(doc);
-    if (!root || yyjson_get_type(root) != YYJSON_TYPE_ARR)
-    {
-        yyjson_doc_free(doc);
-        return result;
-    }
-
-    size_t idx, len;
-    yyjson_val *val;
-    yyjson_arr_foreach(root, idx, len, val)
-    {
-        if (yyjson_get_type(val) == YYJSON_TYPE_NUM && yyjson_get_subtype(val) == YYJSON_SUBTYPE_REAL)
-        {
-            result.push_back(yyjson_get_real(val));
-        }
-    }
-
-    yyjson_doc_free(doc);
-    return result;
-}
-
-/**
- * @brief Compare two JSON arrays by parsing and comparing numeric values
- *
- * Since different libraries may serialize floats with slightly different formats,
- * we parse both strings with yyjson and compare the numeric values for equality.
- *
- * @param jsonA First JSON array string
- * @param jsonB Second JSON array string
- * @return true if both arrays have the same length and all values are approximately equal
- */
-inline bool compareJsonFloatArrays(const std::string &jsonA, const std::string &jsonB)
-{
-    std::vector<double> valuesA = parseJsonArrayToDoubles(jsonA);
-    std::vector<double> valuesB = parseJsonArrayToDoubles(jsonB);
-
-    if (valuesA.size() != valuesB.size())
-    {
-        return false;
-    }
-
-    const double epsilon = 1e-15;
-    for (size_t i = 0; i < valuesA.size(); ++i)
-    {
-        if (std::abs(valuesA[i] - valuesB[i]) > epsilon)
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-} // namespace wwjson
-} // namespace test
 
 // ============================================================================
 // Test case 1: UnsafeConfig vs BasicConfig for float serialization
@@ -117,7 +37,7 @@ inline bool compareJsonFloatArrays(const std::string &jsonA, const std::string &
 
 namespace test
 {
-namespace wwjson
+namespace perf
 {
 
 /**
@@ -206,8 +126,7 @@ class ExternalVsBasicDtoaPerf : public perf::RelativeTimer<ExternalVsBasicDtoaPe
     {
         methodA();
         methodB();
-//      return resultA.str() == resultB.str();
-        return compareJsonFloatArrays(resultA.str(), resultB.str());
+        return IsJsonEqual(resultA.str(), resultB.str());
     }
 
     static const char* testName() { return "UnsafeConfig vs BasicConfig Float Performance"; }
@@ -215,7 +134,7 @@ class ExternalVsBasicDtoaPerf : public perf::RelativeTimer<ExternalVsBasicDtoaPe
     static const char* labelB() { return "BasicConfig"; }
 };
 
-} // namespace wwjson
+} // namespace perf
 } // namespace test
 
 DEF_TAST(external_unsafe_vs_basic, "比较 UnsafeConfig 与 BasicConfig 浮点数序列化性能")
@@ -223,7 +142,7 @@ DEF_TAST(external_unsafe_vs_basic, "比较 UnsafeConfig 与 BasicConfig 浮点�
     test::CArgv argv;
     DESC("Args: --items=%d --loop=%d", argv.items, argv.loop);
 
-    test::wwjson::ExternalVsBasicDtoaPerf tester(argv.items, argv.start);
+    test::perf::ExternalVsBasicDtoaPerf tester(argv.items, argv.start);
     double ratio = tester.runAndPrint("double", "UnsafeConfig", "BasicConfig",
                                        argv.loop, 10);
     COUT(ratio < 1.0, true);
@@ -237,7 +156,7 @@ DEF_TAST(external_unsafe_vs_basic, "比较 UnsafeConfig 与 BasicConfig 浮点�
 
 namespace test
 {
-namespace wwjson
+namespace perf
 {
 
 /**
@@ -332,12 +251,9 @@ class BuilderVsYyjsonFloatPerf : public perf::RelativeTimer<BuilderVsYyjsonFloat
 
     bool methodVerify()
     {
-        // may differ on inf/null
-        // return true;
         methodA();
         methodB();
-        // Compare parsed numeric values instead of string representation
-        return compareJsonFloatArrays(resultA, resultB);
+        return IsJsonEqual(resultA, resultB);
     }
 
     static const char* testName() { return "Builder vs yyjson Float Performance Test"; }
@@ -345,7 +261,7 @@ class BuilderVsYyjsonFloatPerf : public perf::RelativeTimer<BuilderVsYyjsonFloat
     static const char* labelB() { return "yyjson"; }
 };
 
-} // namespace wwjson
+} // namespace perf
 } // namespace test
 
 DEF_TAST(external_builder_vs_yyjson, "比较 wwjson::Builder 与 yyjson 浮点数序列化性能")
@@ -353,10 +269,10 @@ DEF_TAST(external_builder_vs_yyjson, "比较 wwjson::Builder 与 yyjson 浮点�
     test::CArgv argv;
     DESC("Args: --items=%d --loop=%d", argv.items, argv.loop);
 
-    test::wwjson::BuilderVsYyjsonFloatPerf tester(argv.items, argv.start);
+    test::perf::BuilderVsYyjsonFloatPerf tester(argv.items, argv.start);
     double ratio = tester.runAndPrint("double", "wwjson::Builder", "yyjson",
                                        argv.loop, 10);
-    COUT(ratio < 1.0);
+    COUT(ratio < 1.1, true);
 }
 
 // ============================================================================
@@ -368,7 +284,7 @@ DEF_TOOL(external_float_format, "观察不同库的浮点数序列化格式")
     DESC("观察各种特殊浮点数的序列化格式");
 
     // Use BuilderVsYyjsonFloatPerf and directly assign test values
-    test::wwjson::BuilderVsYyjsonFloatPerf tester(1, 42);
+    test::perf::BuilderVsYyjsonFloatPerf tester(1, 42);
     tester.numbers = {
         // Positive and negative zero
         0.0,

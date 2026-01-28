@@ -511,14 +511,12 @@ public:
 
 } // namespace test::perf
 // Test case for comparing Basic Method vs Auto-close Method
-// FIX: Swapped order - methodA = Auto-close, methodB = Basic
 DEF_TAST(api_basic_vs_autoclose, "基本方法 vs 自动关闭方法性能对比")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items,
          argv.loop);
 
-    // FIX: Swapped order - methodA = Auto-close, methodB = Basic
     auto tester = test::perf::ApiMethodPerfTest(
         argv.items, argv.start,
         std::make_unique<test::perf::AutoCloseMethodBuilder>(),
@@ -531,14 +529,12 @@ DEF_TAST(api_basic_vs_autoclose, "基本方法 vs 自动关闭方法性能对比
 }
 
 // Test case for comparing Basic Method vs Operator Method
-// FIX: Swapped order - methodA = Operator, methodB = Basic
 DEF_TAST(api_basic_vs_operator, "基本方法 vs 操作符方法性能对比")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items,
          argv.loop);
 
-    // FIX: Swapped order - methodA = Operator, methodB = Basic
     auto tester = test::perf::ApiMethodPerfTest(
         argv.items, argv.start,
         std::make_unique<test::perf::OperatorMethodBuilder>(),
@@ -551,14 +547,12 @@ DEF_TAST(api_basic_vs_operator, "基本方法 vs 操作符方法性能对比")
 }
 
 // Test case for comparing Basic Method vs Local Object Method
-// FIX: Swapped order - methodA = Local Operator, methodB = Basic
 DEF_TAST(api_basic_vs_localobj, "基本方法 vs 局部对象方法性能对比")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items,
          argv.loop);
 
-    // FIX: Swapped order - methodA = Local Operator, methodB = Basic
     auto tester = test::perf::ApiMethodPerfTest(
         argv.items, argv.start,
         std::make_unique<test::perf::LocalOperatorMethodBuilder>(),
@@ -571,14 +565,12 @@ DEF_TAST(api_basic_vs_localobj, "基本方法 vs 局部对象方法性能对比"
 }
 
 // Test case for comparing Basic Method vs Lambda Method
-// FIX: Swapped order - methodA = Lambda, methodB = Basic
 DEF_TAST(api_basic_vs_lambda, "基本方法 vs Lambda方法性能对比")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items,
          argv.loop);
 
-    // FIX: Swapped order - methodA = Lambda, methodB = Basic
     auto tester = test::perf::ApiMethodPerfTest(
         argv.items, argv.start,
         std::make_unique<test::perf::LambdaMethodBuilder>(),
@@ -591,14 +583,12 @@ DEF_TAST(api_basic_vs_lambda, "基本方法 vs Lambda方法性能对比")
 }
 
 // Test case for comparing Basic Method vs Class Method
-// FIX: Swapped order - methodA = Class, methodB = Basic
 DEF_TAST(api_basic_vs_class, "基本方法 vs 类方法性能对比")
 {
     test::CArgv argv;
     DESC("Args: --start=%d --items=%d --loop=%d", argv.start, argv.items,
          argv.loop);
 
-    // FIX: Swapped order - methodA = Class, methodB = Basic
     auto tester = test::perf::ApiMethodPerfTest(
         argv.items, argv.start,
         std::make_unique<test::perf::ClassMethodBuilder>(),
@@ -696,7 +686,6 @@ DEF_TOOL(api_output_sample, "输出各方法构建的JSON示例")
 }
 
 // Test case for comparing Basic Method vs to_json Method
-// FIX: Swapped order - methodA = to_json, methodB = Basic
 DEF_TAST(api_basic_vs_tojson, "基本方法 vs to_json方法性能对比")
 {
     test::CArgv argv;

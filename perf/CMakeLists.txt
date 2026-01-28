@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.15)
 
 # Create performance test executable (relative performance tests only)
 add_executable(pfwwjson
+    perf_util.cpp
     p_builder.cpp
     p_number.cpp
     p_itoa.cpp

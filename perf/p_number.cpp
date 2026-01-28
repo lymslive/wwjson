@@ -2,6 +2,7 @@
 
 #include "argv.h"
 #include "relative_perf.h"
+#include "perf_util.h"
 
 #include "wwjson.hpp"
 #include "jbuilder.hpp"
@@ -197,47 +198,11 @@ class RandomDoubleArray : public RelativeTimer<RandomDoubleArray>
             return true;
         }
 
-        ::yyjson::Document docA(resultA);
-        ::yyjson::Document docB(resultB);
-        if (!docA.isValid() || !docB.isValid())
-        {
-            return false;
-        }
-
-        ::yyjson::Value rootA = docA.root();
-        ::yyjson::Value rootB = docB.root();
-        if (!rootA.isArray() || !rootB.isArray())
-        {
-            return false;
-        }
-
-        size_t lenA = rootA.size();
-        size_t lenB = rootB.size();
-        if (lenA != lenB)
-        {
-            return false;
-        }
-
-        const double tolerance = 1e-12;
-
-        for (size_t i = 0; i < lenA; ++i)
-        {
-            double numA = rootA / i | 0.0;
-            double numB = rootB / i | 0.0;
-            double max_val = std::max(std::abs(numA), std::abs(numB));
-            double rel_tolerance = tolerance * std::max(1.0, max_val);
-            if (std::abs(numA - numB) > rel_tolerance)
-            {
-                return false;
-            }
-        }
-
-        return true;
+        return IsJsonEqual(resultA, resultB);
     }
 };
 
 // Relative performance test: JString (Builder) vs std::string (RawBuilder) for integers
-// FIX: Swapped methodA/methodB to fix the inverted ratio issue
 class RandomIntJStringRel : public RelativeTimer<RandomIntJStringRel>
 {
   public:
@@ -327,7 +292,6 @@ class RandomIntJStringRel : public RelativeTimer<RandomIntJStringRel>
 };
 
 // Relative performance test: KString (FastBuilder) vs std::string (RawBuilder) for integers
-// FIX: Swapped methodA/methodB to fix the inverted ratio issue
 class RandomIntKStringRel : public RelativeTimer<RandomIntKStringRel>
 {
   public:
@@ -410,7 +374,6 @@ class RandomIntKStringRel : public RelativeTimer<RandomIntKStringRel>
 };
 
 // Relative performance test: JString (Builder) vs std::string (RawBuilder) for doubles
-// FIX: Swapped methodA/methodB to fix the inverted ratio issue
 class RandomDoubleJStringRel : public RelativeTimer<RandomDoubleJStringRel>
 {
   public:
@@ -483,11 +446,9 @@ class RandomDoubleJStringRel : public RelativeTimer<RandomDoubleJStringRel>
 
     bool methodVerify()
     {
-        // double format may differ
-        return true;
         methodA();
         methodB();
-        return raw_result == jstring_result;
+        return IsJsonEqual(raw_result, jstring_result);
     }
 
     static const char* testName() { return "Random Double JString Relative Test"; }
@@ -496,7 +457,6 @@ class RandomDoubleJStringRel : public RelativeTimer<RandomDoubleJStringRel>
 };
 
 // Relative performance test: KString (FastBuilder) vs std::string (RawBuilder) for doubles
-// FIX: Swapped methodA/methodB to fix the inverted ratio issue
 class RandomDoubleKStringRel : public RelativeTimer<RandomDoubleKStringRel>
 {
   public:
@@ -569,11 +529,9 @@ class RandomDoubleKStringRel : public RelativeTimer<RandomDoubleKStringRel>
 
     bool methodVerify()
     {
-        // double format may differ
-        return true;
         methodA();
         methodB();
-        return raw_result == kstring_result;
+        return IsJsonEqual(raw_result, kstring_result);
     }
 
     static const char* testName() { return "Random Double KString Relative Test"; }
@@ -594,21 +552,17 @@ DEF_TAST(number_int_rel, "随机整数数组相对性能测试")
 
     // Test 1: wwjson vs yyjson
     test::perf::RandomIntArray tester1(argv.items, argv.start);
-    double ratio1 = tester1.runAndPrint("wwjson vs yyjson", "wwjson builder",
+    double ratio1 = tester1.runAndPrint("wwjson vs yyjson", "RawBuilder",
                                         "yyjson API", argv.loop, 10);
     COUT(ratio1 < 1.0);
 
     // Test 2: JString vs std::string
-    // FIX: Now methodA=JString (faster), methodB=std::string (slower)
-    // So ratio = timeA/timeB < 1.0 when JString is faster
     test::perf::RandomIntJStringRel tester2(argv.items, argv.start);
     double ratio2 = tester2.runAndPrint("JString vs std::string", "JString",
                                         "std::string", argv.loop, 10);
     COUT(ratio2 < 1.0, true);
 
     // Test 3: KString vs std::string
-    // FIX: Now methodA=KString (faster), methodB=std::string (slower)
-    // So ratio = timeA/timeB < 1.0 when KString is faster
     test::perf::RandomIntKStringRel tester3(argv.items, argv.start);
     double ratio3 = tester3.runAndPrint("KString vs std::string", "KString",
                                         "std::string", argv.loop, 10);
@@ -623,21 +577,17 @@ DEF_TAST(number_double_rel, "随机 double 数组相对性能测试")
 
     // Test 1: wwjson vs yyjson
     test::perf::RandomDoubleArray tester1(argv.items, argv.start);
-    double ratio1 = tester1.runAndPrint("wwjson vs yyjson", "wwjson builder",
+    double ratio1 = tester1.runAndPrint("wwjson vs yyjson", "RawBuilder",
                                         "yyjson API", argv.loop, 10);
     COUT(ratio1 < 1.05);
 
     // Test 2: JString vs std::string
-    // FIX: Now methodA=JString (faster), methodB=std::string (slower)
-    // So ratio = timeA/timeB < 1.0 when JString is faster
     test::perf::RandomDoubleJStringRel tester2(argv.items, argv.start);
     double ratio2 = tester2.runAndPrint("JString vs std::string", "JString",
                                         "std::string", argv.loop, 10);
     COUT(ratio2 < 1.05, true);
 
     // Test 3: KString vs std::string
-    // FIX: Now methodA=KString (faster), methodB=std::string (slower)
-    // So ratio = timeA/timeB < 1.0 when KString is faster
     test::perf::RandomDoubleKStringRel tester3(argv.items, argv.start);
     double ratio3 = tester3.runAndPrint("KString vs std::string", "KString",
                                         "std::string", argv.loop, 10);

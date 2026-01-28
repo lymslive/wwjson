@@ -286,7 +286,6 @@ struct EscapeObjectRelativeTest : public test::perf::RelativeTimer<EscapeObjectR
 };
 
 // Relative performance test: JString (Builder) vs std::string (RawBuilder)
-// FIX: Swapped methodA/methodB to fix the inverted ratio issue
 struct StringObjectJStringRelativeTest
     : public test::perf::RelativeTimer<StringObjectJStringRelativeTest>
 {
@@ -331,7 +330,6 @@ struct StringObjectJStringRelativeTest
 };
 
 // Relative performance test: KString (FastBuilder) vs std::string (RawBuilder)
-// FIX: Swapped methodA/methodB to fix the inverted ratio issue
 struct StringObjectKStringRelativeTest
     : public test::perf::RelativeTimer<StringObjectKStringRelativeTest>
 {
@@ -376,7 +374,6 @@ struct StringObjectKStringRelativeTest
 };
 
 // Relative performance test: JString (Builder) vs std::string (RawBuilder) for escape
-// FIX: Swapped methodA/methodB to fix the inverted ratio issue
 struct EscapeObjectJStringRelativeTest
     : public test::perf::RelativeTimer<EscapeObjectJStringRelativeTest>
 {
@@ -421,7 +418,6 @@ struct EscapeObjectJStringRelativeTest
 };
 
 // Relative performance test: KString (FastBuilder) vs std::string (RawBuilder) for escape
-// FIX: Swapped methodA/methodB to fix the inverted ratio issue
 struct EscapeObjectKStringRelativeTest
     : public test::perf::RelativeTimer<EscapeObjectKStringRelativeTest>
 {
@@ -496,8 +492,6 @@ DEF_TAST(string_object_relative, "字符串对象构建相对性能测试（wwjs
     DESC("");
     for (int n : test_counts)
     {
-        // FIX: Now methodA=JString (faster), methodB=std::string (slower)
-        // So ratio = timeA/timeB < 1.0 when JString is faster
         test::perf::StringObjectJStringRelativeTest test(argv.start, n, 1);
         double ratio = test.runAndPrint(
             "String Object JString Test (items=" + std::to_string(n) + ")",
@@ -513,8 +507,6 @@ DEF_TAST(string_object_relative, "字符串对象构建相对性能测试（wwjs
     DESC("");
     for (int n : test_counts)
     {
-        // FIX: Now methodA=KString (faster), methodB=std::string (slower)
-        // So ratio = timeA/timeB < 1.0 when KString is faster
         test::perf::StringObjectKStringRelativeTest test(argv.start, n, 1);
         double ratio = test.runAndPrint(
             "String Object KString Test (items=" + std::to_string(n) + ")",
@@ -553,8 +545,6 @@ DEF_TAST(string_escape_relative, "转义字符串对象构建相对性能测试�
     DESC("");
     for (int n : test_counts)
     {
-        // FIX: Now methodA=JString (faster), methodB=std::string (slower)
-        // So ratio = timeA/timeB < 1.0 when JString is faster
         test::perf::EscapeObjectJStringRelativeTest test(argv.start, n, 1);
         double ratio = test.runAndPrint(
             "Escape Object JString Test (items=" + std::to_string(n) + ")",
@@ -570,8 +560,6 @@ DEF_TAST(string_escape_relative, "转义字符串对象构建相对性能测试�
     DESC("");
     for (int n : test_counts)
     {
-        // FIX: Now methodA=KString (faster), methodB=std::string (slower)
-        // So ratio = timeA/timeB < 1.0 when KString is faster
         test::perf::EscapeObjectKStringRelativeTest test(argv.start, n, 1);
         double ratio = test.runAndPrint(
             "Escape Object KString Test (items=" + std::to_string(n) + ")",

@@ -711,6 +711,19 @@ yyjson 有公开的 API `yyjson_write_number` 可用于将浮点数转字符串�
 在本地测试 `p_external.cpp` 用例 `external_builder_vs_yyjson` 性能很接近了。
 `yyjson_write_number` 确有一定的额外开销。
 
+## TODO: 2026-01-28/1 性能测试用例优化
+
+新增 `perf_util.cpp` ，利用 xyjson 封装特性简化 json 相等性比较，
+取代原 `p_external.cpp` 的比较工具函数；也应用于 `p_number.cpp` 的用例。
+
+但 `p_builder.cpp` 仍无法直接比较 json 。可能因为 wwjson::RawBuilder 
+对恰好为整数的浮点数输出为浮点数，在重新解析时认为是整数，与 yyjson 
+输出的 `.0` 后缀保持了浮点类型不同，类型不匹配也无法满足相等性比较。
+
+其他一些优化，删除旧注释的 FIX 标记，调整一些相对性能阈值。
+
+### DONE:20260128~183430
+
 ## TODO: 文档更新
 
 ## TODO: v1.1.2 封版

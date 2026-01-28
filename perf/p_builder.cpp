@@ -231,7 +231,6 @@ struct BuildJsonRelativeTest : public test::perf::RelativeTimer<BuildJsonRelativ
 };
 
 // Relative performance test: JString (Builder) vs std::string (RawBuilder)
-// FIX: Swapped methodA/methodB to fix the inverted ratio issue
 struct BuildJsonJStringRelativeTest
     : public test::perf::RelativeTimer<BuildJsonJStringRelativeTest>
 {
@@ -271,7 +270,6 @@ struct BuildJsonJStringRelativeTest
 };
 
 // Relative performance test: KString (FastBuilder) vs std::string (RawBuilder)
-// FIX: Swapped methodA/methodB to fix the inverted ratio issue
 struct BuildJsonKStringRelativeTest
     : public test::perf::RelativeTimer<BuildJsonKStringRelativeTest>
 {
@@ -341,8 +339,6 @@ DEF_TAST(build_relative, "JSON 构建相对性能测试")
 
     for (int n : test_counts)
     {
-        // FIX: Now methodA=JString (faster), methodB=std::string (slower)
-        // So ratio = timeA/timeB < 1.0 when JString is faster
         test::perf::BuildJsonJStringRelativeTest test2(n, 1);
         double ratio = test2.runAndPrint(
             "JString Test (n=" + std::to_string(n) + ")",
@@ -358,8 +354,6 @@ DEF_TAST(build_relative, "JSON 构建相对性能测试")
 
     for (int n : test_counts)
     {
-        // FIX: Now methodA=KString (faster), methodB=std::string (slower)
-        // So ratio = timeA/timeB < 1.0 when KString is faster
         test::perf::BuildJsonKStringRelativeTest test3(n, 1);
         double ratio = test3.runAndPrint(
             "KString Test (n=" + std::to_string(n) + ")",
