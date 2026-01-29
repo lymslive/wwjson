@@ -162,7 +162,7 @@ DEF_TAST(scope_if_bool_operator, "scope 变量的 if 语句中 operator bool 测
     }
 
     std::string expect =
-        R"({"name":"test_if","items":[1,2,{"nested_key":"nested_value"}],"config":{"debug":true,"version":1}})";
+        R"({"name":"test_if","items":[1,2,{"nested_key":"nested_value"}],"config":{"debug":true,"version":1.0}})";
     COUT(builder.GetResult(), expect);
     COUT(test::IsJsonValid(builder.json), true);
 }

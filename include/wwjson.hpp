@@ -346,9 +346,11 @@ template <typename stringT> struct NumberWriter
         double fractional_part = value - static_cast<double>(integer_part);
         
         // Handle pure integers efficiently
+        // Add ".0" suffix to preserve floating-point type information
         if (fractional_part == 0.0)
         {
             WriteUnsigned(dst, integer_part);
+            dst.append(".0", 2);
             return true;
         }
 
@@ -369,6 +371,7 @@ template <typename stringT> struct NumberWriter
         {
             ++integer_part;
             WriteUnsigned(dst, integer_part);
+            dst.append(".0", 2);
             return true;
         }
 

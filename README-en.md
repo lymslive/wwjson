@@ -49,7 +49,7 @@ int main() {
     builder.EndObject();
 
     std::string json = builder.GetResult(); // Use MoveResult for better efficiency
-    // {"name":"wwjson","version":1,"features":["fast","simple","header-only"]}
+    // {"name":"wwjson","version":1.0,"features":["fast","simple","header-only"]}
     return 0;
 }
 ```

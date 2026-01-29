@@ -29,7 +29,7 @@ DEF_TAST(readme_1, "example from readme")
     builder.EndObject();
 
     std::string json = builder.GetResult();
-    COUT(json, R"({"name":"wwjson","version":1,"features":["fast","simple","header-only"]})");
+    COUT(json, R"({"name":"wwjson","version":1.0,"features":["fast","simple","header-only"]})");
 #endif
 }
 
@@ -82,7 +82,7 @@ DEF_TAST(usage_2_2_first_example, "example from docs/usage.md")
         
         // 获取结果，更推荐 MoveResult()
         std::string json = builder.GetResult();
-        COUT(json, R"({"name":"WWJSON","version":1,"type":"header-only","language":"C++","license":"MIT"})");
+        COUT(json, R"({"name":"WWJSON","version":1.0,"type":"header-only","language":"C++","license":"MIT"})");
 //+     std::cout << json << std::endl;
         
 //+     return 0;

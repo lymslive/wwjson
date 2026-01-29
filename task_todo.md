@@ -756,7 +756,7 @@ yyjson 有公开的 API `yyjson_write_number` 可用于将浮点数转字符串�
 
 ### DONE: 20260128-235751
 
-## TODO: 浮点整数序列化加上 .0 后缀
+## TODO:2026-01-29/1 浮点整数序列化加上 .0 后缀
 
 当前 `wwjson.hpp` 的 NumberWriter 基本实现，主要基于 `std::to_chars` ，
 恰好是整数的浮点数输出为整数，满足最短格式。但在 json 序列化与反序列化
@@ -768,6 +768,8 @@ yyjson 有公开的 API `yyjson_write_number` 可用于将浮点数转字符串�
 输出等效的 json 。
 
 也要检查单元测试 utest ，检查这个格式变更否破坏单元测试，作相应的调整。
+
+### DONE: 20260129-094047
 
 ## TODO: 文档更新
 

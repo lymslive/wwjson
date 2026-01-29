@@ -1151,3 +1151,47 @@ wwjson::Builder 使用 yyjson_dtoa 比直接用 yyjson 快约 9%。
 - git status 显示软链接不再出现在 untracked files 中
 - dotAgent submodule 引用已更新到最新 commit（包含 link.sh）
 
+## 20260129-094047
+-----------------------
+
+### 修改内容
+
+**include/wwjson.hpp** - NumberWriter::WriteSmall 方法添加 ".0" 后缀：
+
+1. Line 348-355: 当 fractional_part == 0.0 时，添加 ".0"
+2. Line 368-377: 当四舍五入导致 scaled_int == 10000 时，添加 ".0"
+
+仅在 WriteSmall 优化路径添加 ".0"（覆盖 2^53 范围内的浮点数），fallback path 仍使用 std::to_chars 最短格式。
+
+**perf/p_builder.cpp** - 更新三个性能测试类的 methodVerify 方法：
+
+1. BuildJsonRelativeTest (line 226-228)：调用 methodA/B 后使用 test::IsJsonEqual() 比较
+2. BuildJsonJStringRelativeTest (line 262-267)：使用 test::IsJsonEqual() 替代字符串比较
+3. BuildJsonKStringRelativeTest (line 300-304)：使用 test::IsJsonEqual() 替代字符串比较
+4. 添加缺失头文件 #include "perf_util.h"
+
+**utest/t_number.cpp** - 更新浮点数测试用例的期望值：
+
+1. number_float_serialization (line 151): `"zero":0` → `"zero":0.0`
+2. number_float_basic (line 202): `{"value":123}` → `{"value":123.0}`
+3. number_float_edge (line 240): `{"value":123456789}` → `{"value":123456789.0}`
+4. number_float_negative (line 250, 264): `{"value":-123}` → `{"value":-123.0}`, `{"value":0}` → `{"value":0.0`
+
+**utest/t_basic.cpp** - 修复测试用例：
+
+Line 576: `"version":1` → `"version":1.0`
+
+**utest/t_scope.cpp** - 修复测试用例：
+
+Line 165: `"version":1` → `"version":1.0`
+
+**utest/t_usage.cpp** - 修复测试用例：
+
+Line 32: `"version":1` → `"version":1.0`
+Line 85: `"version":1` → `"version":1.0`
+
+### 测试结果
+
+运行完整单元测试：118 个测试用例全部通过。
+
+

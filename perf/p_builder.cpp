@@ -1,6 +1,7 @@
 #include "argv.h"
 #include "couttast/tinytast.hpp"
 #include "relative_perf.h"
+#include "perf_util.h"
 
 #include "wwjson.hpp"
 #include "yyjson.h"
@@ -223,7 +224,12 @@ struct BuildJsonRelativeTest : public test::perf::RelativeTimer<BuildJsonRelativ
     // Method B: yyjson build
     void methodB() { test::yyjson::BuildJson(yyjson_result, n); }
 
-    bool methodVerify() { return true; }
+    bool methodVerify()
+    {
+        methodA();
+        methodB();
+        return test::IsJsonEqual(wwjson_result, yyjson_result);
+    }
 
     static const char *testName() { return "BuildJson Relative Test"; }
     static const char *labelA() { return "wwjson"; }
@@ -257,11 +263,9 @@ struct BuildJsonJStringRelativeTest
 
     bool methodVerify()
     {
-        // double format may differ
-        return true;
-        test::wwjson::BuildJson(raw_result, n, size_kb);
-        test::wwjson::BuildJsonJString(jstring_result, n, size_kb);
-        return raw_result == jstring_result;
+        methodA();
+        methodB();
+        return test::IsJsonEqual(raw_result, jstring_result);
     }
 
     static const char *testName() { return "BuildJson JString Relative Test"; }
@@ -296,11 +300,9 @@ struct BuildJsonKStringRelativeTest
 
     bool methodVerify()
     {
-        // double format may differ
-        return true;
-        test::wwjson::BuildJson(raw_result, n, size_kb);
-        test::wwjson::BuildJsonKString(kstring_result, n, size_kb);
-        return raw_result == kstring_result;
+        methodA();
+        methodB();
+        return test::IsJsonEqual(raw_result, kstring_result);
     }
 
     static const char *testName() { return "BuildJson KString Relative Test"; }

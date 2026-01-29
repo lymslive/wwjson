@@ -573,7 +573,7 @@ DEF_TAST(basic_addmember_key, "AddMember 单键名重载测试 - 支持拆分键
     builder.GetResult();
 
     std::string expect =
-        R"({"config":{"debug":true,"timeout":30},"items":["item1","item2",123],"name":"wwjson","version":1})";
+        R"({"config":{"debug":true,"timeout":30},"items":["item1","item2",123],"name":"wwjson","version":1.0})";
     COUT(builder.json, expect);
     COUT(test::IsJsonValid(builder.json), true);
 }

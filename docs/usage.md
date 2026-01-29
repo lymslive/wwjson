@@ -80,7 +80,7 @@ int main()
 
 运行结果：
 ```json
-{"name":"WWJSON","version":1,"type":"header-only","language":"C++","license":"MIT"}
+{"name":"WWJSON","version":1.0,"type":"header-only","language":"C++","license":"MIT"}
 ```
 
 更多示例及编译方式请参考源码仓库

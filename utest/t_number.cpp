@@ -148,14 +148,14 @@ DEF_TAST(number_float_serialization, "多种浮点数序列化场景测试")
 
     // Default to high precision expectations
     expect =
-        R"({"zero":0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1234567.89,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.718281828459045,"precise_float":1.2345679,"precise_double":1.23456789012345})";
+        R"({"zero":0.0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1234567.89,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.718281828459045,"precise_float":1.2345679,"precise_double":1.23456789012345})";
 
     // If no to_chars support, adjust expectations based on format choice
     if (::wwjson::detail::use_simple_float_format)
     {
         // Simple format expectations %g
         expect =
-            R"({"zero":0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1.23457e+06,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.71828,"precise_float":1.23457,"precise_double":1.23457})";
+            R"({"zero":0.0,"positive":3.14159,"negative":-2.71828,"small":0.00123,"large":1.23457e+06,"pos_inf":null,"neg_inf":null,"nan_val":null,"float_val":3.14159,"double_val":2.71828,"precise_float":1.23457,"precise_double":1.23457})";
     }
 
     COUT(builder.json, expect);
@@ -199,7 +199,7 @@ DEF_TAST(number_float_basic, "浮点数优化基本测试")
     b1.BeginObject();
     b1.AddMember("value", 123.0);
     b1.EndObject();
-    COUT(b1.GetResult(), R"({"value":123})");
+    COUT(b1.GetResult(), R"({"value":123.0})");
 
     // Test simple decimal values
     wwjson::RawBuilder b2;
@@ -237,7 +237,7 @@ DEF_TAST(number_float_edge, "浮点数优化的边界情况测试")
     b3.BeginObject();
     b3.AddMember("value", 123456789.0);
     b3.EndObject();
-    COUT(b3.GetResult(), R"({"value":123456789})");
+    COUT(b3.GetResult(), R"({"value":123456789.0})");
 }
 
 DEF_TAST(number_float_negative, "负数浮点数优化测试")
@@ -247,7 +247,7 @@ DEF_TAST(number_float_negative, "负数浮点数优化测试")
     b1.BeginObject();
     b1.AddMember("value", -123.0);
     b1.EndObject();
-    COUT(b1.GetResult(), R"({"value":-123})");
+    COUT(b1.GetResult(), R"({"value":-123.0})");
 
     // Test negative decimals
     wwjson::RawBuilder b2;
@@ -261,7 +261,7 @@ DEF_TAST(number_float_negative, "负数浮点数优化测试")
     b3.BeginObject();
     b3.AddMember("value", -0.0);
     b3.EndObject();
-    COUT(b3.GetResult(), R"({"value":0})");
+    COUT(b3.GetResult(), R"({"value":0.0})");
 }
 
 DEF_TAST(number_float_special, "特殊浮点数值优化测试")
